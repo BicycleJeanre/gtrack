@@ -346,3 +346,176 @@ test("individual set targets survive editing and flow into training", async ({
     page.getByLabel("Barbell bench press set 2 reps", { exact: true }),
   ).toHaveValue("6");
 });
+
+test("build a session while recording and resume structural edits", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByLabel("Session name", { exact: true }).fill("Gym freestyle");
+  await page
+    .getByRole("button", { name: "Start session", exact: true })
+    .click();
+  await expect(page.locator("#finish")).toBeDisabled();
+  await page.reload();
+  await expect(page.locator(".session-head h2")).toHaveText("Gym freestyle");
+  await page.locator("#session-add").click();
+  await page
+    .getByLabel("Exercise from library")
+    .selectOption({ label: "Barbell bench press" });
+  await page
+    .getByRole("button", { name: "Add to session", exact: true })
+    .click();
+  await page
+    .getByLabel("Barbell bench press set 1 weight", { exact: true })
+    .fill("45");
+  await page
+    .getByLabel("Barbell bench press set 1 reps", { exact: true })
+    .fill("8");
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Add set to Barbell bench press" })
+    .click();
+  await expect(
+    page.getByLabel("Barbell bench press set 2 weight", { exact: true }),
+  ).toHaveValue("45");
+  await page
+    .getByRole("button", {
+      name: "Remove Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Keep training", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", {
+      name: "Remove Barbell bench press set 2",
+      exact: true,
+    })
+    .click();
+  await page.locator("#session-add").click();
+  await page
+    .getByRole("button", { name: "New exercise for the library" })
+    .click();
+  await page
+    .getByLabel("Exercise name", { exact: true })
+    .fill("Freestyle cable row");
+  await page
+    .getByLabel("Description", { exact: true })
+    .fill("Seated cable row; record stack weight.");
+  await page
+    .getByRole("button", { name: "Add to library", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Move Freestyle cable row up" })
+    .click();
+  await expect(page.locator(".logging-exercise h2").first()).toHaveText(
+    "Freestyle cable row",
+  );
+  await page.getByRole("button", { name: "Edit session details" }).click();
+  await page
+    .getByLabel("Session name", { exact: true })
+    .fill("Freestyle upper body");
+  await page.getByRole("button", { name: "Save details" }).click();
+  await expect(page.locator(".session-head h2")).toHaveText(
+    "Freestyle upper body",
+  );
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/session-mobile.png",
+    fullPage: true,
+  });
+  await page.reload();
+  await expect(page.locator(".session-head h2")).toHaveText(
+    "Freestyle upper body",
+  );
+  await expect(
+    page.getByLabel("Barbell bench press set 1 weight", { exact: true }),
+  ).toHaveValue("45");
+  await expect(
+    page.getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", { name: "Remove Freestyle cable row", exact: true })
+    .click();
+  await page.locator("#finish").click();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await expect(page.locator(".history")).toContainText("360 kg volume");
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await expect(page.locator(".plan")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Create workout", exact: false })
+    .click();
+  await expect(
+    page.getByLabel("Exercise from library").locator("option"),
+  ).toContainText(["Freestyle cable row"]);
+});
+
+test("editing a running workout preserves its template and confirms completed removals", async ({
+  page,
+}) => {
+  await createWorkout(page);
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Remove Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Remove completed work", exact: true })
+    .click();
+  await expect(page.locator("#finish")).toBeDisabled();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Remove Barbell bench press", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Remove completed work", exact: true })
+    .click();
+  await expect(page.locator(".logging-exercise")).toHaveCount(0);
+  await expect(page.locator("#finish")).toBeDisabled();
+  await page.reload();
+  await expect(page.locator(".logging-exercise")).toHaveCount(0);
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Edit Upper body A", exact: true })
+    .click();
+  await expect(page.getByLabel("Sets", { exact: true })).toHaveValue("2");
+  await expect(
+    page.getByLabel("Exercise 1 set 1 weight (kg)", { exact: true }),
+  ).toHaveValue("40");
+});

@@ -580,3 +580,21 @@ dialog h2 {
   color: #f87171;
   font-size: 22px;
 }
+
+/* Keep all recording controls reachable on narrow phone screens. */
+.set-grid.session-set {
+  grid-template-columns: 22px minmax(0, 1fr) minmax(0, 1fr) 44px 32px;
+  gap: 6px;
+}
+.session-set .check {
+  width: 44px;
+  min-width: 44px;
+}
+.session-set .text-button {
+  padding: 0;
+  min-height: 44px;
+  font-size: 22px;
+}
+#session-add {
+  margin-bottom: 16px;
+}

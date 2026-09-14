@@ -186,7 +186,7 @@ function empty(title: string, description: string, button = "") {
 }
 function renderWorkouts() {
   $("#screen").innerHTML =
-    `<button class="primary" id="new-workout">＋ Create workout</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
+    `<button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
       workouts()
         .map(
           (w) =>
@@ -198,6 +198,13 @@ function renderWorkouts() {
         "Create your first workout using exercises from the library.",
       )
     }`;
+  action("#start-empty", () => {
+    if (store.state.draft) {
+      view = "today";
+      render();
+      toast("Resume or discard your current session first.");
+    } else sessionDetails(true);
+  });
   action("#new-workout", () => openBuilder());
   action("[data-edit]", (e) =>
     openBuilder((e.currentTarget as HTMLElement).dataset.edit),
@@ -428,7 +435,10 @@ function renderTargets() {
     exerciseDialog(Number((e.currentTarget as HTMLElement).dataset.index));
   });
 }
-function exerciseDialog(index: number) {
+function exerciseDialog(
+  index: number,
+  onSelected?: (exercise: Exercise) => Promise<void>,
+) {
   modal(
     `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "Names and descriptions are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
   );
@@ -456,14 +466,18 @@ function exerciseDialog(index: number) {
         createdAt: Date.now(),
       };
       if (!existing) await store.put("exercises", exercise);
-      draftTargets[index] = {
-        ...draftTargets[index],
-        exerciseId: exercise.id,
-        name: exercise.name,
-        description: exercise.description,
-      };
-      close();
-      renderTargets();
+      if (onSelected) {
+        await onSelected(exercise);
+      } else {
+        draftTargets[index] = {
+          ...draftTargets[index],
+          exerciseId: exercise.id,
+          name: exercise.name,
+          description: exercise.description,
+        };
+        close();
+        renderTargets();
+      }
       void cloud?.flush();
       toast(
         existing
@@ -495,12 +509,133 @@ function bindStart() {
     window.scrollTo(0, 0);
   });
 }
+// Structural edits use the latest stored draft, after any pending input saves.
+let sessionEditing = false;
+function validSessionInputs() {
+  for (const input of document.querySelectorAll<HTMLInputElement>(
+    "#logging input",
+  ))
+    if (!input.disabled && !input.reportValidity()) return false;
+  return true;
+}
+async function editSession(change: (session: Session) => void) {
+  if (sessionEditing || !validSessionInputs()) return;
+  sessionEditing = true;
+  try {
+    await store.mutate((state) => {
+      if (state.draft) change(state.draft);
+    });
+    close();
+    render();
+  } finally {
+    sessionEditing = false;
+  }
+}
+function sessionDetails(isNew = false) {
+  if (!isNew && !validSessionInputs()) return;
+  const draft = store.state.draft;
+  modal(
+    `<form id="session-details"><h2>${isNew ? "Start a session" : "Session details"}</h2><label>Session name<input name="name" required maxlength="60" value="${esc(isNew ? "Freestyle workout" : draft!.workoutName)}"></label><label>Rest between sets (seconds)<input name="rest" type="number" required min="0" max="600" step="1" value="${isNew ? 90 : draft!.rest}"></label><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button class="primary" type="submit">${isNew ? "Start session" : "Save details"}</button></div></form>`,
+  );
+  $("#session-details").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const values = new FormData(form),
+      name = String(values.get("name")).trim(),
+      rest = Number(values.get("rest"));
+    if (!name) {
+      form.querySelector<HTMLInputElement>("[name=name]")!.focus();
+      return;
+    }
+    try {
+      if (isNew) {
+        await store.mutate((state) => {
+          if (!state.draft)
+            state.draft = {
+              id: uid(),
+              workoutName: name,
+              rest,
+              startedAt: Date.now(),
+              completedAt: 0,
+              exercises: [],
+            };
+        });
+        close();
+        view = "today";
+        render();
+      } else
+        await editSession((session) => {
+          session.workoutName = name;
+          session.rest = rest;
+        });
+    } catch (error) {
+      fail(error);
+    }
+  });
+}
+function sessionExerciseDialog() {
+  if (!validSessionInputs()) return;
+  if (!store.state.draft || store.state.draft.exercises.length >= 30) return;
+  const add = async (exercise: Exercise) => {
+    await editSession((session) => {
+      if (session.exercises.length < 30)
+        session.exercises.push({
+          exerciseId: exercise.id,
+          name: exercise.name,
+          description: exercise.description,
+          sets: [{ reps: 10, weight: 0, done: false }],
+        });
+    });
+  };
+  modal(
+    `<form id="session-exercise"><h2>Add exercise to session</h2><label>Exercise from library<select required><option value="">Choose an exercise…</option>${exercises()
+      .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`)
+      .join(
+        "",
+      )}</select></label><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Starts with one set. Adjust its reps and weight, then add more sets as needed.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
+  );
+  const select = $<HTMLSelectElement>("#session-exercise select");
+  select.addEventListener("change", () => {
+    $("#session-description").textContent =
+      store.state.exercises[select.value]?.description || "";
+  });
+  $("#session-exercise").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const exercise = store.state.exercises[select.value];
+    if (exercise) void add(exercise).catch(fail);
+  });
+  action("#session-new-exercise", () => exerciseDialog(0, add));
+}
+function removeSessionItem(exerciseIndex: number, setIndex?: number) {
+  if (!validSessionInputs()) return;
+  const exercise = store.state.draft?.exercises[exerciseIndex];
+  if (!exercise || (setIndex !== undefined && exercise.sets.length <= 1))
+    return;
+  const change = (session: Session) => {
+    if (setIndex === undefined) session.exercises.splice(exerciseIndex, 1);
+    else session.exercises[exerciseIndex].sets.splice(setIndex, 1);
+  };
+  const completed =
+    setIndex === undefined
+      ? exercise.sets.some((s) => s.done)
+      : exercise.sets[setIndex].done;
+  if (!completed) return editSession(change);
+  modal(
+    `<h2>Remove ${setIndex === undefined ? esc(exercise.name) : "this set"}?</h2><p>This removes completed work from the current session and its totals.</p><div class="actions"><button class="secondary" data-close>Keep training</button><button class="danger" id="remove-session-confirm">Remove completed work</button></div>`,
+  );
+  action("#remove-session-confirm", () => editSession(change));
+}
 function renderToday() {
   const draft = store.state.draft;
   if (!draft) {
     const list = workouts();
     $("#screen").innerHTML =
       `${history().length ? `<div class="summary"><span><strong>${history().length}</strong> sessions</span><span><strong>${fmt(history().reduce((n, s) => n + volume(s), 0))}</strong> kg logged</span></div>` : ""}${list.length ? `<div class="section-title"><h2>Choose a session</h2></div>${list.map((w) => `<article class="card plan"><h2>${esc(w.name)}</h2><p>${w.exercises.length} exercises · ${w.exercises.reduce((n, e) => n + e.sets, 0)} sets</p><button class="primary" data-start="${w.id}">Start workout</button></article>`).join("")}` : empty("Make room for your first workout.", "Build a session, then come here to log every set.", '<button class="primary" id="first-workout">Create workout</button>')}`;
+    $("#screen").insertAdjacentHTML(
+      "afterbegin",
+      '<button class="secondary" id="start-empty">＋ Start empty session</button>',
+    );
+    action("#start-empty", () => sessionDetails(true));
     action("#first-workout", () => openBuilder());
     bindStart();
     return;
@@ -508,7 +643,42 @@ function renderToday() {
   const total = draft.exercises.reduce((n, e) => n + e.sets.length, 0),
     done = completedSets(draft);
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${(done / total) * 100}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2><details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span></div>${e.sets.map((s, j) => `<div class="set-grid"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button></div>`).join("")}</section>`).join("")}</div><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2><button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2><div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div><details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+  action("#edit-session-details", () => sessionDetails());
+  action("#session-add", sessionExerciseDialog);
+  action("[data-session-remove]", (event) =>
+    removeSessionItem(
+      Number((event.currentTarget as HTMLElement).dataset.sessionRemove),
+    ),
+  );
+  action("[data-session-set-remove]", (event) => {
+    const button = event.currentTarget as HTMLElement;
+    return removeSessionItem(
+      Number(button.dataset.sessionSetRemove),
+      Number(button.dataset.set),
+    );
+  });
+  action("[data-session-up]", (event) => {
+    const index = Number(
+      (event.currentTarget as HTMLElement).dataset.sessionUp,
+    );
+    return editSession((session) => {
+      if (index > 0)
+        [session.exercises[index - 1], session.exercises[index]] = [
+          session.exercises[index],
+          session.exercises[index - 1],
+        ];
+    });
+  });
+  action("[data-session-set-add]", (event) => {
+    const index = Number(
+      (event.currentTarget as HTMLElement).dataset.sessionSetAdd,
+    );
+    return editSession((session) => {
+      const sets = session.exercises[index].sets;
+      if (sets.length < 12) sets.push({ ...sets.at(-1)!, done: false });
+    });
+  });
   document
     .querySelectorAll<HTMLInputElement>("#logging input")
     .forEach((input) =>

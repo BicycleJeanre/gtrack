@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Build a session while recording, starting empty or from a saved workout.
+- Add library/new exercises, reorder/remove exercises, and add/remove sets.
+- Edit session name and rest time; preserve the original workout plan.
+- Confirm removal of completed work; resume all session edits after a refresh.
+
 ## 0.1.0 — 2026-09-14
 
 Initial mobile gym-training app.

@@ -6,6 +6,7 @@ A personal gym training PWA for iPhone: plan workouts, log sets without receptio
 
 - Create, edit and archive workout plans; set exercise order, rest periods, and individual reps and weights for each set. Add or remove sets for warm-ups and working sets. Existing plans with uniform targets remain compatible.
 - Select exercises from a reusable library, with descriptions and new exercise contributions. Six common exercises are included; no fake workouts or history are created.
+- Start an empty session or use a saved plan. While recording, add library or new exercises, remove or reorder exercises, add or remove sets, and edit session name/rest. Completed work requires confirmation before removal. Changes save on the device and leave the original plan unchanged.
 - Log a session with automatic device saves, a rest countdown, restart recovery, and partial-session completion.
 - Review completed sessions and best working weights by exercise.
 - Export/import JSON backups; imports add missing records and preserve existing IDs.
