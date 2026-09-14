@@ -815,7 +815,8 @@ async function boot() {
     }
   });
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
-    let controlled = !!navigator.serviceWorker.controller;
+    const hadController = !!navigator.serviceWorker.controller;
+    let controlled = hadController;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (controlled) location.reload();
       else controlled = true;
@@ -824,16 +825,25 @@ async function boot() {
       `${import.meta.env.BASE_URL}sw.js`,
     );
     const waiting = () => {
-      if (registration.waiting && navigator.serviceWorker.controller) {
+      if (
+        registration.waiting?.state === "installed" &&
+        navigator.serviceWorker.controller
+      ) {
         deferredUpdate = registration.waiting;
         changed();
         if (view !== "builder") render();
       }
     };
-    waiting();
-    registration.addEventListener("updatefound", () =>
-      registration.installing?.addEventListener("statechange", waiting),
-    );
+    // First-install activation can overlap with controllerchange in WebKit.
+    // Only advertise a worker that was installed to replace an existing one.
+    if (hadController) waiting();
+    registration.addEventListener("updatefound", () => {
+      const installing = registration.installing;
+      const replacesActiveWorker =
+        !!registration.active && registration.active !== installing;
+      if (replacesActiveWorker)
+        installing?.addEventListener("statechange", waiting);
+    });
   }
 }
 // One editing tab per origin prevents two tabs from changing the same active session.
