@@ -11,4 +11,4 @@ Initial mobile gym-training app.
 - Installable PWA with versioned caching and safe updates.
 - Automated browser, data-model, security-rule and sync checks.
 
-Firebase rules are deployed to `YOUR_FIREBASE_PROJECT`. The GitHub Pages build is prepared; publishing is blocked by the current GitHub plan for this private repository.
+Firebase access rules are deployed. The initial GitHub Pages deployment uses configuration supplied through GitHub Actions secrets.

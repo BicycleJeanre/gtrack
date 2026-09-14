@@ -13,7 +13,7 @@ A personal gym training PWA for iPhone: plan workouts, log sets without receptio
 - Optional Firebase email/password accounts, a shared exercise library, private plans/history, and a durable synchronization queue.
 - Automated Chromium and WebKit browser tests, data-model tests, Firebase Rules tests and an emulator-based multi-account sync test.
 
-**Firebase project `YOUR_FIREBASE_PROJECT` is configured locally: Firestore rules/indexes are deployed and email/password sign-in is enabled. Hosting has not been deployed.** Without Firebase configuration the app is fully usable in device-only mode. Its records survive page refreshes, but are not synced or shared between users. The original design exploration remains in `mockups/workout.html`.
+**The Firebase project is configured locally: Firestore rules/indexes are deployed and email/password sign-in is enabled. The site is deployed through GitHub Pages.** Without Firebase configuration the app is fully usable in device-only mode. Its records survive page refreshes, but are not synced or shared between users. The original design exploration remains in `mockups/workout.html`.
 
 ## Run locally
 
@@ -76,13 +76,13 @@ Exports contain exercises, plans (including archived plans) and **completed** se
 
 `.github/workflows/check.yml` runs the checks. `.github/workflows/deploy.yml` is **manual** and publishes the production build to GitHub Pages with `/gtrack/` as its base path.
 
-GitHub rejected Pages setup for this private repository on the current plan (HTTP 422, 2026-09-14). The repository remains private. Publishing requires a supported GitHub plan, explicit approval to make the repository public, or a different static host. The public Firebase build variables are configured in GitHub Actions.
+The source repository is public. Live Firebase configuration stays in the ignored `.env.local` file and encrypted GitHub Actions secrets, injected only during deployment. The published JavaScript necessarily contains Firebase web identifiers; authentication and Firestore Security Rules protect the data. No service-account keys or login credentials belong in this repository.
 
 Before deploying:
 
-- Verify GitHub Pages availability for this private repository and account plan. A private repository does not make the website private.
+- The live site is available at https://bicyclejeanre.github.io/gtrack/.
 - Select **GitHub Actions** as the Pages source.
-- Set the four public `VITE_FIREBASE_*` values as repository Actions variables.
+- Set the four public `VITE_FIREBASE_*` values as repository Actions secrets.
 - Configure Firebase and deploy its Security Rules separately.
 - Run **Deploy to GitHub Pages**. The workflow refuses a build with missing Firebase values.
 
