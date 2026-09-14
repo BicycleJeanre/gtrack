@@ -1,0 +1,42 @@
+{
+  "name": "gtrack",
+  "version": "0.1.0",
+  "description": "A personal gym training app for planning workouts and tracking progress, designed to work offline on an iPhone and sync data online when connected.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-gtrack \"node --test tests/rules.test.mjs\"",
+    "test:unit": "node --experimental-strip-types --test tests/model.test.ts",
+    "test:cloud": "firebase emulators:exec --only auth,firestore --project demo-gtrack \"playwright test --config playwright.cloud.config.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BicycleJeanre/gtrack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/BicycleJeanre/gtrack/issues"
+  },
+  "homepage": "https://github.com/BicycleJeanre/gtrack#readme",
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "idb": "^8.0.3"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.63.0",
+    "firebase-tools": "^15.30.0",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

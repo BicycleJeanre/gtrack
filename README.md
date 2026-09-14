@@ -1,90 +1,114 @@
-# gtrack
+# GTrack
 
-A personal gym training app for planning workouts and tracking progress, designed to work offline on an iPhone and sync data online when connected.
+A personal gym training PWA for iPhone: plan workouts, log sets without reception, and review actual training progress. Intended for personal use and a few friends with separate accounts. The mobile UI follows FTrack’s charcoal and cyan theme.
 
-## Purpose and audience
+## Current implementation
 
-The app is primarily for personal use, with possibly one or two friends using their own accounts. There is no planned public product launch or App Store release. This repository is private.
+- Create, edit and archive workout plans; set exercise order, rest periods, and individual reps and weights for each set. Add or remove sets for warm-ups and working sets. Existing plans with uniform targets remain compatible.
+- Select exercises from a reusable library, with descriptions and new exercise contributions. Six common exercises are included; no fake workouts or history are created.
+- Log a session with automatic device saves, a rest countdown, restart recovery, and partial-session completion.
+- Review completed sessions and best working weights by exercise.
+- Export/import JSON backups; imports add missing records and preserve existing IDs.
+- Installable PWA with a versioned offline app cache and safe update prompt.
+- Optional Firebase email/password accounts, a shared exercise library, private plans/history, and a durable synchronization queue.
+- Automated Chromium and WebKit browser tests, data-model tests, Firebase Rules tests and an emulator-based multi-account sync test.
 
-The intended core features are:
+**Firebase project `YOUR_FIREBASE_PROJECT` is configured locally: Firestore rules/indexes are deployed and email/password sign-in is enabled. Hosting has not been deployed.** Without Firebase configuration the app is fully usable in device-only mode. Its records survive page refreshes, but are not synced or shared between users. The original design exploration remains in `mockups/workout.html`.
 
-- Plan workouts and exercises.
-- Log completed workouts, including weights, sets, and reps.
-- Review workout history and progress over time.
-- Use downloaded plans and record training without an internet connection.
-- Sync training data across devices when online.
+## Run locally
 
-The detailed screens and first-release feature set have not yet been defined.
+Use Node 24 LTS (minimum 22.12):
 
-## Agreed direction
+```sh
+npm ci
+npm run dev
+```
 
-We will build a **Progressive Web App (PWA)** using **Firebase Authentication and Cloud Firestore** for accounts and online data. Keeping deployment and maintenance simple is a priority.
+Open the URL printed by Vite. To test the installable/offline production build:
 
-| Component | Responsibility |
-| --- | --- |
-| GitHub Pages, intended hosting target | Serve the PWA's static files over HTTPS. Availability for this private repository still needs to be checked against the GitHub account's plan. |
-| Service worker and app cache | Keep the app's essential screens and assets available for offline launch after an initial online load. |
-| Firestore persistent browser cache | Make downloaded data and pending writes available across app restarts and while offline. Web persistence must be explicitly enabled. |
-| Firebase Authentication | Provide a separate account for each user. |
-| Cloud Firestore | Store the online data and synchronize local changes when connected. |
+```sh
+npm run build
+npm run preview
+```
 
-The frontend framework is still undecided. No custom application server is currently planned.
+Open `http://127.0.0.1:4173/`, allow the first online load to finish, then use Account → Ready for the gym to check offline availability. The development server does not register a service worker. On iPhone, installation requires a reachable HTTPS deployment; the computer’s localhost URL is not reachable from the phone.
 
-## Installation and deployment
+## Connect Firebase
 
-Users will open the hosted URL on their iPhone and choose **Add to Home Screen**, then launch the app from its own icon. The initial installation, sign-in, and data download require connectivity.
+1. Create or select a Firebase project. Register a **Web app** and copy its public web configuration.
+2. Enable **Authentication → Email/Password**. Add the deployed hostname to Authentication’s authorized domains (and localhost for local development where needed).
+3. Create Cloud Firestore in the chosen region. Use the locked rules in this repository, not open test-mode rules.
+4. Copy `.env.example` to `.env.local` and set all four `VITE_FIREBASE_*` values. These are public web-app identifiers; never put administrative credentials or service-account keys in the frontend.
+5. Deploy the access rules to the selected project:
 
-App updates will be published through the GitHub hosting workflow. No Apple Developer membership, signing renewal, TestFlight build, or App Store review is needed for the PWA.
+   ```sh
+   npx firebase login
+   npx firebase deploy --only firestore:rules,firestore:indexes --project YOUR_PROJECT_ID
+   ```
 
-A private source repository does not by itself make the hosted website private. Access to training data must be enforced through authentication and database security rules, regardless of whether the app's URL is publicly reachable.
+6. Restart Vite, or rebuild for production. In Account, choose **Sign in or create account**.
 
-## Offline operation and synchronization
+Device-only records and account records are intentionally separate. To move local records into an account, export before signing in, then import in that account. Imported exercise names/descriptions are shared; workout plans and training logs remain private.
 
-The intended experience is:
+All signed-in users can read and create library entries. Entries cannot be edited or deleted by clients, so a user cannot replace another user’s description. Normalized names use deterministic IDs to deduplicate normal app contributions. Security Rules validate the shared entry shape but cannot verify the client’s SHA-256 normalization; a hostile client could bypass name uniqueness. This is a small trusted-user application, without public signup moderation or shared-library administration.
 
-1. Plan a workout on a phone or laptop while online.
-2. Download the plans and history needed on the training device.
-3. At the gym, record sets, reps, and weights without needing reception.
-4. Keep pending changes locally across closing and reopening the app.
-5. Synchronize while the app is open and connected again, making the results available on other signed-in devices.
+## Data and offline behavior
 
-The interface should clearly distinguish **Saved on phone**, **Sync pending**, and **Synced**, and make sync errors visible. We should not depend on background sync while the iPhone app is closed.
+| Record                        | Storage and access                                                                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `exercises/{nameHash}`        | Shared with authenticated users; create-only.                                                                                           |
+| `users/{uid}/workouts/{id}`   | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
+| `users/{uid}/sessions/{uuid}` | Private, immutable completed sessions; snapshots preserve exercise names, descriptions and set values. Identical retries are permitted. |
+| Active session                | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
+| Pending sync queue            | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
 
-Firestore only makes cached data available offline; it does not automatically download an entire account. We must deliberately load the plans and history needed for offline use and define cache retention accordingly.
+Every user edit is saved to IndexedDB before the UI reports success. Cloud mode also explicitly enables Firestore’s persistent multi-tab cache. Listeners download the shared library and all plans/completed sessions for the signed-in account, then merge downloaded records around pending local edits. This full-history approach is appropriate for a few users; add pagination/retention before growing the app.
 
-Firestore uses last-write-wins behavior for competing changes to the same document. Record structure and edit-conflict handling still need to be designed so that updates from different devices do not unexpectedly overwrite training history.
+The service worker precaches static app files only; it does not cache Firebase authentication responses. Sync runs when the app is open and connected, at sign-in, after saves, on reconnection and when returning to the app. Errors remain visible with a retry action. There is no dependency on closed-app background sync. An active draft is always device-local, even if other records say Synced.
 
-## Privacy and data recovery
+One editor tab is allowed per origin using Web Locks where supported. This prevents two tabs from changing the same active session. IndexedDB transactions protect record writes independently. Workouts remain editable while a session exists, but those edits do not alter the already-started session. Across devices, plan edits are last-write-wins; completed history uses unique immutable session IDs to avoid overwrites.
 
-- Keep each user's training data private by default using Firestore Security Rules tied to their authenticated user ID.
-- Any sharing of plans or results between friends would be an explicit future feature.
-- Never include administrative credentials or service-account keys in the frontend or repository.
-- Include export and import so users can retain an independent copy of their training history.
-- Treat synchronization and backup as separate concerns: synchronization also propagates deletions.
+Use the app on trusted devices: locally cached account data remains in browser storage after sign-out and is not encrypted by GTrack. Signing out does not expose it in another account’s UI. Pending records or active sessions must be finished/synced before app sign-out. Browser storage can be cleared or evicted; synchronization is not a backup.
 
-Browser storage can be cleared or evicted. Persistent storage should be requested where supported, but it cannot replace online synchronization and independent exports. Unsynced records remain vulnerable if local storage is lost.
+Exports contain exercises, plans (including archived plans) and **completed** sessions. Active sessions stay device-local and are not exported. Import validates the format before any write, merges missing IDs in one transaction, and does not replace existing records. Keep an independent export even when syncing.
 
-## Cost expectations
+## Deployment
 
-For a few users storing mainly workout text and numbers, the expectation is that Firestore usage will fit within its free allowance. This is an estimate, not a guarantee; current quotas and usage should be checked during setup. Media storage is outside the currently discussed scope.
+`.github/workflows/check.yml` runs the checks. `.github/workflows/deploy.yml` is **manual** and publishes the production build to GitHub Pages with `/gtrack/` as its base path.
 
-## Implementation status and next steps
+GitHub rejected Pages setup for this private repository on the current plan (HTTP 422, 2026-09-14). The repository remains private. Publishing requires a supported GitHub plan, explicit approval to make the repository public, or a different static host. The public Firebase build variables are configured in GitHub Actions.
 
-This repository currently records the agreed direction only. The PWA, Firebase project, authentication, database rules, and deployment workflow have not been implemented or configured.
+Before deploying:
 
-Next steps:
+- Verify GitHub Pages availability for this private repository and account plan. A private repository does not make the website private.
+- Select **GitHub Actions** as the Pages source.
+- Set the four public `VITE_FIREBASE_*` values as repository Actions variables.
+- Configure Firebase and deploy its Security Rules separately.
+- Run **Deploy to GitHub Pages**. The workflow refuses a build with missing Firebase values.
 
-1. Define the first version's workout-planning, logging, and progress screens.
-2. Choose the frontend framework and design the data model.
-3. Configure Firebase Authentication and Firestore with per-user access rules.
-4. Build a small working PWA and set up hosting.
-5. Verify installation, offline launch, workout logging in airplane mode, restart recovery, reconnection sync, and app updates on a real iPhone.
-6. Verify isolation between accounts, cross-device edits, and export/import recovery.
+The app also supports other static HTTPS hosts. Set `BASE_PATH=/` for a root-domain deployment or the appropriate subdirectory. Never serve the repository root as a public production website; publish `dist/` only.
 
-## References
+Updates wait for an explicit reload; an active session or open editor prevents applying an update. Every build has a distinct app cache. The prior version remains active until the new build is completely cached and activated.
 
-- [GitHub Pages overview](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
+## Verification
+
+```sh
+npx playwright install chromium webkit
+npm run test:unit
+npm run build
+npm test
+# Requires Java 21+ for the Firestore emulator:
+npm run test:rules
+npm run test:cloud
+```
+
+Tests use synthetic fixtures and the `demo-gtrack` emulator project only. No production data is queried. Browser coverage includes exercise contributions and reuse, editing/reordering, durable session logs, offline restart with the actual origin stopped, history/progress, export/import and account/tab isolation. Emulator coverage checks library sharing, private records, immutable history, offline sync and a second device.
+
+Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, airplane-mode launch, log sets, close/reopen, reconnect and sync, install an update, and restore an exported backup. Desktop WebKit testing does not replace this device check. Real-project authentication and reconnection also need a smoke test after configuration.
+
+## Technical references
+
 - [Firestore offline persistence](https://firebase.google.com/docs/firestore/manage-data/enable-offline)
 - [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
-- [Firestore pricing and free quotas](https://firebase.google.com/docs/firestore/pricing)
-- [WebKit browser storage policy](https://webkit.org/blog/14403/updates-to-storage-policy/)
+- [Vite static deployment](https://vite.dev/guide/static-deploy)
+- [GitHub Pages overview](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)

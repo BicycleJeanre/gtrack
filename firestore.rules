@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function stringBetween(value, max) { return value is string && value.size() > 0 && value.size() <= max; }
+    function validExercise(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','name','description','createdAt'])
+        && d.keys().hasOnly(['id','name','description','createdAt'])
+        && d.id == id && id.matches('^[a-f0-9]{64}$')
+        && stringBetween(d.name, 80) && stringBetween(d.description, 600)
+        && d.createdAt is number && d.createdAt > 0;
+    }
+    function validWorkout(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','name','rest','exercises','updatedAt','archived'])
+        && d.keys().hasOnly(['id','name','rest','exercises','updatedAt','archived'])
+        && d.id == id && stringBetween(d.name, 60)
+        && d.rest is number && d.rest >= 0 && d.rest <= 600
+        && d.exercises is list && d.exercises.size() > 0 && d.exercises.size() <= 30
+        && d.updatedAt is number && d.updatedAt > 0 && d.archived is bool;
+    }
+    function validSession(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','workoutName','rest','startedAt','completedAt','exercises'])
+        && d.keys().hasOnly(['id','workoutName','rest','startedAt','completedAt','exercises'])
+        && d.id == id && stringBetween(d.workoutName, 60)
+        && d.rest is number && d.rest >= 0 && d.rest <= 600
+        && d.startedAt is number && d.startedAt > 0
+        && d.completedAt is number && d.completedAt >= d.startedAt
+        && d.exercises is list && d.exercises.size() > 0 && d.exercises.size() <= 30;
+    }
+    match /exercises/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validExercise(id);
+      // Library entries are shared and immutable: no user can rewrite someone else's description.
+      allow update, delete: if false;
+    }
+    match /users/{uid}/workouts/{id} {
+      allow read: if owner(uid);
+      allow create, update: if owner(uid) && validWorkout(id);
+      allow delete: if false;
+    }
+    match /users/{uid}/sessions/{id} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && validSession(id);
+      // Idempotent retries are allowed; completed training history cannot be overwritten.
+      allow update: if owner(uid) && request.resource.data == resource.data;
+      allow delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
