@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Expand the built-in library to 64 common gym exercises with descriptions and weight-recording conventions.
+
 - Build a session while recording, starting empty or from a saved workout.
 - Add library/new exercises, reorder/remove exercises, and add/remove sets.
 - Edit session name and rest time; preserve the original workout plan.

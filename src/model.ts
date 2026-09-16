@@ -242,6 +242,235 @@ export async function seedExercises(): Promise<Exercise[]> {
       "Leg press",
       "Machine leg press. Use the same convention for loaded weight each session.",
     ],
+    [
+      "Incline barbell bench press",
+      "Incline bench press using a barbell. Record total weight including the bar.",
+    ],
+    [
+      "Dumbbell bench press",
+      "Flat bench press using dumbbells. Record the weight of one dumbbell.",
+    ],
+    [
+      "Incline dumbbell bench press",
+      "Incline bench press using dumbbells. Record the weight of one dumbbell.",
+    ],
+    [
+      "Dumbbell chest fly",
+      "Chest fly on a flat bench using dumbbells. Record the weight of one dumbbell.",
+    ],
+    [
+      "Cable chest fly",
+      "Chest fly using two cable handles. Record the selected weight on one stack.",
+    ],
+    [
+      "Machine chest press",
+      "Seated chest press machine. Record the selected stack weight or added plates consistently.",
+    ],
+    ["Pec deck", "Seated chest fly machine. Record the selected stack weight."],
+    [
+      "Push-up",
+      "Bodyweight press from the floor. Record 0 kg when unweighted, or added resistance only.",
+    ],
+    [
+      "Dip",
+      "Parallel-bar dip. Record added weight only, or 0 kg for bodyweight.",
+    ],
+    [
+      "Lat pulldown",
+      "Pull the cable bar toward the upper chest. Record the selected stack weight.",
+    ],
+    [
+      "Pull-up",
+      "Overhand-grip pull-up. Record added weight only, or 0 kg for bodyweight.",
+    ],
+    [
+      "Chin-up",
+      "Underhand-grip pull-up. Record added weight only, or 0 kg for bodyweight.",
+    ],
+    [
+      "Barbell bent-over row",
+      "Bent-over row using a barbell. Record total weight including the bar.",
+    ],
+    [
+      "One-arm dumbbell row",
+      "Row one dumbbell at a time. Record the dumbbell weight and reps per side; complete both sides before ticking the set.",
+    ],
+    [
+      "Chest-supported dumbbell row",
+      "Row dumbbells with the chest supported on an incline bench. Record the weight of one dumbbell.",
+    ],
+    [
+      "Machine row",
+      "Seated row machine. Record the selected stack weight or added plates consistently.",
+    ],
+    [
+      "Straight-arm pulldown",
+      "Cable pulldown with mostly straight arms. Record the selected stack weight.",
+    ],
+    [
+      "Barbell deadlift",
+      "Deadlift a barbell from the floor. Record total weight including the bar.",
+    ],
+    [
+      "Trap bar deadlift",
+      "Deadlift using a trap bar. Record total weight including the bar.",
+    ],
+    [
+      "Barbell overhead press",
+      "Standing overhead press using a barbell. Record total weight including the bar.",
+    ],
+    [
+      "Machine shoulder press",
+      "Seated overhead press machine. Record the selected stack weight or added plates consistently.",
+    ],
+    [
+      "Dumbbell lateral raise",
+      "Raise dumbbells out to the sides. Record the weight of one dumbbell.",
+    ],
+    [
+      "Dumbbell front raise",
+      "Raise dumbbells in front of the body. Record the weight of one dumbbell and reps per arm.",
+    ],
+    [
+      "Reverse pec deck",
+      "Rear-shoulder fly on a reverse pec deck machine. Record the selected stack weight.",
+    ],
+    [
+      "Face pull",
+      "Cable rope pull toward the face. Record the selected stack weight.",
+    ],
+    [
+      "Dumbbell shrug",
+      "Shoulder shrug holding dumbbells. Record the weight of one dumbbell.",
+    ],
+    [
+      "Barbell curl",
+      "Standing biceps curl using a barbell. Record total weight including the bar.",
+    ],
+    [
+      "EZ-bar curl",
+      "Biceps curl using an EZ bar. Record total weight including the bar.",
+    ],
+    [
+      "Dumbbell curl",
+      "Biceps curl using dumbbells. Record the weight of one dumbbell and reps per arm.",
+    ],
+    [
+      "Hammer curl",
+      "Dumbbell curl with palms facing inward. Record the weight of one dumbbell and reps per arm.",
+    ],
+    [
+      "Preacher curl",
+      "Biceps curl with the upper arms supported on a preacher bench. Record total bar weight, or stack weight for a machine.",
+    ],
+    [
+      "Cable biceps curl",
+      "Biceps curl using a cable attachment. Record the selected stack weight.",
+    ],
+    [
+      "Triceps pushdown",
+      "Cable triceps extension using a rope or bar. Record the selected stack weight and use the same attachment consistently.",
+    ],
+    [
+      "Overhead cable triceps extension",
+      "Overhead triceps extension using a cable attachment. Record the selected stack weight.",
+    ],
+    [
+      "Dumbbell overhead triceps extension",
+      "Two-handed overhead triceps extension using one dumbbell. Record that dumbbell’s weight.",
+    ],
+    [
+      "EZ-bar skull crusher",
+      "Lying triceps extension using an EZ bar. Record total weight including the bar.",
+    ],
+    [
+      "Front squat",
+      "Squat with a barbell supported at the front of the shoulders. Record total weight including the bar.",
+    ],
+    [
+      "Goblet squat",
+      "Squat holding one dumbbell or kettlebell at the chest. Record the weight of that implement.",
+    ],
+    [
+      "Hack squat",
+      "Squat using a hack squat machine. Record added plates consistently; note the machine used.",
+    ],
+    [
+      "Smith machine squat",
+      "Squat using a Smith machine. Record added plates consistently because bar resistance varies between machines.",
+    ],
+    [
+      "Bulgarian split squat",
+      "Rear-foot-elevated split squat holding dumbbells. Record one dumbbell’s weight and reps per leg; complete both legs before ticking the set.",
+    ],
+    [
+      "Dumbbell lunge",
+      "Lunge holding dumbbells. Record one dumbbell’s weight and reps per leg; complete both legs before ticking the set.",
+    ],
+    [
+      "Dumbbell step-up",
+      "Step onto a platform holding dumbbells. Record one dumbbell’s weight and reps per leg; complete both legs before ticking the set.",
+    ],
+    [
+      "Dumbbell Romanian deadlift",
+      "Hip-hinge movement using dumbbells. Record the weight of one dumbbell.",
+    ],
+    [
+      "Barbell hip thrust",
+      "Hip thrust with the upper back supported on a bench. Record total weight including the bar.",
+    ],
+    [
+      "Leg extension",
+      "Seated knee extension machine. Record the selected stack weight.",
+    ],
+    [
+      "Seated leg curl",
+      "Seated knee flexion machine. Record the selected stack weight.",
+    ],
+    [
+      "Lying leg curl",
+      "Prone knee flexion machine. Record the selected stack weight.",
+    ],
+    [
+      "Hip abduction machine",
+      "Seated machine movement pressing the legs outward. Record the selected stack weight.",
+    ],
+    [
+      "Hip adduction machine",
+      "Seated machine movement bringing the legs inward. Record the selected stack weight.",
+    ],
+    [
+      "Standing calf raise",
+      "Standing calf raise machine. Record the selected stack weight or added plates consistently.",
+    ],
+    [
+      "Seated calf raise",
+      "Seated calf raise machine. Record the selected stack weight or added plates consistently.",
+    ],
+    [
+      "Cable crunch",
+      "Kneeling abdominal crunch using a cable rope. Record the selected stack weight.",
+    ],
+    [
+      "Crunch",
+      "Floor abdominal crunch. Record 0 kg for bodyweight or added weight only.",
+    ],
+    [
+      "Hanging knee raise",
+      "Raise the knees while hanging from a bar. Record 0 kg for bodyweight or added weight only.",
+    ],
+    [
+      "Lying leg raise",
+      "Raise the legs while lying on the floor or a bench. Record 0 kg for bodyweight or added weight only.",
+    ],
+    [
+      "Ab wheel rollout",
+      "Kneeling rollout using an ab wheel. Record repetitions and 0 kg when unweighted.",
+    ],
+    [
+      "Back extension",
+      "Back extension on a bench. Record added weight only, or 0 kg for bodyweight.",
+    ],
   ];
   return Promise.all(
     seeds.map(async ([name, description]) => ({
