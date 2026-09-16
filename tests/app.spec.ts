@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
-async function offlineServer() {
+async function offlineServer(cachePages = false) {
   const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -24,7 +24,15 @@ async function offlineServer() {
         "Content-Type",
         types[extname(file)] || "application/octet-stream",
       );
-      const content = await readFile(file);
+      let content = await readFile(file);
+      if (cachePages && (pathname === "/" || pathname === "/index.html")) {
+        res.setHeader("Cache-Control", "max-age=600");
+        content = Buffer.from(
+          content
+            .toString()
+            .replace("</title>", ` revision ${revision}</title>`),
+        );
+      }
       res.end(
         pathname === "/sw.js"
           ? content.toString() + "\n// test revision " + revision
@@ -253,7 +261,7 @@ test("invalid backups cannot replace data and second tabs cannot edit a session"
 });
 
 test("app updates wait for training to finish", async ({ page }) => {
-  const server = await offlineServer();
+  const server = await offlineServer(true);
   try {
     await createWorkout(page, "Update test", server.url);
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
@@ -284,6 +292,7 @@ test("app updates wait for training to finish", async ({ page }) => {
     await expect(page.locator(".history")).toHaveCount(1);
     await page.locator("#update-app").click();
     await expect(page.locator("#update-app")).toHaveCount(0);
+    await expect(page).toHaveTitle(/revision 2/);
     await page.getByRole("button", { name: "History", exact: true }).click();
     await expect(page.locator(".history")).toHaveCount(1);
   } finally {

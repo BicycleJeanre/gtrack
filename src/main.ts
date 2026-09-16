@@ -993,6 +993,7 @@ async function boot() {
     });
     const registration = await navigator.serviceWorker.register(
       `${import.meta.env.BASE_URL}sw.js`,
+      { updateViaCache: "none" },
     );
     const waiting = () => {
       if (
@@ -1007,13 +1008,16 @@ async function boot() {
     // First-install activation can overlap with controllerchange in WebKit.
     // Only advertise a worker that was installed to replace an existing one.
     if (hadController) waiting();
-    registration.addEventListener("updatefound", () => {
+    const observeInstalling = () => {
       const installing = registration.installing;
       const replacesActiveWorker =
         !!registration.active && registration.active !== installing;
       if (replacesActiveWorker)
         installing?.addEventListener("statechange", waiting);
-    });
+    };
+    observeInstalling();
+    registration.addEventListener("updatefound", observeInstalling);
+    void registration.update().catch(() => {});
   }
 }
 // One editing tab per origin prevents two tabs from changing the same active session.
