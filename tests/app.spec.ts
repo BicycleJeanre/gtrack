@@ -661,26 +661,24 @@ test("program backup restores weeks, phase targets, completion and duplicate-slo
     await page
       .getByRole("button", { name: "Account and data settings" })
       .click();
-    await page
-      .locator("#import")
-      .setInputFiles({
-        name: "fixture.json",
-        mimeType: "application/json",
-        buffer: Buffer.from(
-          JSON.stringify({
-            schema: 1,
-            records: {
-              exercises: [],
-              workouts: [],
-              programs: [enrollment],
-              sessions: [
-                ...Array.from({ length: count }, (_, i) => makeSession(i)),
-                makeSession(0, "duplicate-slot"),
-              ],
-            },
-          }),
-        ),
-      });
+    await page.locator("#import").setInputFiles({
+      name: "fixture.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          schema: 1,
+          records: {
+            exercises: [],
+            workouts: [],
+            programs: [enrollment],
+            sessions: [
+              ...Array.from({ length: count }, (_, i) => makeSession(i)),
+              makeSession(0, "duplicate-slot"),
+            ],
+          },
+        }),
+      ),
+    });
     await page
       .getByRole("button", { name: "Import records", exact: true })
       .click();
@@ -709,4 +707,126 @@ test("program backup restores weeks, phase targets, completion and duplicate-slo
   await expect(
     page.getByRole("button", { name: "Prepare next session", exact: true }),
   ).toHaveCount(0);
+});
+
+test("exercise guides search, display photos offline and fit a narrow phone", async ({
+  page,
+}) => {
+  const server = await offlineServer();
+  let stopped = false;
+  try {
+    await page.setViewportSize({ width: 320, height: 740 });
+    await page.goto(server.url);
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+    });
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await server.stop();
+    stopped = true;
+    await page.reload();
+    await page.getByRole("button", { name: "Workouts", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Exercise guide · photos & form" })
+      .click();
+    await page.getByLabel("Find an exercise").fill("bench press");
+    await expect(page.locator("#guide-count")).toHaveText("4 exercises");
+    await page
+      .getByRole("button", {
+        name: "View form for Barbell bench press",
+        exact: true,
+      })
+      .click();
+    await expect(page.getByRole("dialog")).toContainText("Watch out for");
+    await expect(page.locator(".guide-photos img")).toHaveCount(2);
+    await expect
+      .poll(() =>
+        page
+          .locator(".guide-photos img")
+          .evaluateAll((images) =>
+            images.every((i) => (i as HTMLImageElement).naturalWidth > 0),
+          ),
+      )
+      .toBe(true);
+    expect(
+      await page
+        .locator("#dialog")
+        .evaluate((e) => e.scrollWidth <= e.clientWidth),
+    ).toBe(true);
+    await page.screenshot({
+      path: `/tmp/gtrack-guide-${test.info().project.name}.png`,
+    });
+    await page.getByRole("button", { name: "Close exercise guide" }).click();
+    await page.getByLabel("Find an exercise").fill("no-such-exercise");
+    await expect(page.locator("#guide-results")).toContainText(
+      "No exercises match",
+    );
+  } finally {
+    if (!stopped) await server.stop();
+  }
+});
+
+test("form guides preserve editor and active session values", async ({
+  page,
+}) => {
+  await createWorkout(page);
+  await page.getByRole("button", { name: "Edit Upper body A" }).click();
+  await page
+    .getByLabel("Exercise 1 set 1 weight (kg)", { exact: true })
+    .fill("47.5");
+  await page.getByRole("button", { name: "View form", exact: true }).click();
+  await page.getByRole("button", { name: "Close exercise guide" }).click();
+  await expect(
+    page.getByLabel("Exercise 1 set 1 weight (kg)", { exact: true }),
+  ).toHaveValue("47.5");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByLabel("Barbell bench press set 1 reps", { exact: true })
+    .fill("8");
+  await page
+    .getByRole("button", {
+      name: "View form for Barbell bench press",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Close exercise guide" }).click();
+  await expect(
+    page.getByLabel("Barbell bench press set 1 reps", { exact: true }),
+  ).toHaveValue("8");
+  await expect(
+    page.getByLabel("Barbell bench press set 1 weight", { exact: true }),
+  ).toHaveValue("47.5");
+  await page.reload();
+  await expect(
+    page.getByLabel("Barbell bench press set 1 reps", { exact: true }),
+  ).toHaveValue("8");
+});
+
+test("custom exercises do not inherit unrelated demonstration photos", async ({
+  page,
+}) => {
+  await createWorkout(page);
+  await page.getByRole("button", { name: "Edit Upper body A" }).click();
+  await page
+    .getByRole("button", { name: "New exercise for the library" })
+    .click();
+  await page
+    .getByLabel("Exercise name", { exact: true })
+    .fill("My adapted bench press");
+  await page
+    .getByLabel("Description", { exact: true })
+    .fill("My coach’s adapted setup.");
+  await page
+    .getByRole("button", { name: "Add to library", exact: true })
+    .click();
+  await page.getByRole("button", { name: "View form", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "No form guide has been added",
+  );
+  await expect(page.getByRole("dialog")).toContainText(
+    "My coach’s adapted setup.",
+  );
+  await expect(page.locator(".guide-photos img")).toHaveCount(0);
 });

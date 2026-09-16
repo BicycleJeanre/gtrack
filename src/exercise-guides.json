@@ -1,0 +1,736 @@
+[
+  {
+    "name": "Barbell bench press",
+    "sourceId": "Barbell_Bench_Press_-_Medium_Grip",
+    "category": "Chest",
+    "steps": [
+      "Plant your feet and keep your upper back supported",
+      "Lower the bar toward your lower chest with wrists above elbows, then press up."
+    ],
+    "avoid": "Bouncing the bar; lifting your hips. Use rack safeties or a spotter.",
+    "images": [
+      "Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+      "Barbell_Bench_Press_-_Medium_Grip/1.jpg"
+    ]
+  },
+  {
+    "name": "Seated cable row",
+    "sourceId": "Seated_Cable_Rows",
+    "category": "Back",
+    "steps": [
+      "Sit tall with soft knees",
+      "Pull the handle toward your lower ribs, then reach forward with control."
+    ],
+    "avoid": "Rocking your torso to move the weight.",
+    "images": ["Seated_Cable_Rows/0.jpg", "Seated_Cable_Rows/1.jpg"]
+  },
+  {
+    "name": "Dumbbell shoulder press",
+    "sourceId": "Dumbbell_Shoulder_Press",
+    "category": "Shoulders",
+    "steps": [
+      "Sit against a supported bench",
+      "Start dumbbells near shoulder height and press overhead with forearms under the weights."
+    ],
+    "avoid": "Overarching your lower back or clashing the weights.",
+    "images": ["Dumbbell_Shoulder_Press/0.jpg", "Dumbbell_Shoulder_Press/1.jpg"]
+  },
+  {
+    "name": "Barbell squat",
+    "sourceId": "Barbell_Squat",
+    "category": "Legs",
+    "steps": [
+      "Set rack safeties",
+      "Brace with the bar on your upper back",
+      "Bend hips and knees together, then stand through your whole foot."
+    ],
+    "avoid": "Heels lifting or knees collapsing inward. Use a depth you can control.",
+    "images": ["Barbell_Squat/0.jpg", "Barbell_Squat/1.jpg"]
+  },
+  {
+    "name": "Romanian deadlift",
+    "sourceId": "Romanian_Deadlift",
+    "category": "Legs",
+    "steps": [
+      "Start standing with the bar near your thighs",
+      "Keep knees softly bent, push hips back and keep the bar close",
+      "Stand by extending your hips."
+    ],
+    "avoid": "Turning the hinge into a squat or chasing depth by rounding your back.",
+    "images": ["Romanian_Deadlift/0.jpg", "Romanian_Deadlift/1.jpg"]
+  },
+  {
+    "name": "Leg press",
+    "sourceId": "Leg_Press",
+    "category": "Legs",
+    "steps": [
+      "Adjust the seat so your back and pelvis stay supported",
+      "Lower the sled with knees tracking your toes, then press away."
+    ],
+    "avoid": "Letting your pelvis curl off the pad or forcefully snapping knees straight.",
+    "images": ["Leg_Press/0.jpg", "Leg_Press/1.jpg"]
+  },
+  {
+    "name": "Incline barbell bench press",
+    "sourceId": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+    "category": "Chest",
+    "steps": [
+      "Set a modest bench incline and plant your feet",
+      "Lower the bar toward your upper chest with forearms under it, then press."
+    ],
+    "avoid": "Bouncing at the bottom or losing upper-back support. Use safeties or a spotter.",
+    "images": [
+      "Barbell_Incline_Bench_Press_-_Medium_Grip/0.jpg",
+      "Barbell_Incline_Bench_Press_-_Medium_Grip/1.jpg"
+    ]
+  },
+  {
+    "name": "Dumbbell bench press",
+    "sourceId": "Dumbbell_Bench_Press",
+    "category": "Chest",
+    "steps": [
+      "Lie on a flat bench with feet planted",
+      "Lower dumbbells beside your chest with wrists over elbows, then press up."
+    ],
+    "avoid": "Dropping too deep for your shoulders or banging weights together.",
+    "images": ["Dumbbell_Bench_Press/0.jpg", "Dumbbell_Bench_Press/1.jpg"]
+  },
+  {
+    "name": "Incline dumbbell bench press",
+    "sourceId": "Incline_Dumbbell_Press",
+    "category": "Chest",
+    "steps": [
+      "Use a modest incline with feet grounded",
+      "Lower dumbbells beside your upper chest and press smoothly upward."
+    ],
+    "avoid": "Excessive back arch or flaring elbows straight out.",
+    "images": ["Incline_Dumbbell_Press/0.jpg", "Incline_Dumbbell_Press/1.jpg"]
+  },
+  {
+    "name": "Dumbbell chest fly",
+    "sourceId": "Dumbbell_Flyes",
+    "category": "Chest",
+    "steps": [
+      "Lie on a bench with a small, steady elbow bend",
+      "Open your arms in an arc within a comfortable range, then bring weights together."
+    ],
+    "avoid": "Turning it into a press or overstretching your shoulders.",
+    "images": ["Dumbbell_Flyes/0.jpg", "Dumbbell_Flyes/1.jpg"]
+  },
+  {
+    "name": "Cable chest fly",
+    "sourceId": "Cable_Crossover",
+    "category": "Chest",
+    "steps": [
+      "With high pulleys, take a staggered stance and a slight forward lean",
+      "Keep elbows softly bent as you sweep hands together in front."
+    ],
+    "avoid": "Swinging your torso or letting cables pull your shoulders too far back.",
+    "images": ["Cable_Crossover/0.jpg", "Cable_Crossover/1.jpg"]
+  },
+  {
+    "name": "Machine chest press",
+    "sourceId": "Machine_Bench_Press",
+    "category": "Chest",
+    "steps": [
+      "Adjust the seat so handles sit around chest height",
+      "Keep your back supported, press forward and return slowly."
+    ],
+    "avoid": "Shrugging or lifting your back from the pad.",
+    "images": ["Machine_Bench_Press/0.jpg", "Machine_Bench_Press/1.jpg"]
+  },
+  {
+    "name": "Pec deck",
+    "sourceId": "Butterfly",
+    "category": "Chest",
+    "steps": [
+      "Set the seat so arms are near chest height",
+      "Keep your back supported as you bring the pads or handles together."
+    ],
+    "avoid": "Forcing a deep stretch or using momentum.",
+    "images": ["Butterfly/0.jpg", "Butterfly/1.jpg"]
+  },
+  {
+    "name": "Push-up",
+    "sourceId": "Pushups",
+    "category": "Chest",
+    "steps": [
+      "Place hands just wider than shoulders",
+      "Brace in a straight line, lower your chest between your hands, then push away."
+    ],
+    "avoid": "Sagging hips or jutting your head forward. Elevate hands to make it easier.",
+    "images": ["Pushups/0.jpg", "Pushups/1.jpg"]
+  },
+  {
+    "name": "Dip",
+    "sourceId": "Parallel_Bar_Dip",
+    "category": "Chest",
+    "steps": [
+      "Support yourself on parallel bars",
+      "Lower by bending elbows through a comfortable shoulder range, then press up."
+    ],
+    "avoid": "Swinging or forcing a deep shoulder stretch. Use assistance when needed.",
+    "images": ["Parallel_Bar_Dip/0.jpg", "Parallel_Bar_Dip/1.jpg"]
+  },
+  {
+    "name": "Lat pulldown",
+    "sourceId": "Wide-Grip_Lat_Pulldown",
+    "category": "Back",
+    "steps": [
+      "Secure the thigh pad",
+      "With a slight backward lean, pull the bar toward your upper chest and return under control."
+    ],
+    "avoid": "Pulling behind your neck or swinging your body.",
+    "images": ["Wide-Grip_Lat_Pulldown/0.jpg", "Wide-Grip_Lat_Pulldown/1.jpg"]
+  },
+  {
+    "name": "Pull-up",
+    "sourceId": "Pullups",
+    "category": "Back",
+    "steps": [
+      "Use an overhand grip",
+      "Brace and pull elbows down until your chin clears the bar, then lower with control."
+    ],
+    "avoid": "Kipping or reaching your chin instead of lifting your body. Use assistance if needed.",
+    "images": ["Pullups/0.jpg", "Pullups/1.jpg"]
+  },
+  {
+    "name": "Chin-up",
+    "sourceId": "Chin-Up",
+    "category": "Back",
+    "steps": [
+      "Use an underhand grip",
+      "Pull elbows toward your sides, bring your chin over the bar and lower smoothly."
+    ],
+    "avoid": "Swinging your legs or dropping into the bottom. Use assistance if needed.",
+    "images": ["Chin-Up/0.jpg", "Chin-Up/1.jpg"]
+  },
+  {
+    "name": "Barbell bent-over row",
+    "sourceId": "Bent_Over_Barbell_Row",
+    "category": "Back",
+    "steps": [
+      "Hinge at your hips with soft knees and a braced torso",
+      "Pull the bar toward your lower ribs, then lower it."
+    ],
+    "avoid": "Jerking your torso upright each rep.",
+    "images": ["Bent_Over_Barbell_Row/0.jpg", "Bent_Over_Barbell_Row/1.jpg"]
+  },
+  {
+    "name": "One-arm dumbbell row",
+    "sourceId": "One-Arm_Dumbbell_Row",
+    "category": "Back",
+    "steps": [
+      "Support one hand and knee on a bench",
+      "Keep hips level and pull the dumbbell toward your hip, then lower."
+    ],
+    "avoid": "Twisting your torso or shrugging the weight up.",
+    "images": ["One-Arm_Dumbbell_Row/0.jpg", "One-Arm_Dumbbell_Row/1.jpg"]
+  },
+  {
+    "name": "Chest-supported dumbbell row",
+    "sourceId": "Dumbbell_Incline_Row",
+    "category": "Back",
+    "steps": [
+      "Lie chest-down on an incline bench with feet stable",
+      "Pull elbows back and lower dumbbells with control."
+    ],
+    "avoid": "Lifting your chest from the pad or craning your neck.",
+    "images": ["Dumbbell_Incline_Row/0.jpg", "Dumbbell_Incline_Row/1.jpg"]
+  },
+  {
+    "name": "Machine row",
+    "sourceId": "Leverage_Iso_Row",
+    "category": "Back",
+    "steps": [
+      "Adjust the seat and chest pad to reach the handles",
+      "Keep your chest supported while pulling elbows back."
+    ],
+    "avoid": "Jerking away from the pad or shrugging.",
+    "images": ["Leverage_Iso_Row/0.jpg", "Leverage_Iso_Row/1.jpg"]
+  },
+  {
+    "name": "Straight-arm pulldown",
+    "sourceId": "Straight-Arm_Pulldown",
+    "category": "Back",
+    "steps": [
+      "Face a high pulley with a slight hip hinge and soft elbows",
+      "Sweep the bar toward your thighs, then return slowly."
+    ],
+    "avoid": "Bending elbows into a pressdown or arching your back.",
+    "images": ["Straight-Arm_Pulldown/0.jpg", "Straight-Arm_Pulldown/1.jpg"]
+  },
+  {
+    "name": "Barbell deadlift",
+    "sourceId": "Barbell_Deadlift",
+    "category": "Back",
+    "steps": [
+      "Place the bar over midfoot",
+      "Grip outside your legs, brace and push the floor away, keeping the bar close",
+      "Stand tall, then lower by hinging and bending knees."
+    ],
+    "avoid": "Jerking the bar off the floor or leaning back at lockout.",
+    "images": ["Barbell_Deadlift/0.jpg", "Barbell_Deadlift/1.jpg"]
+  },
+  {
+    "name": "Trap bar deadlift",
+    "sourceId": "Trap_Bar_Deadlift",
+    "category": "Legs",
+    "steps": [
+      "Stand centered in the trap bar",
+      "Grip handles, brace and push through your feet to stand, then lower under control."
+    ],
+    "avoid": "Uneven loading or rounding to reach handles. Use raised handles if needed.",
+    "images": ["Trap_Bar_Deadlift/0.jpg", "Trap_Bar_Deadlift/1.jpg"]
+  },
+  {
+    "name": "Barbell overhead press",
+    "sourceId": "Standing_Military_Press",
+    "category": "Shoulders",
+    "steps": [
+      "Stand with the bar at your upper chest and forearms under it",
+      "Brace glutes and trunk, press overhead and lower to the start."
+    ],
+    "avoid": "Using leg drive or leaning back to finish the rep.",
+    "images": ["Standing_Military_Press/0.jpg", "Standing_Military_Press/1.jpg"]
+  },
+  {
+    "name": "Machine shoulder press",
+    "sourceId": "Machine_Shoulder_Military_Press",
+    "category": "Shoulders",
+    "steps": [
+      "Adjust the seat so handles start around shoulder height",
+      "Keep your back supported, press up and lower slowly."
+    ],
+    "avoid": "Overarching your back or forcing an uncomfortable bottom position.",
+    "images": [
+      "Machine_Shoulder_Military_Press/0.jpg",
+      "Machine_Shoulder_Military_Press/1.jpg"
+    ]
+  },
+  {
+    "name": "Dumbbell lateral raise",
+    "sourceId": "Side_Lateral_Raise",
+    "category": "Shoulders",
+    "steps": [
+      "Stand tall with soft elbows",
+      "Raise arms out and slightly forward toward shoulder height, then lower slowly."
+    ],
+    "avoid": "Swinging the weights or aggressively shrugging.",
+    "images": ["Side_Lateral_Raise/0.jpg", "Side_Lateral_Raise/1.jpg"]
+  },
+  {
+    "name": "Dumbbell front raise",
+    "sourceId": "Front_Dumbbell_Raise",
+    "category": "Shoulders",
+    "steps": [
+      "Stand braced with weights at your thighs",
+      "Lift in front toward shoulder height with soft elbows, then lower."
+    ],
+    "avoid": "Leaning backward or throwing the weight up.",
+    "images": ["Front_Dumbbell_Raise/0.jpg", "Front_Dumbbell_Raise/1.jpg"]
+  },
+  {
+    "name": "Reverse pec deck",
+    "sourceId": "Reverse_Machine_Flyes",
+    "category": "Shoulders",
+    "steps": [
+      "Face the pad with handles near shoulder height",
+      "Open your arms with a slight elbow bend and return slowly."
+    ],
+    "avoid": "Lifting your chest away from the support or forcing range.",
+    "images": ["Reverse_Machine_Flyes/0.jpg", "Reverse_Machine_Flyes/1.jpg"]
+  },
+  {
+    "name": "Face pull",
+    "sourceId": "Face_Pull",
+    "category": "Shoulders",
+    "steps": [
+      "Use a high cable and rope",
+      "Pull toward your face while separating the rope ends beside your head, then return smoothly."
+    ],
+    "avoid": "Leaning back to move the load or cranking your neck forward.",
+    "images": ["Face_Pull/0.jpg", "Face_Pull/1.jpg"]
+  },
+  {
+    "name": "Dumbbell shrug",
+    "sourceId": "Dumbbell_Shrug",
+    "category": "Shoulders",
+    "steps": [
+      "Stand tall with weights at your sides",
+      "Raise shoulders upward, pause, then lower fully with control."
+    ],
+    "avoid": "Rolling shoulders or bending elbows to lift the weights.",
+    "images": ["Dumbbell_Shrug/0.jpg", "Dumbbell_Shrug/1.jpg"]
+  },
+  {
+    "name": "Barbell curl",
+    "sourceId": "Barbell_Curl",
+    "category": "Arms",
+    "steps": [
+      "Hold the bar palms up with elbows near your sides",
+      "Curl without moving your upper arms, then lower slowly."
+    ],
+    "avoid": "Rocking your hips or bending wrists backward.",
+    "images": ["Barbell_Curl/0.jpg", "Barbell_Curl/1.jpg"]
+  },
+  {
+    "name": "EZ-bar curl",
+    "sourceId": "EZ-Bar_Curl",
+    "category": "Arms",
+    "steps": [
+      "Choose a comfortable angled grip",
+      "Keep elbows near your sides as you curl and lower the bar."
+    ],
+    "avoid": "Swinging your torso or lifting elbows to finish.",
+    "images": ["EZ-Bar_Curl/0.jpg", "EZ-Bar_Curl/1.jpg"]
+  },
+  {
+    "name": "Dumbbell curl",
+    "sourceId": "Dumbbell_Bicep_Curl",
+    "category": "Arms",
+    "steps": [
+      "Hold dumbbells at your sides",
+      "Curl with palms turning upward and elbows steady, then lower."
+    ],
+    "avoid": "Swinging or letting shoulders do the lift.",
+    "images": ["Dumbbell_Bicep_Curl/0.jpg", "Dumbbell_Bicep_Curl/1.jpg"]
+  },
+  {
+    "name": "Hammer curl",
+    "sourceId": "Hammer_Curls",
+    "category": "Arms",
+    "steps": [
+      "Keep palms facing inward and wrists straight",
+      "Curl with elbows by your sides, then lower under control."
+    ],
+    "avoid": "Rocking your torso or folding wrists.",
+    "images": ["Hammer_Curls/0.jpg", "Hammer_Curls/1.jpg"]
+  },
+  {
+    "name": "Preacher curl",
+    "sourceId": "Preacher_Curl",
+    "category": "Arms",
+    "steps": [
+      "Adjust the seat so upper arms rest on the pad",
+      "Curl up and lower slowly to a comfortable elbow extension."
+    ],
+    "avoid": "Bouncing at the bottom or lifting arms from the pad.",
+    "images": ["Preacher_Curl/0.jpg", "Preacher_Curl/1.jpg"]
+  },
+  {
+    "name": "Cable biceps curl",
+    "sourceId": "Standing_Biceps_Cable_Curl",
+    "category": "Arms",
+    "steps": [
+      "Face a low pulley",
+      "Keep elbows near your sides and curl the handle upward, then return slowly."
+    ],
+    "avoid": "Leaning back or letting the stack slam.",
+    "images": [
+      "Standing_Biceps_Cable_Curl/0.jpg",
+      "Standing_Biceps_Cable_Curl/1.jpg"
+    ]
+  },
+  {
+    "name": "Triceps pushdown",
+    "sourceId": "Triceps_Pushdown",
+    "category": "Arms",
+    "steps": [
+      "Stand facing a high pulley with elbows tucked near your sides",
+      "Straighten elbows to push down, then return."
+    ],
+    "avoid": "Moving your shoulders or using your body weight to push.",
+    "images": ["Triceps_Pushdown/0.jpg", "Triceps_Pushdown/1.jpg"]
+  },
+  {
+    "name": "Overhead cable triceps extension",
+    "sourceId": "Cable_Rope_Overhead_Triceps_Extension",
+    "category": "Arms",
+    "steps": [
+      "Face away from the cable in a stable stance with rope behind your head",
+      "Keep upper arms steady as you extend elbows."
+    ],
+    "avoid": "Flaring your ribs or moving the upper arms excessively.",
+    "images": [
+      "Cable_Rope_Overhead_Triceps_Extension/0.jpg",
+      "Cable_Rope_Overhead_Triceps_Extension/1.jpg"
+    ]
+  },
+  {
+    "name": "Dumbbell overhead triceps extension",
+    "sourceId": "Standing_Dumbbell_Triceps_Extension",
+    "category": "Arms",
+    "steps": [
+      "Hold one dumbbell securely overhead with both hands",
+      "Bend elbows to lower behind your head, then extend."
+    ],
+    "avoid": "Arching your back or forcing elbows into an uncomfortable position.",
+    "images": [
+      "Standing_Dumbbell_Triceps_Extension/0.jpg",
+      "Standing_Dumbbell_Triceps_Extension/1.jpg"
+    ]
+  },
+  {
+    "name": "EZ-bar skull crusher",
+    "sourceId": "Lying_Triceps_Press",
+    "category": "Arms",
+    "steps": [
+      "Lie on a bench with the EZ-bar above you",
+      "Keep upper arms steady as you bend elbows to lower near your forehead, then extend."
+    ],
+    "avoid": "Dropping the bar toward your face. Start light and use a spotter when needed.",
+    "images": ["Lying_Triceps_Press/0.jpg", "Lying_Triceps_Press/1.jpg"]
+  },
+  {
+    "name": "Front squat",
+    "sourceId": "Front_Squat_Clean_Grip",
+    "category": "Legs",
+    "steps": [
+      "Rack the bar on the front of your shoulders with elbows high",
+      "Brace, squat between your hips and stand through the whole foot."
+    ],
+    "avoid": "Letting elbows drop or heels lift. Set rack safeties.",
+    "images": ["Front_Squat_Clean_Grip/0.jpg", "Front_Squat_Clean_Grip/1.jpg"]
+  },
+  {
+    "name": "Goblet squat",
+    "sourceId": "Goblet_Squat",
+    "category": "Legs",
+    "steps": [
+      "Hold a dumbbell close to your chest",
+      "Brace, bend hips and knees together, then stand through your whole foot."
+    ],
+    "avoid": "Letting knees cave in or the weight drift away from your chest.",
+    "images": ["Goblet_Squat/0.jpg", "Goblet_Squat/1.jpg"]
+  },
+  {
+    "name": "Hack squat",
+    "sourceId": "Hack_Squat",
+    "category": "Legs",
+    "steps": [
+      "Set shoulders and back against the pads",
+      "Release the safety handles, lower with knees tracking toes and push back up."
+    ],
+    "avoid": "Letting hips leave the pad or snapping knees straight. Re-engage safeties before exiting.",
+    "images": ["Hack_Squat/0.jpg", "Hack_Squat/1.jpg"]
+  },
+  {
+    "name": "Smith machine squat",
+    "sourceId": "Smith_Machine_Squat",
+    "category": "Legs",
+    "steps": [
+      "Set safety stops and find a stance that suits the fixed bar path",
+      "Brace, lower with knees tracking toes and stand."
+    ],
+    "avoid": "Forcing an awkward stance or lifting heels. Lock the bar before stepping away.",
+    "images": ["Smith_Machine_Squat/0.jpg", "Smith_Machine_Squat/1.jpg"]
+  },
+  {
+    "name": "Bulgarian split squat",
+    "sourceId": "Split_Squat_with_Dumbbells",
+    "category": "Legs",
+    "steps": [
+      "Rest your rear foot on a stable bench, front foot far enough forward to balance",
+      "Lower through the front leg, then stand."
+    ],
+    "avoid": "Pushing mainly through the rear leg or losing knee alignment. Train both sides.",
+    "images": [
+      "Split_Squat_with_Dumbbells/0.jpg",
+      "Split_Squat_with_Dumbbells/1.jpg"
+    ]
+  },
+  {
+    "name": "Dumbbell lunge",
+    "sourceId": "Dumbbell_Lunges",
+    "category": "Legs",
+    "steps": [
+      "Hold dumbbells at your sides",
+      "Step forward, lower both knees with control and push back to standing."
+    ],
+    "avoid": "Stepping on a tightrope or letting the front knee cave in. Train both sides.",
+    "images": ["Dumbbell_Lunges/0.jpg", "Dumbbell_Lunges/1.jpg"]
+  },
+  {
+    "name": "Dumbbell step-up",
+    "sourceId": "Dumbbell_Step_Ups",
+    "category": "Legs",
+    "steps": [
+      "Use a stable platform you can control",
+      "Place the whole working foot on it, stand up and step down slowly."
+    ],
+    "avoid": "Jumping off the trailing foot or dropping on the descent. Train both sides.",
+    "images": ["Dumbbell_Step_Ups/0.jpg", "Dumbbell_Step_Ups/1.jpg"]
+  },
+  {
+    "name": "Dumbbell Romanian deadlift",
+    "sourceId": "",
+    "category": "Legs",
+    "steps": [
+      "Stand holding dumbbells in front of your thighs",
+      "With soft knees, push hips back and slide weights close to your legs, then stand."
+    ],
+    "avoid": "Squatting instead of hinging or lowering beyond a stable back position.",
+    "images": []
+  },
+  {
+    "name": "Barbell hip thrust",
+    "sourceId": "Barbell_Hip_Thrust",
+    "category": "Legs",
+    "steps": [
+      "Support your upper back on a stable bench and pad the bar across your hips",
+      "Drive through your feet until hips extend, then lower."
+    ],
+    "avoid": "Overarching your lower back instead of extending your hips.",
+    "images": ["Barbell_Hip_Thrust/0.jpg", "Barbell_Hip_Thrust/1.jpg"]
+  },
+  {
+    "name": "Leg extension",
+    "sourceId": "Leg_Extensions",
+    "category": "Legs",
+    "steps": [
+      "Align your knees with the machine pivot and pad above your ankles",
+      "Straighten knees smoothly and lower slowly."
+    ],
+    "avoid": "Kicking the stack or lifting hips from the seat.",
+    "images": ["Leg_Extensions/0.jpg", "Leg_Extensions/1.jpg"]
+  },
+  {
+    "name": "Seated leg curl",
+    "sourceId": "Seated_Leg_Curl",
+    "category": "Legs",
+    "steps": [
+      "Align knees with the machine pivot and secure the thigh pad",
+      "Curl heels down and back, then return slowly."
+    ],
+    "avoid": "Lifting hips or letting the stack crash.",
+    "images": ["Seated_Leg_Curl/0.jpg", "Seated_Leg_Curl/1.jpg"]
+  },
+  {
+    "name": "Lying leg curl",
+    "sourceId": "Lying_Leg_Curls",
+    "category": "Legs",
+    "steps": [
+      "Lie face-down with knees aligned to the pivot and pad above your heels",
+      "Curl heels toward your glutes, then lower."
+    ],
+    "avoid": "Lifting hips off the pad or arching your back.",
+    "images": ["Lying_Leg_Curls/0.jpg", "Lying_Leg_Curls/1.jpg"]
+  },
+  {
+    "name": "Hip abduction machine",
+    "sourceId": "Thigh_Abductor",
+    "category": "Legs",
+    "steps": [
+      "Sit supported with pads against the outside of your thighs",
+      "Press knees apart through a controlled range, then return."
+    ],
+    "avoid": "Bouncing or rocking your torso to force a wider range.",
+    "images": ["Thigh_Abductor/0.jpg", "Thigh_Abductor/1.jpg"]
+  },
+  {
+    "name": "Hip adduction machine",
+    "sourceId": "Thigh_Adductor",
+    "category": "Legs",
+    "steps": [
+      "Set a comfortable starting width with pads inside your thighs",
+      "Bring legs together, then open slowly."
+    ],
+    "avoid": "Forcing a wide stretch or slamming the pads together.",
+    "images": ["Thigh_Adductor/0.jpg", "Thigh_Adductor/1.jpg"]
+  },
+  {
+    "name": "Standing calf raise",
+    "sourceId": "Standing_Calf_Raises",
+    "category": "Legs",
+    "steps": [
+      "Set the balls of your feet on the platform with a stable support",
+      "Rise onto your toes, pause and lower heels slowly."
+    ],
+    "avoid": "Bouncing at the bottom or rolling ankles outward.",
+    "images": ["Standing_Calf_Raises/0.jpg", "Standing_Calf_Raises/1.jpg"]
+  },
+  {
+    "name": "Seated calf raise",
+    "sourceId": "Seated_Calf_Raise",
+    "category": "Legs",
+    "steps": [
+      "Place balls of feet on the platform and secure the thigh pad",
+      "Raise heels, pause and lower with control."
+    ],
+    "avoid": "Bouncing or using your arms to lift the pad.",
+    "images": ["Seated_Calf_Raise/0.jpg", "Seated_Calf_Raise/1.jpg"]
+  },
+  {
+    "name": "Cable crunch",
+    "sourceId": "Cable_Crunch",
+    "category": "Core",
+    "steps": [
+      "Kneel beneath a high pulley holding the rope near your head",
+      "Bring ribs toward pelvis by curling your trunk, then return slowly."
+    ],
+    "avoid": "Pulling with your arms or only hinging at the hips.",
+    "images": ["Cable_Crunch/0.jpg", "Cable_Crunch/1.jpg"]
+  },
+  {
+    "name": "Crunch",
+    "sourceId": "Crunches",
+    "category": "Core",
+    "steps": [
+      "Lie with knees bent and feet planted",
+      "Curl your ribs toward your pelvis to lift shoulder blades, then lower."
+    ],
+    "avoid": "Pulling on your neck or swinging into a full sit-up.",
+    "images": ["Crunches/0.jpg", "Crunches/1.jpg"]
+  },
+  {
+    "name": "Hanging knee raise",
+    "sourceId": "",
+    "category": "Core",
+    "steps": [
+      "Hang with a secure grip and active shoulders",
+      "Bend knees and curl them toward your torso, then lower slowly."
+    ],
+    "avoid": "Swinging for momentum or dropping legs abruptly.",
+    "images": []
+  },
+  {
+    "name": "Lying leg raise",
+    "sourceId": "Flat_Bench_Lying_Leg_Raise",
+    "category": "Core",
+    "steps": [
+      "Lie supported on a bench or floor",
+      "Brace your abdomen, raise legs and lower only as far as your back stays controlled."
+    ],
+    "avoid": "Arching your lower back as legs descend. Bend knees to reduce difficulty.",
+    "images": [
+      "Flat_Bench_Lying_Leg_Raise/0.jpg",
+      "Flat_Bench_Lying_Leg_Raise/1.jpg"
+    ]
+  },
+  {
+    "name": "Ab wheel rollout",
+    "sourceId": "Ab_Roller",
+    "category": "Core",
+    "steps": [
+      "Kneel with the wheel under your shoulders",
+      "Brace your abdomen and glutes, roll forward a short distance and pull back."
+    ],
+    "avoid": "Letting your lower back sag or rolling farther than you can control.",
+    "images": ["Ab_Roller/0.jpg", "Ab_Roller/1.jpg"]
+  },
+  {
+    "name": "Back extension",
+    "sourceId": "Hyperextensions_Back_Extensions",
+    "category": "Back",
+    "steps": [
+      "Set the pad just below your hip crease and secure your feet",
+      "Hinge at the hips, then return until your body is in line."
+    ],
+    "avoid": "Hyperextending your lower back at the top or bouncing.",
+    "images": [
+      "Hyperextensions_Back_Extensions/0.jpg",
+      "Hyperextensions_Back_Extensions/1.jpg"
+    ]
+  }
+]

@@ -1,3 +1,4 @@
+import { guideFor, photoFor } from "./exercise-guides";
 import {
   programs,
   templateFor,
@@ -99,6 +100,7 @@ function action(selector: string, cb: (e: Event) => unknown) {
 }
 function modal(content: string) {
   const d = $<HTMLDialogElement>("#dialog");
+  d.removeAttribute("aria-labelledby");
   d.innerHTML = content;
   d.showModal();
   action("[data-close]", () => d.close());
@@ -133,6 +135,7 @@ async function saved() {
   render();
 }
 const headings: Record<string, string[]> = {
+  guide: ["Move with confidence.", "Exercise demonstrations and form cues."],
   today: ["Ready to train?", "Your session, one set at a time."],
   programs: ["Your training program.", "A plan for the weeks ahead."],
   workouts: ["Your workouts.", "Set it up once. Make it your routine."],
@@ -148,7 +151,7 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "builder" && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
@@ -168,12 +171,14 @@ function render() {
       today: renderToday,
       workouts: renderWorkouts,
       programs: renderPrograms,
+      guide: renderGuide,
       builder: renderBuilder,
       history: renderHistory,
       progress: renderProgress,
       account: renderAccount,
     }) as Record<string, () => void>
   )[view]();
+  if (view !== "guide") bindGuideButtons();
 }
 async function navigate(next: string) {
   if (view === "builder" && next !== "builder") {
@@ -248,14 +253,17 @@ function renderPrograms() {
             `<article class="card pad"><div class="eyebrow">Session ${i + 1} · ${esc(phase.name)}</div><h2>${esc(session.name)}</h2><ol class="program-exercises">${session.exercises
               .map((e) => {
                 const [sets, reps] = prescription(phase, e.role);
-                return `<li><strong>${esc(e.exerciseName)}</strong><span>${sets} × ${reps} · ${esc(effortFor(phase, e.role, week))}</span></li>`;
+                return `<li><strong>${esc(e.exerciseName)}</strong><span>${sets} × ${reps} · ${esc(effortFor(phase, e.role, week))}</span>${guideButton(e.exerciseName)}</li>`;
               })
               .join("")}</ol></article>`,
         )
         .join("");
     };
     showWeek();
-    $("#program-week").addEventListener("change", showWeek);
+    $("#program-week").addEventListener("change", () => {
+      showWeek();
+      bindGuideButtons();
+    });
     action("#program-back", () => {
       previewProgram = null;
       render();
@@ -356,9 +364,60 @@ function prepareProgramSession(id: string) {
   });
 }
 
+function guideButton(name: string) {
+  return `<button type="button" class="text-button" data-form-guide="${esc(name)}" aria-label="View form for ${esc(name)}">View form ↗</button>`;
+}
+function bindGuideButtons() {
+  action("[data-form-guide]", (event) => {
+    const name = (event.currentTarget as HTMLElement).dataset.formGuide!;
+    showExerciseGuide(
+      name,
+      exercises().find((e) => e.name === name)?.description || "",
+    );
+  });
+}
+function showExerciseGuide(name: string, description: string) {
+  const guide = guideFor(name);
+  modal(`<div class="exercise-guide"><div class="guide-heading"><div><div class="eyebrow">${guide ? esc(guide.category) + " · Movement guide" : "Exercise library"}</div><h2 id="guide-title">${esc(name)}</h2></div><button type="button" class="secondary" data-close aria-label="Close exercise guide">Close</button></div>
+    ${
+      guide
+        ? `${guide.images.length ? `<div class="guide-photos">${guide.images.map((path, i) => `<figure><img src="${photoFor(path)}" alt="${esc(name)} demonstration, position ${i + 1}" width="300" height="300"><figcaption>Position ${i + 1}</figcaption></figure>`).join("")}</div><p class="hint">Two positions of the movement; move smoothly between them.${name === "Lying leg raise" ? " Bench variation shown." : name === "Cable chest fly" ? " High-pulley variation shown." : ""}</p>` : '<p class="hint">Photos for this variation are not available yet.</p>'}
+    <h3>How to move</h3><ol class="guide-steps">${guide.steps.map((step) => `<li>${esc(step)}</li>`).join("")}</ol><div class="form-focus"><h3>Watch out for</h3><p>${esc(guide.avoid)}</p></div><p class="hint">Start light, use a controlled range and stop if a movement causes pain. A coach can help adapt your setup.</p>`
+        : "<p>No form guide has been added for this exercise yet.</p>"
+    }
+    ${description ? `<h3>Library description</h3><p>${esc(description)}</p>` : ""}
+    <details class="guide-sources"><summary>Demonstrations & further learning</summary>${guide?.sourceId ? `<p>Photos: <a href="https://github.com/yuhonas/free-exercise-db/tree/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/${encodeURIComponent(guide.sourceId)}" target="_blank" rel="noopener">free-exercise-db</a> · public domain (Unlicense).</p>` : ""}<p><a href="https://www.acefitness.org/resources/everyone/exercise-library/" target="_blank" rel="noopener">Explore ACE’s exercise library</a> (online).</p><p>GTrack form cues are general guidance, not individual coaching or official Sebastian Oreb instruction.</p></details></div>`);
+  $("#dialog").setAttribute("aria-labelledby", "guide-title");
+}
+function renderGuide() {
+  $("#screen").innerHTML =
+    `<button class="text-button" id="guide-back">← Workouts</button><p>Look up a movement before you lift, or tap View form while recording a session. Photos and cues are available offline once the app has finished downloading.</p><label>Find an exercise<input id="guide-search" type="search" placeholder="Try squat, chest, or dumbbell"></label><p id="guide-count" class="hint" role="status"></p><div id="guide-results"></div>`;
+  const show = () => {
+    const query = normalize($<HTMLInputElement>("#guide-search").value);
+    const matches = exercises().filter((e) =>
+      normalize(e.name + " " + (guideFor(e.name)?.category || "")).includes(
+        query,
+      ),
+    );
+    $("#guide-count").textContent = `${matches.length} exercises`;
+    $("#guide-results").innerHTML = matches.length
+      ? matches
+          .map((e) => {
+            const guide = guideFor(e.name);
+            return `<article class="card pad guide-result"><div><div class="eyebrow">${guide ? esc(guide.category) : "Community exercise"}</div><h2>${esc(e.name)}</h2><p class="hint">${guide ? (guide.images.length ? "Photos · movement · form cues" : "Movement · form cues") : "Description only"}</p></div>${guideButton(e.name)}</article>`;
+          })
+          .join("")
+      : '<p class="card pad">No exercises match. Try another name or body area.</p>';
+    bindGuideButtons();
+  };
+  show();
+  $("#guide-search").addEventListener("input", show);
+  action("#guide-back", () => navigate("workouts"));
+}
+
 function renderWorkouts() {
   $("#screen").innerHTML =
-    `<button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
+    `<button class="secondary" id="open-guide">Exercise guide · photos & form</button><button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
       workouts()
         .map(
           (w) =>
@@ -377,6 +436,7 @@ function renderWorkouts() {
       toast("Resume or discard your current session first.");
     } else sessionDetails(true);
   });
+  action("#open-guide", () => navigate("guide"));
   action("#new-workout", () => openBuilder());
   action("[data-edit]", (e) =>
     openBuilder((e.currentTarget as HTMLElement).dataset.edit),
@@ -539,9 +599,17 @@ function renderTargets() {
           )
           .join(
             "",
-          )}</select></label><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set your reps and weight for each set.</p></div><div class="planned-set labels"><span>Set</span><span>Reps</span><span>kg</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
+          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set your reps and weight for each set.</p></div><div class="planned-set labels"><span>Set</span><span>Reps</span><span>kg</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
     )
     .join("");
+  action(".target-guide", (event) => {
+    const select = (event.currentTarget as HTMLElement)
+      .closest(".target")!
+      .querySelector("select")!;
+    const exercise = store.state.exercises[select.value];
+    if (exercise) showExerciseGuide(exercise.name, exercise.description);
+    else toast("Choose an exercise first.");
+  });
   document
     .querySelectorAll<HTMLInputElement>("#targets [name=sets]")
     .forEach((input) =>
@@ -820,7 +888,7 @@ function renderToday() {
   const total = draft.exercises.reduce((n, e) => n + e.sets.length, 0),
     done = completedSets(draft);
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program ? `<p>${esc(templateFor(draft.program.templateId).name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(templateFor(draft.program.templateId), draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div><details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program ? `<p>${esc(templateFor(draft.program.templateId).name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(templateFor(draft.program.templateId), draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   action("#edit-session-details", () => sessionDetails());
   action("#session-add", sessionExerciseDialog);
   action("[data-session-remove]", (event) =>

@@ -621,3 +621,79 @@ dialog h2 {
 #program-sessions {
   margin-top: 20px;
 }
+
+.guide-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  justify-content: space-between;
+}
+.guide-heading > div {
+  min-width: 0;
+}
+.guide-heading .secondary {
+  width: auto;
+  flex-shrink: 0;
+  margin: 0;
+}
+.guide-heading h2 {
+  overflow-wrap: anywhere;
+}
+.guide-photos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 16px 0 8px;
+}
+.guide-photos figure {
+  margin: 0;
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  color: #29332e;
+}
+.guide-photos img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: contain;
+}
+.guide-photos figcaption {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+}
+.guide-steps {
+  padding-left: 22px;
+  line-height: 1.65;
+}
+.guide-steps li {
+  padding-left: 4px;
+  margin-bottom: 10px;
+}
+.form-focus {
+  border-left: 3px solid var(--accent, #b9e86c);
+  padding: 4px 14px;
+  background: rgba(185, 232, 108, 0.07);
+  border-radius: 0 10px 10px 0;
+}
+.form-focus p {
+  margin-bottom: 8px;
+}
+.guide-sources {
+  margin-top: 20px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.guide-result h2 {
+  font-size: 18px;
+  margin: 7px 0;
+}
+.guide-result .hint {
+  margin-bottom: 0;
+}
+.exercise-guide h3 {
+  margin-top: 20px;
+}

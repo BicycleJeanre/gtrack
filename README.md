@@ -120,3 +120,5 @@ Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, 
 ## Program content
 
 The version 1 catalog lives in `docs/research/example-programs.json`; its source rationale is in `docs/research/sebastian-oreb-program-proposals.md`. These are original GTrack examples informed by public Sebastian Oreb principles, not endorsed or official Strength System programs. Keep version 1 prescriptions stable for existing enrollments. Personal structural changes affect the current session only. Current program logging covers working sets; warm-ups should be done separately. No universal starting weight or automatic load progression is prescribed.
+
+Exercise guidance is available under **Workouts → Exercise guide** and through **View form** on program exercises, workout plans and active sessions. Includes 64 movement guides and 62 photo pairs, cached for offline use. See [exercise-guide sources and coverage](docs/exercise-guides.md).
