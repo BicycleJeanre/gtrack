@@ -91,3 +91,63 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
   await deviceContext.close();
   await otherContext.close();
 });
+
+test("program enrollment and completed progress sync privately to a second device", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(90000);
+  const email = `program-${Date.now()}@example.test`;
+  await signIn(page, email, true);
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Preview Foundation", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Use this program", exact: true })
+    .click();
+  await expect(page.locator(".program-enrollment")).toHaveCount(1);
+  await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
+  const secondContext = await browser.newContext(),
+    second = await secondContext.newPage();
+  const strangerContext = await browser.newContext(),
+    stranger = await strangerContext.newPage();
+  try {
+    await signIn(second, email, false);
+    await second.getByRole("button", { name: "Programs", exact: true }).click();
+    await expect(second.locator(".program-enrollment")).toContainText(
+      "0 / 24 sessions",
+    );
+    await page
+      .getByRole("button", { name: "Prepare next session", exact: true })
+      .click();
+    for (const input of await page.locator("#program-prepare input").all())
+      await input.fill("10");
+    await page
+      .getByRole("button", { name: "Start program session", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Complete Goblet squat set 1", exact: true })
+      .click();
+    await page.locator("#finish").click();
+    await page.locator("#advance-program").check();
+    await page
+      .getByRole("button", { name: "Save session", exact: true })
+      .click();
+    await expect(page.locator("#sync")).toHaveText("Synced", {
+      timeout: 15000,
+    });
+    await expect(second.locator(".program-enrollment")).toContainText(
+      "1 / 24 sessions",
+      { timeout: 15000 },
+    );
+    await signIn(stranger, `program-stranger-${Date.now()}@example.test`, true);
+    await stranger
+      .getByRole("button", { name: "Programs", exact: true })
+      .click();
+    await expect(stranger.locator(".program-enrollment")).toHaveCount(0);
+  } finally {
+    await secondContext.close();
+    await strangerContext.close();
+  }
+});

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add a Programs catalog with three phased programs and eleven sessions.
+- Add enrollment, week/session progression, working-weight preparation, per-exercise rest and effort guidance, and pause/resume.
+- Sync private program enrollments and completed progress; include programs in backups while accepting older backups.
+
 - Expand the built-in library to 64 common gym exercises with descriptions and weight-recording conventions.
 
 - Build a session while recording, starting empty or from a saved workout.

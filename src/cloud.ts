@@ -70,7 +70,12 @@ export class Cloud {
   ) {}
   start() {
     if (!db) return;
-    for (const kind of ["exercises", "workouts", "sessions"] as Kind[]) {
+    for (const kind of [
+      "exercises",
+      "workouts",
+      "sessions",
+      "programs",
+    ] as Kind[]) {
       const ref =
         kind === "exercises"
           ? collection(db, "exercises")

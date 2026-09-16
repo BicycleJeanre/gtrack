@@ -123,3 +123,46 @@ test("completed sessions are private, immutable, and retry safe", async () => {
   await assertFails(deleteDoc(doc(alice, "users/alice/sessions/session")));
   await assertFails(setDoc(doc(alice, "users/bob/sessions/session"), session));
 });
+test("program enrollments are private and program session metadata is validated", async () => {
+  const enrollment = {
+    id: "enrollment",
+    templateId: "foundation-3",
+    version: 1,
+    startedAt: 1,
+    updatedAt: 1,
+    archived: false,
+  };
+  const ref = doc(alice, "users/alice/programs/enrollment");
+  await assertSucceeds(setDoc(ref, enrollment));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(getDoc(doc(bob, "users/alice/programs/enrollment")));
+  await assertFails(getDoc(doc(guest, "users/alice/programs/enrollment")));
+  await assertFails(
+    setDoc(doc(bob, "users/alice/programs/enrollment"), enrollment),
+  );
+  await assertFails(setDoc(ref, { ...enrollment, templateId: "unknown" }));
+  await assertFails(setDoc(ref, { ...enrollment, version: 2 }));
+  await assertSucceeds(setDoc(ref, { ...enrollment, archived: true }));
+  await assertFails(deleteDoc(ref));
+  const logged = {
+    ...session,
+    id: "program-session",
+    program: {
+      enrollmentId: "enrollment",
+      templateId: "foundation-3",
+      week: 1,
+      day: 1,
+      countsForProgress: true,
+    },
+  };
+  await assertSucceeds(
+    setDoc(doc(alice, "users/alice/sessions/program-session"), logged),
+  );
+  await assertFails(
+    setDoc(doc(alice, "users/alice/sessions/invalid-program"), {
+      ...logged,
+      id: "invalid-program",
+      program: { ...logged.program, week: 9 },
+    }),
+  );
+});

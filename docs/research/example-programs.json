@@ -1,0 +1,722 @@
+{
+  "schema": "gtrack-program-proposal-1",
+  "status": "app-catalog-version-1-not-backup-import",
+  "researchedAt": "2026-09-16",
+  "attribution": "Original GTrack examples informed by Sebastian Oreb’s public principles. Not official or endorsed Strength System programs.",
+  "weightKg": null,
+  "prescriptionFormat": "[working sets, reps per set]; phase overrides apply to every exercise with that role",
+  "restSeconds": {
+    "primary": [
+      180,
+      300
+    ],
+    "practice": [
+      180,
+      300
+    ],
+    "secondary": [
+      120,
+      180
+    ],
+    "accessory": [
+      60,
+      120
+    ]
+  },
+  "sources": [
+    {
+      "id": "load",
+      "title": "Sebastian Oreb: Load Selection",
+      "url": "https://strengthsystem.com/all-articles/your-program-sucks-part-2/"
+    },
+    {
+      "id": "progression",
+      "title": "Sebastian Oreb: Progressive Overload",
+      "url": "https://strengthsystem.com/all-articles/your-program-sucks-part-3/"
+    },
+    {
+      "id": "beginner",
+      "title": "Strength System: Beginners Guide to Lifting Weights",
+      "url": "https://strengthsystem.com/beginners-guide-to-lifting-weights/"
+    },
+    {
+      "id": "system",
+      "title": "Strength System: program and technique-feedback overview",
+      "url": "https://strengthsystem.com/"
+    },
+    {
+      "id": "interview",
+      "title": "Raise the Bar: Sebastian Oreb interview, 2 August 2026 (publisher show notes)",
+      "url": "https://podcasts.apple.com/ca/podcast/coach-to-the-strongest-man-alive-on-breaking-plateaus/id6793696383?i=1000779498914"
+    },
+    {
+      "id": "recap",
+      "title": "OneCoach: publisher recap of its Oreb interview, 12 August 2026",
+      "url": "https://one.coach/resources/how-to-get-stronger/"
+    }
+  ],
+  "programs": [
+    {
+      "id": "foundation-3",
+      "name": "Foundation — 3 days",
+      "weeks": 8,
+      "audience": "New or returning lifters learning consistent technique",
+      "schedule": [
+        "Monday: A",
+        "Wednesday: B",
+        "Friday: C"
+      ],
+      "estimatedMinutes": "45–65",
+      "sessions": [
+        {
+          "name": "A — Squat and horizontal push/pull",
+          "exercises": [
+            {
+              "exerciseName": "Goblet squat",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Dumbbell bench press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Seated cable row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Seated leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Cable crunch",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "B — Hinge and vertical push/pull",
+          "exercises": [
+            {
+              "exerciseName": "Dumbbell Romanian deadlift",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Dumbbell shoulder press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lat pulldown",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Leg press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Standing calf raise",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "C — Full-body practice",
+          "exercises": [
+            {
+              "exerciseName": "Goblet squat",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Machine chest press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Chest-supported dumbbell row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lying leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Dumbbell lateral raise",
+              "role": "accessory"
+            }
+          ]
+        }
+      ],
+      "phases": [
+        {
+          "weeks": [
+            1,
+            2
+          ],
+          "name": "Learn the movements",
+          "primary": [
+            2,
+            8
+          ],
+          "secondary": [
+            2,
+            10
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "3–4"
+        },
+        {
+          "weeks": [
+            3,
+            4
+          ],
+          "name": "Build repeatable work",
+          "primary": [
+            3,
+            8
+          ],
+          "secondary": [
+            3,
+            10
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "3"
+        },
+        {
+          "weeks": [
+            5,
+            6,
+            7
+          ],
+          "name": "Progress gradually",
+          "primary": [
+            3,
+            8
+          ],
+          "secondary": [
+            3,
+            10
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "2–3"
+        },
+        {
+          "weeks": [
+            8
+          ],
+          "name": "Consolidate and review",
+          "primary": [
+            2,
+            8
+          ],
+          "secondary": [
+            2,
+            10
+          ],
+          "accessory": [
+            1,
+            12
+          ],
+          "rir": "3–4"
+        }
+      ]
+    },
+    {
+      "id": "strength-size-4",
+      "name": "Strength and Size — 4 days",
+      "weeks": 12,
+      "audience": "Consistent gym users comfortable with the main lifts; suggested default",
+      "schedule": [
+        "Monday: Lower A",
+        "Tuesday: Upper A",
+        "Thursday: Lower B",
+        "Friday: Upper B"
+      ],
+      "estimatedMinutes": "60–80",
+      "sessions": [
+        {
+          "name": "Lower A — Squat emphasis",
+          "exercises": [
+            {
+              "exerciseName": "Barbell squat",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Romanian deadlift",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Leg press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Seated leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Standing calf raise",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Upper A — Bench emphasis",
+          "exercises": [
+            {
+              "exerciseName": "Barbell bench press",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Seated cable row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Dumbbell shoulder press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lat pulldown",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Triceps pushdown",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Lower B — Hinge emphasis",
+          "exercises": [
+            {
+              "exerciseName": "Trap bar deadlift",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Goblet squat",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Bulgarian split squat",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lying leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Cable crunch",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Upper B — Overhead emphasis",
+          "exercises": [
+            {
+              "exerciseName": "Barbell overhead press",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Lat pulldown",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Incline dumbbell bench press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Chest-supported dumbbell row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Hammer curl",
+              "role": "accessory"
+            }
+          ]
+        }
+      ],
+      "phases": [
+        {
+          "weeks": [
+            1,
+            2,
+            3
+          ],
+          "name": "Establish a base",
+          "primary": [
+            3,
+            8
+          ],
+          "secondary": [
+            3,
+            10
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "3 → 2"
+        },
+        {
+          "weeks": [
+            4
+          ],
+          "name": "Easy week",
+          "primary": [
+            2,
+            8
+          ],
+          "secondary": [
+            2,
+            10
+          ],
+          "accessory": [
+            1,
+            12
+          ],
+          "rir": "4+"
+        },
+        {
+          "weeks": [
+            5,
+            6,
+            7
+          ],
+          "name": "Build work capacity",
+          "primary": [
+            4,
+            6
+          ],
+          "secondary": [
+            3,
+            8
+          ],
+          "accessory": [
+            3,
+            10
+          ],
+          "rir": "3 → 2"
+        },
+        {
+          "weeks": [
+            8
+          ],
+          "name": "Easy week",
+          "primary": [
+            2,
+            6
+          ],
+          "secondary": [
+            2,
+            8
+          ],
+          "accessory": [
+            1,
+            10
+          ],
+          "rir": "4+"
+        },
+        {
+          "weeks": [
+            9,
+            10,
+            11
+          ],
+          "name": "Emphasise strength",
+          "primary": [
+            4,
+            5
+          ],
+          "secondary": [
+            3,
+            8
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "3 → 2"
+        },
+        {
+          "weeks": [
+            12
+          ],
+          "name": "Review without maxing",
+          "primary": [
+            2,
+            5
+          ],
+          "secondary": [
+            2,
+            8
+          ],
+          "accessory": [
+            1,
+            12
+          ],
+          "rir": "2 on first primary set; 4+ thereafter"
+        }
+      ]
+    },
+    {
+      "id": "barbell-strength-4",
+      "name": "Barbell Strength — 4 days",
+      "weeks": 12,
+      "audience": "Experienced recreational lifters with established squat, bench and deadlift technique",
+      "schedule": [
+        "Monday: Squat",
+        "Tuesday: Bench",
+        "Thursday: Deadlift",
+        "Saturday: Bench and squat practice"
+      ],
+      "estimatedMinutes": "65–90",
+      "sessions": [
+        {
+          "name": "Squat — Primary exposure",
+          "exercises": [
+            {
+              "exerciseName": "Barbell squat",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Romanian deadlift",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Seated leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Cable crunch",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Bench — Primary exposure",
+          "exercises": [
+            {
+              "exerciseName": "Barbell bench press",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Seated cable row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Dumbbell shoulder press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lat pulldown",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Triceps pushdown",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Deadlift — Primary exposure",
+          "exercises": [
+            {
+              "exerciseName": "Barbell deadlift",
+              "role": "primary"
+            },
+            {
+              "exerciseName": "Leg press",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lying leg curl",
+              "role": "accessory"
+            },
+            {
+              "exerciseName": "Standing calf raise",
+              "role": "accessory"
+            }
+          ]
+        },
+        {
+          "name": "Bench and squat — Technique practice",
+          "exercises": [
+            {
+              "exerciseName": "Barbell bench press",
+              "role": "practice"
+            },
+            {
+              "exerciseName": "Barbell squat",
+              "role": "practice"
+            },
+            {
+              "exerciseName": "Chest-supported dumbbell row",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Lat pulldown",
+              "role": "secondary"
+            },
+            {
+              "exerciseName": "Dumbbell lateral raise",
+              "role": "accessory"
+            }
+          ]
+        }
+      ],
+      "phases": [
+        {
+          "weeks": [
+            1,
+            2,
+            3
+          ],
+          "name": "Build repeatable volume",
+          "primary": [
+            3,
+            6
+          ],
+          "practice": [
+            3,
+            6
+          ],
+          "secondary": [
+            3,
+            8
+          ],
+          "accessory": [
+            2,
+            12
+          ],
+          "rir": "3 → 2; practice always 4+"
+        },
+        {
+          "weeks": [
+            4
+          ],
+          "name": "Easy week",
+          "primary": [
+            2,
+            6
+          ],
+          "practice": [
+            2,
+            6
+          ],
+          "secondary": [
+            2,
+            8
+          ],
+          "accessory": [
+            1,
+            12
+          ],
+          "rir": "4+"
+        },
+        {
+          "weeks": [
+            5,
+            6,
+            7
+          ],
+          "name": "Build strength",
+          "primary": [
+            4,
+            4
+          ],
+          "practice": [
+            3,
+            5
+          ],
+          "secondary": [
+            3,
+            8
+          ],
+          "accessory": [
+            2,
+            10
+          ],
+          "rir": "3 → 2; practice always 4+"
+        },
+        {
+          "weeks": [
+            8
+          ],
+          "name": "Easy week",
+          "primary": [
+            2,
+            4
+          ],
+          "practice": [
+            2,
+            5
+          ],
+          "secondary": [
+            2,
+            8
+          ],
+          "accessory": [
+            1,
+            10
+          ],
+          "rir": "4+"
+        },
+        {
+          "weeks": [
+            9,
+            10,
+            11
+          ],
+          "name": "Practise heavier weights",
+          "primary": [
+            4,
+            3
+          ],
+          "practice": [
+            3,
+            4
+          ],
+          "secondary": [
+            2,
+            8
+          ],
+          "accessory": [
+            2,
+            10
+          ],
+          "rir": "3 → 2; practice always 4+"
+        },
+        {
+          "weeks": [
+            12
+          ],
+          "name": "Submaximal benchmark",
+          "primary": [
+            2,
+            3
+          ],
+          "practice": [
+            2,
+            4
+          ],
+          "secondary": [
+            1,
+            8
+          ],
+          "accessory": [
+            1,
+            10
+          ],
+          "rir": "2 on first primary set; 4+ thereafter"
+        }
+      ]
+    }
+  ],
+  "catalogVersion": 1
+}

@@ -1,3 +1,12 @@
+import {
+  programs,
+  templateFor,
+  phaseFor,
+  programProgress,
+  prescription,
+  effortFor,
+  createProgramSession,
+} from "./programs";
 import "./style.css";
 import { Store } from "./store";
 import {
@@ -104,7 +113,7 @@ function syncLabel() {
   if (store.state.pending.length)
     return `Saved on phone · ${store.state.pending.length} sync pending`;
   if (!navigator.onLine) return "Saved on phone · offline";
-  return cloud?.ready.size === 3 ? "Synced" : "Saved on phone · connecting";
+  return cloud?.ready.size === 4 ? "Synced" : "Saved on phone · connecting";
 }
 function changed() {
   if (!userReady) return;
@@ -125,6 +134,7 @@ async function saved() {
 }
 const headings: Record<string, string[]> = {
   today: ["Ready to train?", "Your session, one set at a time."],
+  programs: ["Your training program.", "A plan for the weeks ahead."],
   workouts: ["Your workouts.", "Set it up once. Make it your routine."],
   builder: ["Build your workout.", "Choose your exercises and make a plan."],
   history: ["Every session adds up.", "The work you’ve put in, saved for you."],
@@ -138,7 +148,7 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "builder" && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "builder" && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
@@ -157,6 +167,7 @@ function render() {
     ({
       today: renderToday,
       workouts: renderWorkouts,
+      programs: renderPrograms,
       builder: renderBuilder,
       history: renderHistory,
       progress: renderProgress,
@@ -184,6 +195,167 @@ async function navigate(next: string) {
 function empty(title: string, description: string, button = "") {
   return `<div class="card empty"><div class="empty-symbol">${icon}</div><h2>${title}</h2><p>${description}</p>${button}</div>`;
 }
+let previewProgram: string | null = null;
+function activePrograms() {
+  return Object.values(store.state.programs).filter((p) => !p.archived);
+}
+function programCard(enrollment: import("./model").ProgramEnrollment) {
+  const p = templateFor(enrollment.templateId),
+    progress = programProgress(enrollment, history());
+  return `<article class="card pad program-enrollment"><div class="eyebrow">${enrollment.archived ? "Paused" : progress.finished ? "Program complete" : `Week ${progress.week} of ${p.weeks}`}</div><h2>${esc(p.name)}</h2><p>${progress.completed} / ${progress.total} sessions completed</p><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div>${!progress.finished && !enrollment.archived ? `<p>Next: ${esc(p.sessions[progress.day - 1].name)} · ${esc(phaseFor(p, progress.week).name)}</p><button class="primary" data-program-start="${enrollment.id}">${store.state.draft?.program?.enrollmentId === enrollment.id ? "Resume session" : "Prepare next session"}</button>` : ""}<div class="actions"><button class="text-button" data-program-preview="${p.id}">View program</button><button class="text-button" data-program-pause="${enrollment.id}">${enrollment.archived ? "Resume program" : "Pause program"}</button></div></article>`;
+}
+function bindPrograms() {
+  action("[data-program-preview]", (e) => {
+    previewProgram = (e.currentTarget as HTMLElement).dataset.programPreview!;
+    view = "programs";
+    render();
+    window.scrollTo(0, 0);
+  });
+  action("[data-program-start]", (e) =>
+    prepareProgramSession(
+      (e.currentTarget as HTMLElement).dataset.programStart!,
+    ),
+  );
+  action("[data-program-pause]", async (e) => {
+    const id = (e.currentTarget as HTMLElement).dataset.programPause!;
+    if (store.state.draft?.program?.enrollmentId === id) {
+      toast("Finish or discard the active session before pausing its program.");
+      return;
+    }
+    await store.put("programs", {
+      ...store.state.programs[id],
+      archived: !store.state.programs[id].archived,
+      updatedAt: Date.now(),
+    });
+    await saved();
+  });
+}
+const programGuidance = `<details class="card pad program-guidance"><summary>How to choose weights and progress</summary><p>RIR (reps in reserve) means how many more clean reps you could perform. Keep technique consistent and stop if it deteriorates.</p><p>Warm up with light, non-fatiguing sets before your working sets. Log working sets against the program targets. Rest 3–5 minutes for main lifts, 2–3 for supporting exercises and 1–2 for accessories; take longer when needed.</p><p>When all targets are met at the intended effort, increase by the smallest practical amount next time. Repeat or reduce the weight after missed reps. At a new phase, select the load again for its new sets, reps and effort.</p><p>After two poor sessions or accumulating fatigue, use roughly half the sets and lighter weights with four or more reps in reserve. Missed a day? Continue the sequence without doubling up.</p><p>These are original GTrack examples informed by Sebastian Oreb’s public principles, not official or endorsed Strength System programs. <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-2/" target="_blank" rel="noopener">Load selection</a> · <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-3/" target="_blank" rel="noopener">Progression</a></p></details>`;
+function renderPrograms() {
+  const enrollments = Object.values(store.state.programs).sort(
+    (a, b) => b.startedAt - a.startedAt,
+  );
+  if (previewProgram) {
+    const p = templateFor(previewProgram);
+    $("#screen").innerHTML =
+      `<button class="text-button" id="program-back">← All programs</button><div class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><p>${esc(p.estimatedMinutes)} minutes per session · Full gym access</p><p>${p.schedule.map(esc).join("<br>")}</p><button class="primary" id="program-use">${enrollments.some((e) => e.templateId === p.id && !e.archived) ? "View my program" : "Use this program"}</button></div>${programGuidance}<label>Preview week<select id="program-week">${Array.from({ length: p.weeks }, (_, i) => `<option value="${i + 1}">Week ${i + 1} · ${esc(phaseFor(p, i + 1).name)}</option>`).join("")}</select></label><div id="program-sessions"></div>`;
+    const showWeek = () => {
+      const week = Number($<HTMLSelectElement>("#program-week").value),
+        phase = phaseFor(p, week);
+      $("#program-sessions").innerHTML = p.sessions
+        .map(
+          (session, i) =>
+            `<article class="card pad"><div class="eyebrow">Session ${i + 1} · ${esc(phase.name)}</div><h2>${esc(session.name)}</h2><ol class="program-exercises">${session.exercises
+              .map((e) => {
+                const [sets, reps] = prescription(phase, e.role);
+                return `<li><strong>${esc(e.exerciseName)}</strong><span>${sets} × ${reps} · ${esc(effortFor(phase, e.role, week))}</span></li>`;
+              })
+              .join("")}</ol></article>`,
+        )
+        .join("");
+    };
+    showWeek();
+    $("#program-week").addEventListener("change", showWeek);
+    action("#program-back", () => {
+      previewProgram = null;
+      render();
+    });
+    action("#program-use", async () => {
+      await store.mutate((state) => {
+        if (
+          Object.values(state.programs).some(
+            (e) => e.templateId === p.id && !e.archived,
+          )
+        )
+          return;
+        const now = Date.now(),
+          id = uid();
+        state.programs[id] = {
+          id,
+          templateId: p.id,
+          version: 1,
+          startedAt: now,
+          updatedAt: now,
+          archived: false,
+        };
+        if (store.account !== "local")
+          state.pending.push({ kind: "programs", id, token: uid() });
+      });
+      previewProgram = null;
+      await saved();
+      window.scrollTo(0, 0);
+    });
+  } else {
+    $("#screen").innerHTML =
+      `${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Choose a program</h2></div><p class="hint">A sequence of workouts with weekly targets. Choose one that fits your experience and schedule.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
+    bindPrograms();
+  }
+}
+function prepareProgramSession(id: string) {
+  if (store.state.draft) {
+    view = "today";
+    render();
+    toast("Resume or discard your current session first.");
+    return;
+  }
+  const enrollment = store.state.programs[id];
+  if (!enrollment || enrollment.archived) return;
+  const p = templateFor(enrollment.templateId),
+    progress = programProgress(enrollment, history());
+  if (progress.finished) return;
+  const phase = phaseFor(p, progress.week),
+    session = p.sessions[progress.day - 1];
+  modal(
+    `<form id="program-prepare"><div class="eyebrow">Week ${progress.week} · Session ${progress.day} · ${esc(phase.name)}</div><h2>${esc(session.name)}</h2><p>Choose your working weights. Previous logged weights, where shown, are references—not automatic increases. Confirm each for today’s targets.</p>${session.exercises
+      .map((e, i) => {
+        const previous = history()
+          .filter((s) => s.program?.enrollmentId === id)
+          .flatMap((s) => s.exercises)
+          .find((x) => x.name === e.exerciseName && x.sets.some((s) => s.done));
+        const weight = previous?.sets.find((s) => s.done)?.weight;
+        const [sets, reps] = prescription(phase, e.role);
+        const description =
+          exercises().find((x) => x.name === e.exerciseName)?.description || "";
+        return `<label>${esc(e.exerciseName)} weight (kg)<input name="weight-${i}" required type="number" min="0" max="1000" step="0.5" inputmode="decimal" placeholder="Choose weight" value="${weight ?? ""}"></label><p class="hint">${sets} × ${reps} · ${esc(effortFor(phase, e.role, progress.week))}<br>${esc(description)}</p>`;
+      })
+      .join(
+        "",
+      )}<p id="program-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Start program session</button></div></form>`,
+  );
+  $("#program-prepare").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement,
+      button = form.querySelector<HTMLButtonElement>("[type=submit]")!;
+    button.disabled = true;
+    try {
+      const weights = session.exercises.map(
+        (_, i) =>
+          form.querySelector<HTMLInputElement>(`[name=weight-${i}]`)!
+            .valueAsNumber,
+      );
+      const draft = createProgramSession(
+        enrollment,
+        progress.week,
+        progress.day,
+        exercises(),
+        weights,
+      );
+      await store.mutate((state) => {
+        if (state.draft) throw Error("A session is already in progress.");
+        state.draft = draft;
+      });
+      close();
+      view = "today";
+      render();
+      window.scrollTo(0, 0);
+    } catch (error) {
+      $("#program-error").textContent =
+        error instanceof Error ? error.message : "Could not start session.";
+      button.disabled = false;
+    }
+  });
+}
+
 function renderWorkouts() {
   $("#screen").innerHTML =
     `<button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
@@ -637,13 +809,18 @@ function renderToday() {
     );
     action("#start-empty", () => sessionDetails(true));
     action("#first-workout", () => openBuilder());
+    $("#screen").insertAdjacentHTML(
+      "afterbegin",
+      activePrograms().map(programCard).join(""),
+    );
+    bindPrograms();
     bindStart();
     return;
   }
   const total = draft.exercises.reduce((n, e) => n + e.sets.length, 0),
     done = completedSets(draft);
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2><button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2><div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div><details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program ? `<p>${esc(templateFor(draft.program.templateId).name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(templateFor(draft.program.templateId), draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div><details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   action("#edit-session-details", () => sessionDetails());
   action("#session-add", sessionExerciseDialog);
   action("[data-session-remove]", (event) =>
@@ -722,20 +899,24 @@ function renderToday() {
       set.weight = weight;
       set.reps = reps;
       set.done = !set.done;
-      if (set.done && state.draft.rest)
-        restUntil = Date.now() + state.draft.rest * 1000;
+      const rest =
+        state.draft.exercises[Number(b.dataset.ex)].rest ?? state.draft.rest;
+      if (set.done && rest) restUntil = Date.now() + rest * 1000;
     });
     render();
   });
   action("#finish", () => {
     modal(
-      `<h2>Finish this workout?</h2><p>${done} of ${total} sets completed. ${done < total ? "Only ticked sets count toward your progress." : ""}</p><div class="actions"><button class="secondary" data-close>Keep training</button><button class="primary" id="finish-confirm">Save session</button></div>`,
+      `<h2>Finish this workout?</h2><p>${done} of ${total} sets completed. ${done < total ? "Only ticked sets count toward your progress." : ""}</p>${draft.program ? `<label class="checkbox"><input type="checkbox" id="advance-program" ${done === total ? "checked" : ""}>Mark this program session complete</label><p class="hint">When checked, your program advances to the next session. Leave unchecked to repeat this session later.</p>` : ""}<div class="actions"><button class="secondary" data-close>Keep training</button><button class="primary" id="finish-confirm">Save session</button></div>`,
     );
     action("#finish-confirm", async () => {
       const s = {
         ...structuredClone(store.state.draft!),
         completedAt: Date.now(),
       };
+      if (s.program)
+        s.program.countsForProgress =
+          $<HTMLInputElement>("#advance-program").checked;
       if (!validateRecord("sessions", s))
         throw new Error("Check the weights and reps before finishing.");
       await store.finish(s);
@@ -773,7 +954,7 @@ function renderHistory() {
     history()
       .map(
         (s) =>
-          `<article class="card pad history"><div class="eyebrow">${date(s.completedAt)}</div><h2>${esc(s.workoutName)}</h2><p>${completedSets(s)} sets · ${Math.max(1, Math.round((s.completedAt - s.startedAt) / 60000))} min · ${fmt(volume(s))} kg volume</p><details><summary>View logged sets</summary>${s.exercises
+          `<article class="card pad history"><div class="eyebrow">${date(s.completedAt)}</div><h2>${esc(s.workoutName)}</h2>${s.program ? `<p class="hint">Program week ${s.program.week} · Session ${s.program.day} · ${s.program.countsForProgress ? "Completed" : "To repeat"}</p>` : ""}<p>${completedSets(s)} sets · ${Math.max(1, Math.round((s.completedAt - s.startedAt) / 60000))} min · ${fmt(volume(s))} kg volume</p><details><summary>View logged sets</summary>${s.exercises
             .map(
               (e) =>
                 `<div class="history-exercise"><h3>${esc(e.name)}</h3><p>${
@@ -857,6 +1038,7 @@ function renderAccount() {
       exercises: Object.values(store.state.exercises),
       workouts: Object.values(store.state.workouts),
       sessions: history(),
+      programs: Object.values(store.state.programs),
     };
     const url = URL.createObjectURL(
       new Blob(
@@ -885,7 +1067,7 @@ function renderAccount() {
         throw new Error("Choose a backup smaller than 10 MB.");
       const records = await validateBackup(JSON.parse(await file.text()));
       modal(
-        `<h2>Import this backup?</h2><p>${Object.keys(records.workouts).length} workouts, ${Object.keys(records.sessions).length} sessions and ${Object.keys(records.exercises).length} exercises. Existing records are kept.</p>${!local ? "<p>Exercise names and descriptions will be shared with other users.</p>" : ""}<div class="actions"><button class="secondary" data-close>Cancel</button><button class="primary" id="confirm-import">Import records</button></div>`,
+        `<h2>Import this backup?</h2><p>${Object.keys(records.programs).length} programs, ${Object.keys(records.workouts).length} workouts, ${Object.keys(records.sessions).length} sessions and ${Object.keys(records.exercises).length} exercises. Existing records are kept.</p>${!local ? "<p>Exercise names and descriptions will be shared with other users.</p>" : ""}<div class="actions"><button class="secondary" data-close>Cancel</button><button class="primary" id="confirm-import">Import records</button></div>`,
       );
       action("#confirm-import", async () => {
         await store.import(records);

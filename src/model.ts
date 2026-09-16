@@ -31,13 +31,31 @@ export interface LoggedSet {
   reps: number;
   done: boolean;
 }
+export interface ProgramEnrollment {
+  id: string;
+  templateId: string;
+  version: number;
+  startedAt: number;
+  updatedAt: number;
+  archived: boolean;
+}
+export interface ProgramSession {
+  enrollmentId: string;
+  templateId: string;
+  week: number;
+  day: number;
+  countsForProgress: boolean;
+}
 export interface SessionExercise {
+  guidance?: string;
+  rest?: number;
   exerciseId: string;
   name: string;
   description: string;
   sets: LoggedSet[];
 }
 export interface Session {
+  program?: ProgramSession;
   id: string;
   workoutName: string;
   startedAt: number;
@@ -45,8 +63,9 @@ export interface Session {
   rest: number;
   exercises: SessionExercise[];
 }
-export type Kind = "exercises" | "workouts" | "sessions";
+export type Kind = "exercises" | "workouts" | "sessions" | "programs";
 export interface Records {
+  programs: Record<string, ProgramEnrollment>;
   exercises: Record<string, Exercise>;
   workouts: Record<string, Workout>;
   sessions: Record<string, Session>;
@@ -63,6 +82,7 @@ export interface State extends Records {
 }
 export const emptyState = (): State => ({
   schema: 1,
+  programs: {},
   exercises: {},
   workouts: {},
   sessions: {},
@@ -91,6 +111,26 @@ const validId = (v: unknown): v is string =>
   typeof v === "string" && /^[a-zA-Z0-9-]{1,128}$/.test(v);
 export function validateRecord(kind: Kind, value: any): boolean {
   if (!value || !validId(value.id)) return false;
+  if (kind === "programs")
+    return (
+      Object.keys(value).every((k) =>
+        [
+          "id",
+          "templateId",
+          "version",
+          "startedAt",
+          "updatedAt",
+          "archived",
+        ].includes(k),
+      ) &&
+      ["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
+        value.templateId,
+      ) &&
+      value.version === 1 &&
+      number(value.startedAt, 1, 9e15) &&
+      number(value.updatedAt, value.startedAt, 9e15) &&
+      typeof value.archived === "boolean"
+    );
   const allowed =
     kind === "exercises"
       ? ["id", "name", "description", "createdAt"]
@@ -99,6 +139,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
         : [
             "id",
             "workoutName",
+            "program",
             "rest",
             "startedAt",
             "completedAt",
@@ -139,6 +180,29 @@ export function validateRecord(kind: Kind, value: any): boolean {
               e.setTargets[0].weight === e.weight)),
       )
     );
+  const program = value.program;
+  if (
+    program !== undefined &&
+    (!program ||
+      Object.keys(program).some(
+        (k) =>
+          ![
+            "enrollmentId",
+            "templateId",
+            "week",
+            "day",
+            "countsForProgress",
+          ].includes(k),
+      ) ||
+      !validId(program.enrollmentId) ||
+      !["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
+        program.templateId,
+      ) ||
+      !count(program.week, program.templateId === "foundation-3" ? 8 : 12) ||
+      !count(program.day, program.templateId === "foundation-3" ? 3 : 4) ||
+      typeof program.countsForProgress !== "boolean")
+  )
+    return false;
   return (
     text(value.workoutName, 60) &&
     number(value.rest, 0, 600) &&
@@ -152,6 +216,8 @@ export function validateRecord(kind: Kind, value: any): boolean {
         validId(e.exerciseId) &&
         text(e.name, 80) &&
         text(e.description, 600) &&
+        (e.guidance === undefined || text(e.guidance, 500)) &&
+        (e.rest === undefined || number(e.rest, 0, 600)) &&
         Array.isArray(e.sets) &&
         e.sets.length > 0 &&
         e.sets.length <= 12 &&
@@ -201,8 +267,19 @@ export async function validateBackup(input: unknown): Promise<Records> {
   const data = input as any;
   if (data?.schema !== 1 || !data.records)
     throw new Error("This is not a GTrack version 1 backup.");
-  const result: Records = { exercises: {}, workouts: {}, sessions: {} };
-  for (const kind of ["exercises", "workouts", "sessions"] as Kind[]) {
+  const result: Records = {
+    exercises: {},
+    workouts: {},
+    sessions: {},
+    programs: {},
+  };
+  for (const kind of [
+    "exercises",
+    "workouts",
+    "sessions",
+    "programs",
+  ] as Kind[]) {
+    if (kind === "programs" && data.records[kind] === undefined) continue;
     if (!Array.isArray(data.records[kind]) || data.records[kind].length > 10000)
       throw new Error("Invalid or oversized backup.");
     for (const record of data.records[kind]) {

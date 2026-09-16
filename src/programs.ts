@@ -1,0 +1,133 @@
+import catalog from "../docs/research/example-programs.json";
+import {
+  uid,
+  type ProgramEnrollment,
+  type Session,
+  type Exercise,
+} from "./model";
+export interface ProgramExercise {
+  exerciseName: string;
+  role: string;
+}
+export interface ProgramPhase {
+  weeks: number[];
+  name: string;
+  rir: string;
+  [role: string]: number[] | string;
+}
+export interface ProgramTemplate {
+  id: string;
+  name: string;
+  weeks: number;
+  audience: string;
+  schedule: string[];
+  estimatedMinutes: string;
+  sessions: { name: string; exercises: ProgramExercise[] }[];
+  phases: ProgramPhase[];
+}
+export const programs = catalog.programs as ProgramTemplate[];
+export const templateFor = (id: string) => programs.find((p) => p.id === id)!;
+export const phaseFor = (p: ProgramTemplate, week: number) =>
+  p.phases.find((ph) => ph.weeks.includes(week))!;
+export function programProgress(
+  enrollment: ProgramEnrollment,
+  sessions: Session[],
+) {
+  const template = templateFor(enrollment.templateId);
+  const completed = new Set(
+    sessions
+      .filter(
+        (s) =>
+          s.program?.enrollmentId === enrollment.id &&
+          s.program.templateId === template.id &&
+          s.program.countsForProgress,
+      )
+      .map(
+        (s) =>
+          (s.program!.week - 1) * template.sessions.length + s.program!.day - 1,
+      ),
+  );
+  const total = template.weeks * template.sessions.length;
+  let next = 0;
+  while (completed.has(next) && next < total) next++;
+  return {
+    completed: completed.size,
+    total,
+    finished: next === total,
+    week: Math.floor(next / template.sessions.length) + 1,
+    day: (next % template.sessions.length) + 1,
+  };
+}
+export function prescription(phase: ProgramPhase, role: string): number[] {
+  return phase[role] as number[];
+}
+export function restFor(role: string): number {
+  return role === "primary" || role === "practice"
+    ? 180
+    : role === "secondary"
+      ? 120
+      : 90;
+}
+export function effortFor(
+  phase: ProgramPhase,
+  role: string,
+  week: number,
+): string {
+  if (role === "practice") return "4+ reps in reserve";
+  if (phase.name.includes("Review") || phase.name.includes("benchmark"))
+    return role === "primary"
+      ? "2 reps in reserve on first set; 4+ thereafter"
+      : "4+ reps in reserve";
+  if (phase.rir.includes("→"))
+    return `${["3", "2–3", "2"][phase.weeks.indexOf(week)]} reps in reserve`;
+  return phase.rir.split(";")[0] + " reps in reserve";
+}
+export function createProgramSession(
+  enrollment: ProgramEnrollment,
+  week: number,
+  day: number,
+  library: Exercise[],
+  weights: number[],
+): Session {
+  const p = templateFor(enrollment.templateId),
+    phase = phaseFor(p, week),
+    template = p.sessions[day - 1];
+  if (
+    !template ||
+    !phase ||
+    weights.length !== template.exercises.length ||
+    weights.some((w) => !Number.isFinite(w) || w < 0 || w > 1000)
+  )
+    throw Error("Enter a valid working weight for each exercise.");
+  return {
+    id: uid(),
+    workoutName: `${p.name.split(" — ")[0]} · W${week} D${day}`,
+    startedAt: Date.now(),
+    completedAt: 0,
+    rest: 180,
+    program: {
+      enrollmentId: enrollment.id,
+      templateId: p.id,
+      week,
+      day,
+      countsForProgress: false,
+    },
+    exercises: template.exercises.map((item, i) => {
+      const exercise = library.find((e) => e.name === item.exerciseName);
+      if (!exercise) throw Error(`Exercise unavailable: ${item.exerciseName}`);
+      const [sets, reps] = prescription(phase, item.role);
+      return {
+        exerciseId: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        rest: restFor(item.role),
+        guidance: `${item.role} · ${effortFor(phase, item.role, week)} · Rest ${item.role === "primary" || item.role === "practice" ? "3–5" : item.role === "secondary" ? "2–3" : "1–2"} min. Warm up separately; log working sets here.`,
+        sets: Array.from({ length: sets }, () => ({
+          weight: weights[i],
+          reps,
+          done: false,
+        })),
+      };
+    }),
+  };
+}

@@ -598,3 +598,26 @@ dialog h2 {
 #session-add {
   margin-bottom: 16px;
 }
+.program-exercises {
+  padding-left: 22px;
+}
+.program-exercises li {
+  margin: 16px 0;
+  font-size: 14px;
+}
+.program-exercises span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 5px;
+}
+.training-guidance {
+  color: var(--accent);
+  font-size: 12px;
+}
+.program-guidance a {
+  color: var(--accent);
+}
+#program-sessions {
+  margin-top: 20px;
+}

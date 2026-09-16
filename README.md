@@ -4,6 +4,8 @@ A personal gym training PWA for iPhone: plan workouts, log sets without receptio
 
 ## Current implementation
 
+- Programs catalog: Foundation (3 days, 8 weeks), Strength and Size (4 days, 12 weeks), and Barbell Strength (4 days, 12 weeks). Preview every week, enroll, confirm working weights, follow phase-specific sets/reps/effort/rest, and pause/resume. Completed session slots advance the program; partial logs advance only when explicitly marked complete. Program enrollment/history sync and export with the account.
+
 - Create, edit and archive workout plans; set exercise order, rest periods, and individual reps and weights for each set. Add or remove sets for warm-ups and working sets. Existing plans with uniform targets remain compatible.
 - Select exercises from a reusable library, with descriptions and new exercise contributions. 64 common exercises are included; no fake workouts or history are created.
 - Start an empty session or use a saved plan. While recording, add library or new exercises, remove or reorder exercises, add or remove sets, and edit session name/rest. Completed work requires confirmation before removal. Changes save on the device and leave the original plan unchanged.
@@ -60,6 +62,7 @@ All signed-in users can read and create library entries. Entries cannot be edite
 | `exercises/{nameHash}`        | Shared with authenticated users; create-only.                                                                                           |
 | `users/{uid}/workouts/{id}`   | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
 | `users/{uid}/sessions/{uuid}` | Private, immutable completed sessions; snapshots preserve exercise names, descriptions and set values. Identical retries are permitted. |
+| `users/{uid}/programs/{uuid}` | Private versioned catalog enrollment; pause state uses last server write. Progress derives from immutable completed sessions. |
 | Active session                | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
 | Pending sync queue            | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
 
@@ -113,3 +116,7 @@ Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, 
 - [Firestore Security Rules](https://firebase.google.com/docs/firestore/security/get-started)
 - [Vite static deployment](https://vite.dev/guide/static-deploy)
 - [GitHub Pages overview](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)
+
+## Program content
+
+The version 1 catalog lives in `docs/research/example-programs.json`; its source rationale is in `docs/research/sebastian-oreb-program-proposals.md`. These are original GTrack examples informed by public Sebastian Oreb principles, not endorsed or official Strength System programs. Keep version 1 prescriptions stable for existing enrollments. Personal structural changes affect the current session only. Current program logging covers working sets; warm-ups should be done separately. No universal starting weight or automatic load progression is prescribed.

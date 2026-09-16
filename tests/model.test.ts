@@ -102,3 +102,34 @@ test("per-set plans preserve distinct targets and reject invalid backup sets", a
   plan.exercises[0].setTargets.pop();
   assert.equal(validateRecord("workouts", plan), false);
 });
+
+test("program enrollments and optional session metadata validate; older backups still import", async () => {
+  const enrollment = {
+    id: "enrollment",
+    templateId: "foundation-3",
+    version: 1,
+    startedAt: 1,
+    updatedAt: 1,
+    archived: false,
+  };
+  assert.equal(validateRecord("programs", enrollment), true);
+  assert.equal(
+    validateRecord("programs", { ...enrollment, version: 2 }),
+    false,
+  );
+  const old = await validateBackup({
+    schema: 1,
+    records: { exercises: [], workouts: [], sessions: [] },
+  });
+  assert.deepEqual(old.programs, {});
+  const restored = await validateBackup({
+    schema: 1,
+    records: {
+      exercises: [],
+      workouts: [],
+      sessions: [],
+      programs: [enrollment],
+    },
+  });
+  assert.deepEqual(restored.programs.enrollment, enrollment);
+});

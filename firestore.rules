@@ -24,12 +24,36 @@ service cloud.firestore {
     function validSession(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','workoutName','rest','startedAt','completedAt','exercises'])
-        && d.keys().hasOnly(['id','workoutName','rest','startedAt','completedAt','exercises'])
+        && d.keys().hasOnly(['id','workoutName','rest','startedAt','completedAt','exercises','program'])
+        && (!('program' in d) || validProgramSession(d.program))
         && d.id == id && stringBetween(d.workoutName, 60)
         && d.rest is number && d.rest >= 0 && d.rest <= 600
         && d.startedAt is number && d.startedAt > 0
         && d.completedAt is number && d.completedAt >= d.startedAt
         && d.exercises is list && d.exercises.size() > 0 && d.exercises.size() <= 30;
+    }
+    function programTemplate(id) { return id in ['foundation-3','strength-size-4','barbell-strength-4']; }
+    function validProgramSession(p) {
+      return p is map && p.keys().hasAll(['enrollmentId','templateId','week','day','countsForProgress'])
+        && p.keys().hasOnly(['enrollmentId','templateId','week','day','countsForProgress'])
+        && p.enrollmentId is string && p.enrollmentId.matches('^[a-zA-Z0-9-]{1,128}$')
+        && programTemplate(p.templateId)
+        && p.week is int && p.week >= 1 && p.week <= (p.templateId == 'foundation-3' ? 8 : 12)
+        && p.day is int && p.day >= 1 && p.day <= (p.templateId == 'foundation-3' ? 3 : 4)
+        && p.countsForProgress is bool;
+    }
+    function validProgram(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','templateId','version','startedAt','updatedAt','archived'])
+        && d.keys().hasOnly(['id','templateId','version','startedAt','updatedAt','archived'])
+        && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$') && programTemplate(d.templateId)
+        && d.version == 1 && d.startedAt is number && d.startedAt > 0
+        && d.updatedAt is number && d.updatedAt >= d.startedAt && d.archived is bool;
+    }
+    match /users/{uid}/programs/{id} {
+      allow read: if owner(uid);
+      allow create, update: if owner(uid) && validProgram(id);
+      allow delete: if false;
     }
     match /exercises/{id} {
       allow read: if signedIn();

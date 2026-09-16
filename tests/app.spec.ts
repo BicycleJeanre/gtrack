@@ -528,3 +528,185 @@ test("editing a running workout preserves its template and confirms completed re
     page.getByLabel("Exercise 1 set 1 weight (kg)", { exact: true }),
   ).toHaveValue("40");
 });
+
+test("program catalog, phases, enrollment, session recovery and progression", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Preview Foundation", exact: true })
+    .click();
+  await expect(page.locator("#program-sessions article")).toHaveCount(3);
+  await expect(page.locator("#program-sessions")).toContainText("2 × 8");
+  await page.getByLabel("Preview week").selectOption("5");
+  await expect(page.locator("#program-sessions")).toContainText("3 × 8");
+  await page
+    .getByRole("button", { name: "Use this program", exact: true })
+    .click();
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "0 / 24 sessions",
+  );
+  await page
+    .getByRole("button", { name: "Prepare next session", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Goblet squat weight (kg)", { exact: true }),
+  ).toHaveValue("");
+  for (const input of await page.locator("#program-prepare input").all())
+    await input.fill("10");
+  await page
+    .getByRole("button", { name: "Start program session", exact: true })
+    .click();
+  await expect(page.locator(".training-guidance").first()).toContainText(
+    "3–4 reps in reserve",
+  );
+  await expect(page.locator(".check")).toHaveCount(10);
+  await page.reload();
+  await expect(page.locator(".session-head")).toContainText(
+    "Week 1, session 1",
+  );
+  await page
+    .getByRole("button", { name: "Complete Goblet squat set 1", exact: true })
+    .click();
+  await page.locator("#finish").click();
+  await expect(page.locator("#advance-program")).not.toBeChecked();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "0 / 24 sessions",
+  );
+  await page
+    .getByRole("button", { name: "Prepare next session", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Goblet squat weight (kg)", { exact: true }),
+  ).toHaveValue("10");
+  for (const input of await page.locator("#program-prepare input").all())
+    await input.fill("12");
+  await page
+    .getByRole("button", { name: "Start program session", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Complete Goblet squat set 1", exact: true })
+    .click();
+  await page.locator("#finish").click();
+  await page.locator("#advance-program").check();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "1 / 24 sessions",
+  );
+  await expect(page.locator(".program-enrollment")).toContainText("B — Hinge");
+  await page
+    .getByRole("button", { name: "Pause program", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Prepare next session", exact: true }),
+  ).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Resume program", exact: true })
+    .click();
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "1 / 24 sessions",
+  );
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/programs-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test("program backup restores weeks, phase targets, completion and duplicate-slot counting", async ({
+  page,
+}) => {
+  const enrollment = {
+    id: "fixture-enrollment",
+    templateId: "foundation-3",
+    version: 1,
+    startedAt: 1,
+    updatedAt: 1,
+    archived: false,
+  };
+  const makeSession = (n: number, id = `fixture-${n}`) => ({
+    id,
+    workoutName: "Synthetic program session",
+    rest: 180,
+    startedAt: 1,
+    completedAt: 2,
+    program: {
+      enrollmentId: enrollment.id,
+      templateId: enrollment.templateId,
+      week: Math.floor(n / 3) + 1,
+      day: (n % 3) + 1,
+      countsForProgress: true,
+    },
+    exercises: [
+      {
+        exerciseId: "fixture",
+        name: "Synthetic exercise",
+        description: "Synthetic fixture",
+        sets: [{ weight: 10, reps: 8, done: true }],
+      },
+    ],
+  });
+  const upload = async (count: number) => {
+    await page
+      .getByRole("button", { name: "Account and data settings" })
+      .click();
+    await page
+      .locator("#import")
+      .setInputFiles({
+        name: "fixture.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(
+          JSON.stringify({
+            schema: 1,
+            records: {
+              exercises: [],
+              workouts: [],
+              programs: [enrollment],
+              sessions: [
+                ...Array.from({ length: count }, (_, i) => makeSession(i)),
+                makeSession(0, "duplicate-slot"),
+              ],
+            },
+          }),
+        ),
+      });
+    await page
+      .getByRole("button", { name: "Import records", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Programs", exact: true }).click();
+  };
+  await page.goto("/");
+  await upload(6);
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "Week 3 of 8",
+  );
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "6 / 24 sessions",
+  );
+  await page
+    .getByRole("button", { name: "Prepare next session", exact: true })
+    .click();
+  await expect(page.locator("#program-prepare")).toContainText("3 × 8");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await upload(24);
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "Program complete",
+  );
+  await expect(page.locator(".program-enrollment")).toContainText(
+    "24 / 24 sessions",
+  );
+  await expect(
+    page.getByRole("button", { name: "Prepare next session", exact: true }),
+  ).toHaveCount(0);
+});

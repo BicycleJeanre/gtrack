@@ -28,6 +28,7 @@ export class Store {
     // Read and update inside one IndexedDB transaction: another open tab cannot erase our writes.
     const tx = (await database).transaction("accounts", "readwrite");
     const latest = (await tx.store.get(this.account)) || emptyState();
+    latest.programs ||= {};
     change(latest);
     await tx.store.put(latest, this.account);
     await tx.done;
@@ -62,7 +63,12 @@ export class Store {
   }
   async import(records: Records) {
     await this.mutate((s) => {
-      for (const kind of ["exercises", "workouts", "sessions"] as Kind[]) {
+      for (const kind of [
+        "exercises",
+        "workouts",
+        "sessions",
+        "programs",
+      ] as Kind[]) {
         for (const r of Object.values(records[kind])) {
           // Merge missing IDs only. Import never overwrites existing history or newer plans.
           if (s[kind][r.id]) continue;
