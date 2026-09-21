@@ -188,3 +188,43 @@ test("custom programs validate bounded workout days and targets", () => {
     false,
   );
 });
+
+test("timed and distance targets remain compatible with the session schema", () => {
+  const workout = {
+    id: "conditioning",
+    name: "Conditioning",
+    rest: 30,
+    updatedAt: 1,
+    archived: false,
+    exercises: [
+      {
+        exerciseId: "plank",
+        name: "Plank",
+        description: "Hold position",
+        tracking: "duration" as const,
+        unit: "sec" as const,
+        sets: 2,
+        reps: 1,
+        weight: 0,
+        setTargets: [
+          { reps: 1, weight: 0, value: 45 },
+          { reps: 1, weight: 0, value: 60 },
+        ],
+      },
+    ],
+  };
+  assert.equal(validateRecord("workouts", workout), true);
+  const session = startSession(workout);
+  assert.equal(session.exercises[0].sets[1].value, 60);
+  session.exercises[0].sets[0].done = true;
+  session.completedAt = Date.now();
+  assert.equal(validateRecord("sessions", session), true);
+  assert.equal(volume(session), 0);
+  assert.equal(
+    validateRecord("workouts", {
+      ...workout,
+      exercises: [{ ...workout.exercises[0], unit: "kg" }],
+    }),
+    false,
+  );
+});

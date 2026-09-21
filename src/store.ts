@@ -46,6 +46,18 @@ export class Store {
       }
     });
   }
+  async updateSession(session: Session) {
+    await this.mutate((s) => {
+      if (!s.sessions[session.id]) return;
+      s.sessions[session.id] = session;
+      if (this.account !== "local") {
+        s.pending = s.pending.filter(
+          (p) => p.kind !== "sessions" || p.id !== session.id,
+        );
+        s.pending.push({ kind: "sessions", id: session.id, token: uid() });
+      }
+    });
+  }
   async saveDraft(draft: Session | null) {
     await this.mutate((s) => {
       s.draft = draft;

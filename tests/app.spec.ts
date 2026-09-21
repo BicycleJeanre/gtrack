@@ -565,12 +565,60 @@ test("rest timer plays a completion chime", async ({ page }) => {
   await expect(page.locator("#toast")).toContainText("Rest complete", {
     timeout: 3000,
   });
+  await expect(page.locator("#rest-complete-popup")).toContainText(
+    "Ready for your next set",
+  );
   await expect
     .poll(() => page.evaluate(() => (window as any).__mediaPlayCalls))
     .toBeGreaterThanOrEqual(2);
   expect(
     await page.evaluate(() => (window as any).__mediaCreatedInsideTap),
   ).toBe(true);
+});
+
+test("multi-add supports timed units, active-workout resume, history edits and PRs", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await page.locator("#session-add").click();
+  await page
+    .getByLabel("Exercise from library")
+    .selectOption([
+      { label: "Barbell bench press" },
+      { label: "Seated cable row" },
+    ]);
+  await page.getByLabel("Track by").selectOption("duration");
+  await page.getByLabel("Unit").selectOption("min");
+  await page.getByRole("button", { name: "Add to session" }).click();
+  await expect(page.locator(".logging-exercise")).toHaveCount(2);
+  await page
+    .getByLabel("Barbell bench press set 1 duration", { exact: true })
+    .fill("1.5");
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await expect(page.locator(".active-workout-bar")).toContainText(
+    "Freestyle workout",
+  );
+  await page.locator("#resume-workout").click();
+  await expect(page.locator(".session-head h2")).toHaveText(
+    "Freestyle workout",
+  );
+  await page.locator("#finish").click();
+  await page.getByRole("button", { name: "Save session" }).click();
+  await page.getByRole("button", { name: "Edit logged workout" }).click();
+  await page.locator("#history-edit [name=value]").first().fill("2");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator(".history")).toContainText("2 min");
+  await page.getByRole("button", { name: "Progress", exact: true }).click();
+  await expect(page.locator(".pr-grid")).toContainText("2");
+  await expect(page.locator(".pr-grid")).toContainText("min");
 });
 
 test("build a session while recording and resume structural edits", async ({
@@ -612,12 +660,9 @@ test("build a session while recording and resume structural edits", async ({
   ).toHaveValue("45");
   await page
     .getByRole("button", {
-      name: "Remove Barbell bench press set 1",
+      name: "Remove Barbell bench press set 2",
       exact: true,
     })
-    .click();
-  await page
-    .getByRole("button", { name: "Keep training", exact: true })
     .click();
   await expect(
     page.getByRole("button", {
@@ -625,12 +670,6 @@ test("build a session while recording and resume structural edits", async ({
       exact: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page
-    .getByRole("button", {
-      name: "Remove Barbell bench press set 2",
-      exact: true,
-    })
-    .click();
   await page.locator("#session-add").click();
   await page
     .getByRole("button", { name: "New exercise for the library" })
@@ -686,7 +725,7 @@ test("build a session while recording and resume structural edits", async ({
     .click();
   await page.locator("#finish").click();
   await page.getByRole("button", { name: "Save session", exact: true }).click();
-  await expect(page.locator(".history")).toContainText("360 kg volume");
+  await expect(page.locator(".history")).toContainText("360 load volume");
   await page.getByRole("button", { name: "Workouts", exact: true }).click();
   await expect(page.locator(".plan")).toHaveCount(0);
   await page
@@ -697,7 +736,7 @@ test("build a session while recording and resume structural edits", async ({
   ).toContainText(["Freestyle cable row"]);
 });
 
-test("editing a running workout preserves its template and confirms completed removals", async ({
+test("editing a running workout preserves its template and removes items directly", async ({
   page,
 }) => {
   await createWorkout(page);
@@ -716,9 +755,6 @@ test("editing a running workout preserves its template and confirms completed re
       exact: true,
     })
     .click();
-  await page
-    .getByRole("button", { name: "Remove completed work", exact: true })
-    .click();
   await expect(page.locator("#finish")).toBeDisabled();
   await page
     .getByRole("button", {
@@ -728,9 +764,6 @@ test("editing a running workout preserves its template and confirms completed re
     .click();
   await page
     .getByRole("button", { name: "Remove Barbell bench press", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Remove completed work", exact: true })
     .click();
   await expect(page.locator(".logging-exercise")).toHaveCount(0);
   await expect(page.locator("#finish")).toBeDisabled();

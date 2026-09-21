@@ -30,6 +30,13 @@ self.addEventListener('fetch',event=>{
    event.respondWith(caches.open(CACHE).then(cache=>cache.match(new URL('index.html',BASE).href)).then(hit=>hit||fetch(event.request)));return;
  }
  if(ASSETS.includes(event.request.url))event.respondWith(caches.open(CACHE).then(cache=>cache.match(event.request,{ignoreVary:true})).then(hit=>hit||fetch(event.request)));
+});
+self.addEventListener('notificationclick',event=>{
+ event.notification.close();
+ event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(items=>{
+   const existing=items.find(client=>client.url.startsWith(BASE.href));
+   return existing?existing.focus():clients.openWindow(BASE.href);
+ }));
 });`,
       });
     },

@@ -83,6 +83,16 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
   await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
   await device.getByRole("button", { name: "History", exact: true }).click();
   await expect(device.locator(".history")).toHaveCount(1, { timeout: 15000 });
+  await page.getByRole("button", { name: "Edit logged workout" }).click();
+  await page
+    .getByLabel("Workout name", { exact: true })
+    .fill("Corrected Alice log");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
+  await expect(device.locator(".history h2")).toHaveText(
+    "Corrected Alice log",
+    { timeout: 15000 },
+  );
   await other.getByRole("button", { name: "History", exact: true }).click();
   await other
     .getByRole("button", { name: "Discard changes", exact: true })

@@ -106,16 +106,23 @@ test("workouts are account isolated and validated", async () => {
     }),
   );
 });
-test("completed sessions are private, immutable, and retry safe", async () => {
+test("completed sessions are private, editable by their owner, and keep their identity", async () => {
   await assertSucceeds(
     setDoc(doc(alice, "users/alice/sessions/session"), session),
   );
   await assertSucceeds(
     setDoc(doc(alice, "users/alice/sessions/session"), session),
+  );
+  await assertSucceeds(
+    setDoc(doc(alice, "users/alice/sessions/session"), {
+      ...session,
+      completedAt: 3,
+    }),
   );
   await assertFails(
     setDoc(doc(alice, "users/alice/sessions/session"), {
       ...session,
+      startedAt: 2,
       completedAt: 3,
     }),
   );

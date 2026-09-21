@@ -7,7 +7,10 @@ export interface Exercise {
 export interface PlannedSet {
   reps: number;
   weight: number;
+  value?: number;
 }
+export type TrackingType = "weight_reps" | "reps" | "duration" | "distance";
+export type MeasureUnit = "kg" | "lb" | "sec" | "min" | "m" | "km" | "mi";
 export interface Target {
   exerciseId: string;
   name: string;
@@ -15,6 +18,8 @@ export interface Target {
   sets: number;
   reps: number;
   weight: number;
+  tracking?: TrackingType;
+  unit?: MeasureUnit;
   // Optional for compatibility with plans and backups made before per-set targets.
   setTargets?: PlannedSet[];
 }
@@ -29,6 +34,7 @@ export interface Workout {
 export interface LoggedSet {
   weight: number;
   reps: number;
+  value?: number;
   done: boolean;
 }
 export interface CustomProgramExercise {
@@ -73,6 +79,8 @@ export interface SessionExercise {
   exerciseId: string;
   name: string;
   description: string;
+  tracking?: TrackingType;
+  unit?: MeasureUnit;
   sets: LoggedSet[];
 }
 export interface Session {
@@ -130,6 +138,32 @@ const count = (v: unknown, max: number) =>
   number(v, 1, max) && Number.isInteger(v);
 const validId = (v: unknown): v is string =>
   typeof v === "string" && /^[a-zA-Z0-9-]{1,128}$/.test(v);
+const trackingTypes = ["weight_reps", "reps", "duration", "distance"];
+const units = ["kg", "lb", "sec", "min", "m", "km", "mi"];
+export const trackingFor = (value: { tracking?: TrackingType }) =>
+  value.tracking || "weight_reps";
+export const unitFor = (value: {
+  tracking?: TrackingType;
+  unit?: MeasureUnit;
+}): MeasureUnit =>
+  value.unit ||
+  (trackingFor(value) === "duration"
+    ? "sec"
+    : trackingFor(value) === "distance"
+      ? "km"
+      : "kg");
+const validTracking = (value: any) => {
+  const tracking = trackingFor(value),
+    unit = unitFor(value);
+  return (
+    (value.tracking === undefined || trackingTypes.includes(value.tracking)) &&
+    (value.unit === undefined || units.includes(value.unit)) &&
+    ((tracking === "weight_reps" && ["kg", "lb"].includes(unit)) ||
+      (tracking === "reps" && value.unit === undefined) ||
+      (tracking === "duration" && ["sec", "min"].includes(unit)) ||
+      (tracking === "distance" && ["m", "km", "mi"].includes(unit)))
+  );
+};
 const validCustomProgram = (value: any): value is CustomProgramDefinition =>
   value &&
   Object.keys(value).every((key) =>
@@ -235,12 +269,16 @@ export function validateRecord(kind: Kind, value: any): boolean {
           count(e.sets, 12) &&
           count(e.reps, 100) &&
           number(e.weight, 0, 1000) &&
+          validTracking(e) &&
           (e.setTargets === undefined ||
             (Array.isArray(e.setTargets) &&
               e.setTargets.length === e.sets &&
               e.setTargets.every(
                 (set: any) =>
-                  set && count(set.reps, 100) && number(set.weight, 0, 1000),
+                  set &&
+                  count(set.reps, 100) &&
+                  number(set.weight, 0, 1000) &&
+                  (set.value === undefined || number(set.value, 0, 1e7)),
               ) &&
               e.setTargets[0].reps === e.reps &&
               e.setTargets[0].weight === e.weight)),
@@ -300,6 +338,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
         validId(e.exerciseId) &&
         text(e.name, 80) &&
         text(e.description, 600) &&
+        validTracking(e) &&
         (e.guidance === undefined || text(e.guidance, 500)) &&
         (e.rest === undefined || number(e.rest, 0, 600)) &&
         Array.isArray(e.sets) &&
@@ -309,6 +348,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
           (s: any) =>
             number(s.weight, 0, 1000) &&
             count(s.reps, 100) &&
+            (s.value === undefined || number(s.value, 0, 1e7)) &&
             typeof s.done === "boolean",
         ),
     ) &&
@@ -317,10 +357,18 @@ export function validateRecord(kind: Kind, value: any): boolean {
 }
 export function plannedSets(target: Target): PlannedSet[] {
   return target.setTargets
-    ? target.setTargets.map((set) => ({ reps: set.reps, weight: set.weight }))
+    ? target.setTargets.map((set) => ({
+        reps: set.reps,
+        weight: set.weight,
+        ...(set.value === undefined ? {} : { value: set.value }),
+      }))
     : Array.from({ length: target.sets }, () => ({
         reps: target.reps,
         weight: target.weight,
+        ...(trackingFor(target) === "duration" ||
+        trackingFor(target) === "distance"
+          ? { value: 0 }
+          : {}),
       }));
 }
 export function startSession(workout: Workout): Session {
@@ -334,6 +382,8 @@ export function startSession(workout: Workout): Session {
       exerciseId: e.exerciseId,
       name: e.name,
       description: e.description,
+      ...(e.tracking ? { tracking: e.tracking } : {}),
+      ...(e.unit ? { unit: e.unit } : {}),
       sets: plannedSets(e).map((set) => ({ ...set, done: false })),
     })),
   };
@@ -344,7 +394,11 @@ export const volume = (s: Session) =>
   s.exercises.reduce(
     (n, e) =>
       n +
-      e.sets.filter((x) => x.done).reduce((a, x) => a + x.weight * x.reps, 0),
+      (trackingFor(e) === "weight_reps"
+        ? e.sets
+            .filter((x) => x.done)
+            .reduce((a, x) => a + x.weight * x.reps, 0)
+        : 0),
     0,
   );
 export async function validateBackup(input: unknown): Promise<Records> {

@@ -30,6 +30,8 @@ import {
   plannedSets,
   completedSets,
   volume,
+  trackingFor,
+  unitFor,
   validateRecord,
   validateBackup,
   type Workout,
@@ -39,6 +41,10 @@ import {
   type ProgramEnrollment,
   type CustomProgramDefinition,
   type CustomProgramDay,
+  type LoggedSet,
+  type SessionExercise,
+  type TrackingType,
+  type MeasureUnit,
 } from "./model";
 const startup = (phase: string, detail = "") =>
   (window as any).__gtrackStartup?.mark(phase, detail);
@@ -64,6 +70,42 @@ const date = (n: number) =>
     day: "numeric",
     year: "numeric",
   });
+const trackingLabel: Record<TrackingType, string> = {
+  weight_reps: "Weight + reps",
+  reps: "Reps only",
+  duration: "Time",
+  distance: "Distance",
+};
+const unitChoices: Record<TrackingType, MeasureUnit[]> = {
+  weight_reps: ["kg", "lb"],
+  reps: [],
+  duration: ["sec", "min"],
+  distance: ["m", "km", "mi"],
+};
+function setSummary(exercise: SessionExercise, set: LoggedSet) {
+  const tracking = trackingFor(exercise),
+    unit = unitFor(exercise);
+  if (tracking === "weight_reps")
+    return `${fmt(set.weight)} ${unit} × ${set.reps}`;
+  if (tracking === "reps") return `${set.reps} reps`;
+  return `${fmt(set.value || 0)} ${unit}`;
+}
+function trackingOptions(selected: TrackingType) {
+  return (Object.keys(trackingLabel) as TrackingType[])
+    .map(
+      (value) =>
+        `<option value="${value}" ${value === selected ? "selected" : ""}>${trackingLabel[value]}</option>`,
+    )
+    .join("");
+}
+function unitOptions(tracking: TrackingType, selected: MeasureUnit) {
+  return unitChoices[tracking]
+    .map(
+      (value) =>
+        `<option value="${value}" ${value === selected ? "selected" : ""}>${value}</option>`,
+    )
+    .join("");
+}
 const icon =
   '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 12h10M3 9v6m4-9v12m10-12v12m4-9v6M3 12h4m10 0h4"/></svg>';
 let store: Store,
@@ -174,7 +216,7 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main>${activeWorkoutBar()}<div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
@@ -202,7 +244,34 @@ function render() {
       account: renderAccount,
     }) as Record<string, () => void>
   )[view]();
+  bindActiveWorkoutBar();
   if (view !== "guide") bindGuideButtons();
+}
+function activeWorkoutBar() {
+  const draft = store.state.draft;
+  if (!draft) return "";
+  restoreRest(draft);
+  const done = completedSets(draft),
+    total = draft.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0),
+    alerts = typeof Notification !== "undefined" && Notification.permission !== "granted";
+  return `<aside class="active-workout-bar" aria-label="Active workout and rest timer"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button><div class="active-rest"><span class="eyebrow">Rest</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}</aside>`;
+}
+function bindActiveWorkoutBar() {
+  const draft = store.state.draft;
+  if (!draft) return;
+  action("#resume-workout", () => navigate("today"));
+  action("#global-rest-start", () => startRest(draft.rest || 90));
+  action("#global-rest-add", () => {
+    if (restUntil > Date.now()) {
+      restUntil += 30_000;
+      restDuration += 30;
+    } else startRest(30);
+    restAlerted = false;
+    persistRest(draft.id);
+    updateRest();
+  });
+  action("#enable-alerts", requestRestAlerts);
+  updateRest();
 }
 async function navigate(next: string) {
   if (["builder", "program-builder"].includes(view) && next !== view) {
@@ -897,6 +966,8 @@ function renderBuilder() {
       sets: 3,
       reps: 10,
       weight: 0,
+      tracking: "weight_reps",
+      unit: "kg",
     });
   renderTargets();
   action("#add-target", () => {
@@ -912,6 +983,8 @@ function renderBuilder() {
       sets: 3,
       reps: 10,
       weight: 0,
+      tracking: "weight_reps",
+      unit: "kg",
     });
     renderTargets();
     $<HTMLSelectElement>("#targets .target:last-child select").focus();
@@ -965,7 +1038,9 @@ function renderBuilder() {
 function captureTargets() {
   draftTargets = [...document.querySelectorAll<HTMLElement>(".target")].map(
     (card) => {
-      const id = card.querySelector<HTMLSelectElement>("select")!.value;
+      const id = card.querySelector<HTMLSelectElement>(
+        "select[data-index]",
+      )!.value;
       const e = store.state.exercises[id];
       return {
         exerciseId: id,
@@ -977,34 +1052,66 @@ function captureTargets() {
   );
 }
 function captureSetTargets(card: HTMLElement) {
+  const tracking = card.querySelector<HTMLSelectElement>(
+      "[name=tracking]",
+    )!.value as TrackingType,
+    unitSelect = card.querySelector<HTMLSelectElement>("[name=unit]"),
+    selectedUnit = unitSelect?.value as MeasureUnit | undefined,
+    unit =
+      tracking === "reps"
+        ? undefined
+        : unitChoices[tracking].includes(selectedUnit as MeasureUnit)
+          ? selectedUnit
+          : unitChoices[tracking][0];
   const rows = [
     ...card.querySelectorAll<HTMLElement>(".set-rows .planned-set"),
   ];
   const values = rows.map((row) => ({
-    reps: row.querySelector<HTMLInputElement>("[name=reps]")!.valueAsNumber,
-    weight: row.querySelector<HTMLInputElement>("[name=weight]")!.valueAsNumber,
+    reps:
+      row.querySelector<HTMLInputElement>("[name=reps]")?.valueAsNumber || 1,
+    weight:
+      row.querySelector<HTMLInputElement>("[name=weight]")?.valueAsNumber || 0,
+    ...(row.querySelector<HTMLInputElement>("[name=value]")
+      ? {
+          value:
+            row.querySelector<HTMLInputElement>("[name=value]")!
+              .valueAsNumber || 0,
+        }
+      : {}),
   }));
   const count =
     card.querySelector<HTMLInputElement>("[name=sets]")!.valueAsNumber;
   // A changed count preserves existing sets and copies the last set for new rows.
   if (Number.isInteger(count) && count >= 1 && count <= 12) {
     while (values.length < count)
-      values.push({ ...(values.at(-1) || { reps: 10, weight: 0 }) });
+      values.push({
+        ...(values.at(-1) || {
+          reps: tracking === "reps" ? 10 : 1,
+          weight: 0,
+          ...(["duration", "distance"].includes(tracking)
+            ? { value: 0 }
+            : {}),
+        }),
+      });
     values.length = count;
   }
   return {
     sets: count,
     reps: values[0]?.reps ?? 10,
     weight: values[0]?.weight ?? 0,
+    tracking,
+    ...(unit ? { unit } : {}),
     setTargets: values,
   };
 }
 function targetRows(target: Target, exerciseIndex: number) {
-  const sets = plannedSets(target);
+  const sets = plannedSets(target),
+    tracking = trackingFor(target),
+    unit = unitFor(target);
   return sets
     .map(
       (set, index) =>
-        `<div class="planned-set"><span class="set-number">${index + 1}</span><input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><input name="weight" required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} weight (kg)"><button type="button" class="remove-set" data-exercise="${exerciseIndex}" data-set="${index}" ${sets.length === 1 ? "disabled" : ""} aria-label="Remove exercise ${exerciseIndex + 1} set ${index + 1}">×</button></div>`,
+        `<div class="planned-set"><span class="set-number">${index + 1}</span>${tracking === "weight_reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><input name="weight" required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} weight (${unit})">` : tracking === "reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><span class="unit-cell">reps</span>` : `<input name="value" required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} ${tracking}"><span class="unit-cell">${unit}</span>`}<button type="button" class="remove-set" data-exercise="${exerciseIndex}" data-set="${index}" ${sets.length === 1 ? "disabled" : ""} aria-label="Remove exercise ${exerciseIndex + 1} set ${index + 1}">×</button></div>`,
     )
     .join("");
 }
@@ -1027,14 +1134,14 @@ function renderTargets() {
   $("#targets").innerHTML = draftTargets
     .map(
       (t, i) =>
-        `<div class="card pad target"><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Exercise from library<select required data-index="${i}"><option value="">Choose an exercise…</option>${exercises()
+        `<div class="card pad target"><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Type a name"></label><label>Exercise from library<select required data-index="${i}"><option value="">Choose an exercise…</option>${exercises()
           .map(
             (e) =>
               `<option value="${e.id}" ${e.id === t.exerciseId ? "selected" : ""}>${esc(e.name)}</option>`,
           )
           .join(
             "",
-          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set your reps and weight for each set.</p></div><div class="planned-set labels"><span>Set</span><span>Reps</span><span>kg</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
+          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
     )
     .join("");
   action(".target-guide", (event) => {
@@ -1045,6 +1152,19 @@ function renderTargets() {
     if (exercise) showExerciseGuide(exercise.name, exercise.description);
     else toast("Choose an exercise first.");
   });
+  document
+    .querySelectorAll<HTMLInputElement>("#targets .target-search")
+    .forEach((input) =>
+      input.addEventListener("input", () => {
+        const query = normalize(input.value),
+          select = input
+            .closest(".target")!
+            .querySelector<HTMLSelectElement>("select[data-index]")!;
+        for (const option of select.options)
+          option.hidden = Boolean(option.value) &&
+            !normalize(option.textContent || "").includes(query);
+      }),
+    );
   document
     .querySelectorAll<HTMLInputElement>("#targets [name=sets]")
     .forEach((input) =>
@@ -1079,7 +1199,7 @@ function renderTargets() {
     renderTargets();
   });
   action(".remove-set", removePlannedSet);
-  document.querySelectorAll("#targets select").forEach((s) =>
+  document.querySelectorAll("#targets select[data-index]").forEach((s) =>
     s.addEventListener("change", () => {
       captureTargets();
       const description =
@@ -1088,6 +1208,14 @@ function renderTargets() {
         description || "Select an exercise to see its description.";
     }),
   );
+  document
+    .querySelectorAll<HTMLSelectElement>("#targets [name=tracking], #targets [name=unit]")
+    .forEach((select) =>
+      select.addEventListener("change", () => {
+        captureTargets();
+        renderTargets();
+      }),
+    );
   action(".remove", (e) => {
     captureTargets();
     draftTargets.splice(
@@ -1251,35 +1379,86 @@ function sessionDetails(isNew = false) {
 function sessionExerciseDialog() {
   if (!validSessionInputs()) return;
   if (!store.state.draft || store.state.draft.exercises.length >= 30) return;
-  const add = async (exercise: Exercise) => {
+  const add = async (
+    exercise: Exercise,
+    tracking: TrackingType = "weight_reps",
+    unit?: MeasureUnit,
+    keepOpen = false,
+  ) => {
     await editSession((session) => {
       if (session.exercises.length < 30)
         session.exercises.push({
           exerciseId: exercise.id,
           name: exercise.name,
           description: exercise.description,
-          sets: [{ reps: 10, weight: 0, done: false }],
+          tracking,
+          ...(unit ? { unit } : {}),
+          sets: [
+            {
+              reps: tracking === "reps" ? 10 : 1,
+              weight: 0,
+              ...(["duration", "distance"].includes(tracking)
+                ? { value: 0 }
+                : {}),
+              done: false,
+            },
+          ],
         });
     });
+    if (keepOpen) sessionExerciseDialog();
   };
   modal(
-    `<form id="session-exercise"><h2>Add exercise to session</h2><label>Exercise from library<select required><option value="">Choose an exercise…</option>${exercises()
+    `<form id="session-exercise"><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by exercise name"></label><label>Exercise from library<select required multiple size="8">${exercises()
       .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`)
       .join(
         "",
-      )}</select></label><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Starts with one set. Adjust its reps and weight, then add more sets as needed.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
+      )}</select></label><p class="hint">Select one or several exercises.</p><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
   );
-  const select = $<HTMLSelectElement>("#session-exercise select");
+  const select = $<HTMLSelectElement>("#session-exercise select[multiple]"),
+    trackingSelect = $<HTMLSelectElement>("#session-tracking"),
+    unitSelect = $<HTMLSelectElement>("#session-unit");
   select.addEventListener("change", () => {
     $("#session-description").textContent =
-      store.state.exercises[select.value]?.description || "";
+      select.selectedOptions.length === 1
+        ? store.state.exercises[select.value]?.description || ""
+        : `${select.selectedOptions.length} exercises selected`;
   });
-  $("#session-exercise").addEventListener("submit", (event) => {
+  $("#session-exercise-search").addEventListener("input", (event) => {
+    const query = normalize((event.currentTarget as HTMLInputElement).value);
+    for (const option of select.options)
+      option.hidden = !normalize(option.textContent || "").includes(query);
+  });
+  trackingSelect.addEventListener("change", () => {
+    const tracking = trackingSelect.value as TrackingType,
+      label = $("#session-unit-label");
+    label.hidden = tracking === "reps";
+    unitSelect.innerHTML = unitOptions(
+      tracking,
+      unitChoices[tracking][0] || "kg",
+    );
+  });
+  $("#session-exercise").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const exercise = store.state.exercises[select.value];
-    if (exercise) void add(exercise).catch(fail);
+    const selected = [...select.selectedOptions]
+      .map((option) => store.state.exercises[option.value])
+      .filter(Boolean);
+    if (!selected.length) return select.reportValidity();
+    const tracking = trackingSelect.value as TrackingType,
+      unit = tracking === "reps" ? undefined : (unitSelect.value as MeasureUnit);
+    close();
+    for (const exercise of selected) await add(exercise, tracking, unit);
   });
-  action("#session-new-exercise", () => exerciseDialog(0, add));
+  action("#session-new-exercise", () =>
+    exerciseDialog(0, (exercise) =>
+      add(
+        exercise,
+        trackingSelect.value as TrackingType,
+        trackingSelect.value === "reps"
+          ? undefined
+          : (unitSelect.value as MeasureUnit),
+      ),
+    ),
+  );
 }
 function removeSessionItem(exerciseIndex: number, setIndex?: number) {
   if (!validSessionInputs()) return;
@@ -1290,15 +1469,7 @@ function removeSessionItem(exerciseIndex: number, setIndex?: number) {
     if (setIndex === undefined) session.exercises.splice(exerciseIndex, 1);
     else session.exercises[exerciseIndex].sets.splice(setIndex, 1);
   };
-  const completed =
-    setIndex === undefined
-      ? exercise.sets.some((s) => s.done)
-      : exercise.sets[setIndex].done;
-  if (!completed) return editSession(change);
-  modal(
-    `<h2>Remove ${setIndex === undefined ? esc(exercise.name) : "this set"}?</h2><p>This removes completed work from the current session and its totals.</p><div class="actions"><button class="secondary" data-close>Keep training</button><button class="danger" id="remove-session-confirm">Remove completed work</button></div>`,
-  );
-  action("#remove-session-confirm", () => editSession(change));
+  return editSession(change);
 }
 function restStorageKey() {
   return `gtrack-rest-${store.account}`;
@@ -1424,6 +1595,44 @@ function pingRest() {
   restChime.volume = 1;
   void restChime.play().catch(pingWebAudio);
 }
+async function requestRestAlerts() {
+  if (typeof Notification === "undefined") {
+    toast("System notifications are not available in this browser.");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  toast(
+    permission === "granted"
+      ? "Rest-complete alerts are enabled."
+      : "Alerts remain off. You can change this in your phone settings.",
+  );
+  render();
+}
+function restCompletePopup() {
+  document.querySelector("#rest-complete-popup")?.remove();
+  const popup = document.createElement("div");
+  popup.id = "rest-complete-popup";
+  popup.setAttribute("role", "alert");
+  popup.innerHTML = `<div><span class="eyebrow">Timer finished</span><strong>Rest complete</strong><p>Ready for your next set.</p></div><button aria-label="Dismiss rest complete notification">×</button>`;
+  document.body.append(popup);
+  popup.querySelector("button")!.addEventListener("click", () => popup.remove());
+  window.setTimeout(() => popup.remove(), 12000);
+}
+async function notifyRestComplete() {
+  restCompletePopup();
+  if (typeof Notification === "undefined" || Notification.permission !== "granted")
+    return;
+  try {
+    const registration = await navigator.serviceWorker?.ready;
+    await registration?.showNotification("Rest complete", {
+      body: "Ready for your next set.",
+      tag: "gtrack-rest-complete",
+      icon: new URL("./icon-192.png", location.href).href,
+    });
+  } catch {
+    // The in-app popup, sound and vibration still confirm completion.
+  }
+}
 function startRest(seconds: number, unlockAudio = true) {
   const draft = store.state.draft;
   if (!draft || seconds <= 0) return;
@@ -1452,7 +1661,6 @@ function restoreRest(draft: Session) {
     if (
       saved?.sessionId === draft.id &&
       Number.isFinite(saved.until) &&
-      saved.until > Date.now() &&
       Number.isFinite(saved.duration)
     ) {
       restUntil = saved.until;
@@ -1480,10 +1688,36 @@ function previousPerformanceHtml(exerciseId: string, name: string) {
   const previous = previousPerformance(exerciseId, name);
   if (!previous)
     return '<div class="previous-performance"><div class="eyebrow">Last time</div><p>No previous result yet.</p></div>';
+  const exercise = previous.session.exercises.find(
+    (item) =>
+      item.exerciseId === exerciseId || normalize(item.name) === normalize(name),
+  )!;
   const result = previous.sets
-    .map((set) => `${fmt(set.weight)} kg × ${set.reps}`)
+    .map((set) => setSummary(exercise, set))
     .join(" · ");
   return `<div class="previous-performance"><div class="eyebrow">Last time · ${date(previous.session.completedAt)}</div><strong>${previous.sets.length} ${previous.sets.length === 1 ? "set" : "sets"}</strong><p>${esc(result)}<br><span>${esc(previous.session.workoutName)}</span></p></div>`;
+}
+function sessionSetLabels(exercise: SessionExercise) {
+  const tracking = trackingFor(exercise);
+  if (tracking === "weight_reps") return [unitFor(exercise), "Reps"];
+  if (tracking === "reps") return ["Reps", ""];
+  return [trackingLabel[tracking], unitFor(exercise)];
+}
+function sessionSetRows(exercise: SessionExercise, exerciseIndex: number) {
+  const tracking = trackingFor(exercise),
+    unit = unitFor(exercise);
+  return exercise.sets
+    .map((set, setIndex) => {
+      const label = `${esc(exercise.name)} set ${setIndex + 1}`;
+      const fields =
+        tracking === "weight_reps"
+          ? `<input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="weight" aria-label="${label} weight" ${set.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}>`
+          : tracking === "reps"
+            ? `<input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}><span class="unit-cell">reps</span>`
+            : `<input required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} ${tracking}" ${set.done ? "disabled" : ""}><span class="unit-cell">${unit}</span>`;
+      return `<div class="set-grid session-set"><span>${setIndex + 1}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${label}">×</button></div>`;
+    })
+    .join("");
 }
 function renderToday() {
   const draft = store.state.draft;
@@ -1510,7 +1744,7 @@ function renderToday() {
       ? templateForEnrollment(draftEnrollment)
       : undefined;
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => { const labels = sessionSetLabels(e); return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`; }).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   const restTimer = $("#rest-timer");
   restTimer.removeAttribute("role");
   restTimer.setAttribute("aria-label", "Rest timer");
@@ -1590,7 +1824,7 @@ function renderToday() {
             if (state.draft)
               state.draft.exercises[Number(input.dataset.ex)].sets[
                 Number(input.dataset.set)
-              ][input.dataset.field as "weight" | "reps"] = value;
+              ][input.dataset.field as "weight" | "reps" | "value"] = value;
           });
           const status = document.querySelector("#draft-status");
           if (status) status.textContent = "Saved on phone";
@@ -1611,14 +1845,14 @@ function renderToday() {
     // IndexedDB work below can outlive the browser's transient user activation.
     prepareRestAudio();
     const inputs = b.parentElement!.querySelectorAll<HTMLInputElement>("input");
-    const weight = Number(inputs[0].value),
-      reps = Number(inputs[1].value);
     await store.mutate((state) => {
       if (!state.draft) return;
       const set =
         state.draft.exercises[Number(b.dataset.ex)].sets[Number(b.dataset.set)];
-      set.weight = weight;
-      set.reps = reps;
+      for (const input of inputs)
+        set[input.dataset.field as "weight" | "reps" | "value"] = Number(
+          input.value,
+        );
       set.done = !set.done;
       const rest =
         state.draft.exercises[Number(b.dataset.ex)].rest ?? state.draft.rest;
@@ -1698,34 +1932,45 @@ function updateRest() {
       restAlerted = true;
       if (document.querySelector("#toast"))
         toast("Rest complete. Ready for your next set.");
+      void notifyRestComplete();
       pingRest();
       navigator.vibrate?.([200, 100, 200]);
     }
   }
-  const time = document.querySelector<HTMLElement>("#rest-time"),
+  const times = document.querySelectorAll<HTMLElement>(
+      "#rest-time, #global-rest-time",
+    ),
     add = document.querySelector<HTMLButtonElement>("#rest-add"),
     skip = document.querySelector<HTMLButtonElement>("#rest-skip");
-  if (!time) return;
-  time.textContent = seconds
+  const label = seconds
     ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
     : "Ready";
-  time.closest("#rest-timer")?.classList.toggle("active", Boolean(seconds));
+  times.forEach((time) => {
+    time.textContent = label;
+    time.closest("#rest-timer, .active-workout-bar")?.classList.toggle(
+      "active",
+      Boolean(seconds),
+    );
+  });
   if (add) add.disabled = !seconds;
   if (skip) skip.disabled = !seconds;
 }
 setInterval(updateRest, 1000);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") updateRest();
+});
 function renderHistory() {
   $("#screen").innerHTML =
     history()
       .map(
         (s) =>
-          `<article class="card pad history"><div class="eyebrow">${date(s.completedAt)}</div><h2>${esc(s.workoutName)}</h2>${s.program ? `<p class="hint">Program week ${s.program.week} · Session ${s.program.day} · ${s.program.countsForProgress ? "Completed" : "To repeat"}</p>` : ""}<p>${completedSets(s)} sets · ${Math.max(1, Math.round((s.completedAt - s.startedAt) / 60000))} min · ${fmt(volume(s))} kg volume</p><details><summary>View logged sets</summary>${s.exercises
+          `<article class="card pad history"><div class="eyebrow">${date(s.completedAt)}</div><h2>${esc(s.workoutName)}</h2>${s.program ? `<p class="hint">Program week ${s.program.week} · Session ${s.program.day} · ${s.program.countsForProgress ? "Completed" : "To repeat"}</p>` : ""}<p>${completedSets(s)} sets · ${Math.max(1, Math.round((s.completedAt - s.startedAt) / 60000))} min${volume(s) ? ` · ${fmt(volume(s))} load volume` : ""}</p><button class="secondary edit-history" data-session-id="${s.id}">Edit logged workout</button><details><summary>View logged sets</summary>${s.exercises
             .map(
               (e) =>
                 `<div class="history-exercise"><h3>${esc(e.name)}</h3><p>${
                   e.sets
                     .filter((x) => x.done)
-                    .map((x) => `${fmt(x.weight)} kg × ${x.reps}`)
+                    .map((x) => setSummary(e, x))
                     .join(" · ") || "No completed sets"
                 }</p></div>`,
             )
@@ -1736,6 +1981,62 @@ function renderHistory() {
       "Your first session is ahead.",
       "Completed workouts will appear here with the weights and reps you actually logged.",
     );
+  action(".edit-history", (event) =>
+    editCompletedSession(
+      (event.currentTarget as HTMLElement).dataset.sessionId!,
+    ),
+  );
+}
+function editCompletedSession(id: string) {
+  const session = store.state.sessions[id];
+  if (!session) return;
+  modal(
+    `<form id="history-edit"><h2>Edit logged workout</h2><label>Workout name<input name="workoutName" required maxlength="60" value="${esc(session.workoutName)}"></label><p class="hint">Correct values or include and exclude sets. The original workout date and program position stay the same.</p>${session.exercises
+      .map(
+        (exercise, exerciseIndex) =>
+          `<section class="history-edit-exercise"><h3>${esc(exercise.name)}</h3><p class="hint">${trackingLabel[trackingFor(exercise)]}${trackingFor(exercise) === "reps" ? "" : ` · ${unitFor(exercise)}`}</p>${exercise.sets
+            .map((set, setIndex) => {
+              const tracking = trackingFor(exercise),
+                field =
+                  tracking === "weight_reps"
+                    ? `<label>${unitFor(exercise)}<input name="weight" type="number" min="0" max="1000" step="0.5" value="${set.weight}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                    : tracking === "reps"
+                      ? `<label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                      : `<label>${unitFor(exercise)}<input name="value" type="number" min="0" max="10000000" step="0.1" value="${set.value || 0}"></label>`;
+              return `<div class="history-edit-set" data-edit-ex="${exerciseIndex}" data-edit-set="${setIndex}"><span>Set ${setIndex + 1}</span>${field}<label class="checkbox"><input name="done" type="checkbox" ${set.done ? "checked" : ""}>Count</label></div>`;
+            })
+            .join("")}</section>`,
+      )
+      .join("")}<p id="history-edit-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Save changes</button></div></form>`,
+  );
+  $("#history-edit").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    if (!form.reportValidity()) return;
+    const updated = structuredClone(session);
+    updated.workoutName = String(new FormData(form).get("workoutName")).trim();
+    form.querySelectorAll<HTMLElement>(".history-edit-set").forEach((row) => {
+      const set =
+        updated.exercises[Number(row.dataset.editEx)].sets[
+          Number(row.dataset.editSet)
+        ];
+      row.querySelectorAll<HTMLInputElement>("input[type=number]").forEach(
+        (input) =>
+          (set[input.name as "weight" | "reps" | "value"] =
+            input.valueAsNumber),
+      );
+      set.done = row.querySelector<HTMLInputElement>("[name=done]")!.checked;
+    });
+    if (!validateRecord("sessions", updated)) {
+      $("#history-edit-error").textContent =
+        "Keep at least one valid completed set in this workout.";
+      return;
+    }
+    await store.updateSession(updated);
+    close();
+    await saved();
+    toast("Logged workout updated.");
+  });
 }
 function renderProgress() {
   const entries = new Map<string, string>();
@@ -1755,25 +2056,71 @@ function renderProgress() {
     `<label>Exercise<select id="progress-exercise">${[...entries].map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join("")}</select></label><div id="progress-results"></div>`;
   const draw = () => {
     const id = $<HTMLSelectElement>("#progress-exercise").value;
-    const points = history()
+    const matching = history()
       .filter((s) =>
         s.exercises.some(
           (e) => e.exerciseId === id && e.sets.some((x) => x.done),
         ),
       )
-      .slice(0, 8)
-      .reverse()
-      .map((s) => ({
-        date: s.completedAt,
-        weight: Math.max(
-          ...s.exercises
-            .filter((e) => e.exerciseId === id)
-            .flatMap((e) => e.sets.filter((x) => x.done).map((x) => x.weight)),
+      .map((session) => ({
+        session,
+        exercises: session.exercises.filter((exercise) => exercise.exerciseId === id),
+      })),
+      sample = matching[0].exercises[0],
+      tracking = trackingFor(sample),
+      unit = unitFor(sample),
+      metric = (set: LoggedSet) =>
+        tracking === "weight_reps"
+          ? set.weight
+          : tracking === "reps"
+            ? set.reps
+            : set.value || 0,
+      points = matching
+        .slice(0, 8)
+        .reverse()
+        .map(({ session, exercises }) => ({
+          date: session.completedAt,
+          value: Math.max(
+            ...exercises.flatMap((exercise) =>
+              exercise.sets.filter((set) => set.done).map(metric),
+            ),
+          ),
+        })),
+      allSets = matching.flatMap(({ exercises }) =>
+        exercises.flatMap((exercise) => exercise.sets.filter((set) => set.done)),
+      ),
+      max = Math.max(1, ...points.map((point) => point.value)),
+      bestReps = Math.max(...allSets.map((set) => set.reps)),
+      bestSetVolume = Math.max(...allSets.map((set) => set.weight * set.reps)),
+      bestSessionTotal = Math.max(
+        ...matching.map(({ exercises }) =>
+          exercises.flatMap((exercise) => exercise.sets.filter((set) => set.done)).reduce(
+            (sum, set) =>
+              sum +
+              (tracking === "weight_reps"
+                ? set.weight * set.reps
+                : tracking === "reps"
+                  ? set.reps
+                  : set.value || 0),
+            0,
+          ),
         ),
-      }));
-    const max = Math.max(1, ...points.map((p) => p.weight));
+      ),
+      metricUnit = tracking === "reps" ? "reps" : unit,
+      cards =
+        tracking === "weight_reps"
+          ? [
+              ["Highest weight", Math.max(...allSets.map((set) => set.weight)), unit],
+              ["Highest reps", bestReps, "reps"],
+              ["Best set total", bestSetVolume, `${unit} × reps`],
+              ["Best workout total", bestSessionTotal, `${unit} × reps`],
+            ]
+          : [
+              [tracking === "reps" ? "Highest reps" : "Best set", Math.max(...allSets.map(metric)), metricUnit],
+              ["Best workout total", bestSessionTotal, metricUnit],
+            ];
     $("#progress-results").innerHTML =
-      `<div class="card pad"><div class="eyebrow">Best working weight per session</div><div class="big">${fmt(points.at(-1)!.weight)} <small>kg latest</small></div><p class="hint">Weights are recorded as entered. Rep counts and equipment may vary.</p><div class="chart" aria-hidden="true">${points.map((p) => `<div class="bar" style="height:${Math.max(3, (p.weight / max) * 100)}%"><span>${fmt(p.weight)}</span></div>`).join("")}</div><table><caption>Last ${points.length} sessions</caption><thead><tr><th>Date</th><th>Best weight</th></tr></thead><tbody>${points.map((p) => `<tr><td>${date(p.date)}</td><td>${fmt(p.weight)} kg</td></tr>`).join("")}</tbody></table></div>`;
+      `<div class="pr-grid">${cards.map(([label, value, suffix]) => `<div class="card pr-card"><span class="eyebrow">PR · ${label}</span><strong>${fmt(Number(value))}</strong><small>${suffix}</small></div>`).join("")}</div><div class="card pad"><div class="eyebrow">Best ${tracking === "weight_reps" ? "working weight" : trackingLabel[tracking].toLowerCase()} per workout</div><div class="big">${fmt(points.at(-1)!.value)} <small>${metricUnit} latest</small></div><p class="hint">PRs use completed sets in your saved workout history.</p><div class="chart" aria-hidden="true">${points.map((point) => `<div class="bar" style="height:${Math.max(3, (point.value / max) * 100)}%"><span>${fmt(point.value)}</span></div>`).join("")}</div><table><caption>Last ${points.length} sessions</caption><thead><tr><th>Date</th><th>Best result</th></tr></thead><tbody>${points.map((point) => `<tr><td>${date(point.date)}</td><td>${fmt(point.value)} ${metricUnit}</td></tr>`).join("")}</tbody></table></div>`;
   };
   $("#progress-exercise").addEventListener("change", draw);
   draw();

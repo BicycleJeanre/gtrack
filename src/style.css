@@ -127,6 +127,64 @@ p {
   margin-right: 7px;
   font-size: 8px;
 }
+.active-workout-bar {
+  position: sticky;
+  z-index: 6;
+  top: calc(6px + env(safe-area-inset-top));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 7px;
+  align-items: stretch;
+  margin: -14px 0 22px;
+  padding: 9px;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: #181818f5;
+  box-shadow: 0 8px 26px #0008;
+  backdrop-filter: blur(14px);
+}
+.active-workout-bar.active {
+  border-color: #00d4ff88;
+}
+.active-workout-resume {
+  min-width: 0;
+  padding: 5px 7px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.active-workout-resume strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.active-rest {
+  min-width: 52px;
+  padding: 5px 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.active-rest strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--accent);
+}
+.timer-small {
+  min-height: 44px;
+  min-width: 45px;
+  padding: 5px 8px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  background: #252525;
+  font-size: 11px;
+}
+.timer-small.alerts {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  color: var(--accent);
+}
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -276,6 +334,18 @@ textarea {
   white-space: pre-wrap;
   margin-bottom: 4px;
 }
+.tracking-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.unit-cell {
+  align-self: center;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+}
 .hint {
   font-size: 12px;
 }
@@ -400,6 +470,50 @@ details summary {
 }
 .history-exercise p {
   margin-bottom: 0;
+}
+.edit-history {
+  margin-bottom: 6px;
+}
+.history-edit-exercise {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.history-edit-set {
+  display: grid;
+  grid-template-columns: 48px repeat(2, minmax(0, 1fr)) 72px;
+  gap: 8px;
+  align-items: end;
+  margin-top: 10px;
+}
+.history-edit-set > span {
+  align-self: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+.history-edit-set label {
+  margin: 0;
+}
+.history-edit-set .checkbox {
+  align-self: center;
+}
+.pr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.pr-card {
+  margin: 0;
+  padding: 15px;
+}
+.pr-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 26px;
+}
+.pr-card small {
+  color: var(--muted);
 }
 .summary {
   display: flex;
@@ -561,6 +675,41 @@ dialog h2 {
 #toast.show {
   opacity: 1;
 }
+#rest-complete-popup {
+  position: fixed;
+  z-index: 20;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  width: calc(100% - 28px);
+  max-width: 480px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: #15282cf7;
+  box-shadow: 0 12px 40px #000b;
+}
+#rest-complete-popup strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--accent);
+  font-size: 20px;
+}
+#rest-complete-popup p {
+  margin: 4px 0 0;
+}
+#rest-complete-popup button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 26px;
+}
 .boot {
   padding: 30px;
 }
@@ -587,6 +736,18 @@ dialog h2 {
   .pad,
   .plan {
     padding: 14px;
+  }
+  .active-workout-bar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .active-rest {
+    grid-row: 2;
+  }
+  .active-workout-resume {
+    grid-column: 1 / -1;
+  }
+  .history-edit-set {
+    grid-template-columns: 40px minmax(0, 1fr) 64px;
   }
 }
 

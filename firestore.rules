@@ -83,8 +83,9 @@ service cloud.firestore {
     match /users/{uid}/sessions/{id} {
       allow read: if owner(uid);
       allow create: if owner(uid) && validSession(id);
-      // Idempotent retries are allowed; completed training history cannot be overwritten.
-      allow update: if owner(uid) && request.resource.data == resource.data;
+      // Owners may correct logged values while the stable session identity stays intact.
+      allow update: if owner(uid) && validSession(id)
+        && request.resource.data.startedAt == resource.data.startedAt;
       allow delete: if false;
     }
     match /{document=**} { allow read, write: if false; }
