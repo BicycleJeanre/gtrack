@@ -149,6 +149,62 @@ test("plans, custom library, editing, reordering and persistence", async ({
     ).toBe(true);
   }
 });
+
+test("desktop uses a sidebar and wider workout layout without changing mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await createWorkout(page, "Desktop workout");
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(page.locator("#logging")).toBeVisible();
+  const desktop = await page.evaluate(() => {
+    const nav = document.querySelector("nav")!,
+      main = document.querySelector("main")!,
+      logging = document.querySelector("#logging")!;
+    return {
+      navDirection: getComputedStyle(nav).flexDirection,
+      navLeft: nav.getBoundingClientRect().left,
+      navWidth: nav.getBoundingClientRect().width,
+      mainLeft: main.getBoundingClientRect().left,
+      loggingColumns: getComputedStyle(logging).gridTemplateColumns,
+      fits: document.documentElement.scrollWidth <= innerWidth,
+    };
+  });
+  expect(desktop.navDirection).toBe("column");
+  expect(desktop.navLeft).toBe(0);
+  expect(desktop.navWidth).toBe(240);
+  expect(desktop.mainLeft).toBeGreaterThanOrEqual(240);
+  expect(desktop.loggingColumns.split(" ")).toHaveLength(2);
+  expect(desktop.fits).toBe(true);
+  await page.screenshot({
+    path: "test-results/session-desktop.png",
+    fullPage: true,
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await page.evaluate(() => {
+    const nav = document.querySelector("nav")!,
+      main = document.querySelector("main")!,
+      logging = document.querySelector("#logging")!;
+    return {
+      navDirection: getComputedStyle(nav).flexDirection,
+      navBottom: Math.round(innerHeight - nav.getBoundingClientRect().bottom),
+      navWidth: nav.getBoundingClientRect().width,
+      mainLeft: main.getBoundingClientRect().left,
+      loggingDisplay: getComputedStyle(logging).display,
+      fits: document.documentElement.scrollWidth <= innerWidth,
+    };
+  });
+  expect(mobile.navDirection).toBe("row");
+  expect(mobile.navBottom).toBe(0);
+  expect(mobile.navWidth).toBe(390);
+  expect(mobile.mainLeft).toBe(0);
+  expect(mobile.loggingDisplay).toBe("block");
+  expect(mobile.fits).toBe(true);
+});
+
 test("offline session survives restart, completes once, and exports/imports", async ({
   page,
   context,
