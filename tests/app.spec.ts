@@ -356,6 +356,59 @@ test("individual set targets survive editing and flow into training", async ({
   ).toHaveValue("6");
 });
 
+test("rest timer persists and the next workout shows the previous result", async ({
+  page,
+}) => {
+  await createWorkout(page, "Bench day");
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(page.locator(".previous-performance")).toContainText(
+    "No previous result yet",
+  );
+  await page
+    .getByLabel("Barbell bench press set 1 reps", { exact: true })
+    .fill("8");
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator("#rest-time")).not.toHaveText("Ready");
+  await page.getByRole("button", { name: "+30 sec", exact: true }).click();
+  await expect(page.locator("#rest-time")).toHaveText(/^(1:5[7-9]|2:00)$/);
+  await page.reload();
+  await expect(page.locator("#rest-time")).not.toHaveText("Ready");
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect(page.locator("#rest-time")).toHaveText("Ready");
+  await page
+    .getByLabel("Barbell bench press set 2 weight", { exact: true })
+    .fill("45");
+  await page
+    .getByLabel("Barbell bench press set 2 reps", { exact: true })
+    .fill("6");
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 2",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Finish workout", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  const previous = page.locator(".previous-performance");
+  await expect(previous).toContainText("Last time");
+  await expect(previous).toContainText("2 sets");
+  await expect(previous).toContainText("40 kg × 8 · 45 kg × 6");
+  await expect(previous).toContainText("Bench day");
+});
+
 test("build a session while recording and resume structural edits", async ({
   page,
 }) => {

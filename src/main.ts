@@ -66,7 +66,10 @@ let store: Store,
   view = "today",
   editing: string | null = null,
   draftTargets: Target[] = [],
-  restUntil = 0;
+  restUntil = 0,
+  restDuration = 90,
+  restAlerted = false,
+  loadedRestSession = "";
 let userReady = false,
   pageError = "",
   deferredUpdate: ServiceWorker | null = null;
@@ -1289,6 +1292,86 @@ function removeSessionItem(exerciseIndex: number, setIndex?: number) {
   );
   action("#remove-session-confirm", () => editSession(change));
 }
+function restStorageKey() {
+  return `gtrack-rest-${store.account}`;
+}
+function persistRest(sessionId: string) {
+  try {
+    localStorage.setItem(
+      restStorageKey(),
+      JSON.stringify({ sessionId, until: restUntil, duration: restDuration }),
+    );
+  } catch {
+    // The timer still works when private browsing blocks localStorage.
+  }
+}
+function clearRestStorage() {
+  try {
+    localStorage.removeItem(restStorageKey());
+  } catch {
+    // Nothing else is required when storage is unavailable.
+  }
+}
+function startRest(seconds: number) {
+  const draft = store.state.draft;
+  if (!draft || seconds <= 0) return;
+  restDuration = seconds;
+  restUntil = Date.now() + seconds * 1000;
+  restAlerted = false;
+  loadedRestSession = draft.id;
+  persistRest(draft.id);
+  updateRest();
+}
+function stopRest() {
+  restUntil = 0;
+  restAlerted = false;
+  loadedRestSession = "";
+  clearRestStorage();
+  updateRest();
+}
+function restoreRest(draft: Session) {
+  if (loadedRestSession === draft.id) return;
+  loadedRestSession = draft.id;
+  restDuration = draft.rest || 90;
+  restUntil = 0;
+  try {
+    const saved = JSON.parse(localStorage.getItem(restStorageKey()) || "null");
+    if (
+      saved?.sessionId === draft.id &&
+      Number.isFinite(saved.until) &&
+      saved.until > Date.now() &&
+      Number.isFinite(saved.duration)
+    ) {
+      restUntil = saved.until;
+      restDuration = saved.duration;
+      restAlerted = false;
+    } else clearRestStorage();
+  } catch {
+    clearRestStorage();
+  }
+}
+function previousPerformance(exerciseId: string, name: string) {
+  const normalizedName = normalize(name);
+  for (const session of history()) {
+    const exercise = session.exercises.find(
+      (item) =>
+        item.exerciseId === exerciseId ||
+        normalize(item.name) === normalizedName,
+    );
+    const sets = exercise?.sets.filter((set) => set.done) || [];
+    if (sets.length) return { session, sets };
+  }
+  return null;
+}
+function previousPerformanceHtml(exerciseId: string, name: string) {
+  const previous = previousPerformance(exerciseId, name);
+  if (!previous)
+    return '<div class="previous-performance"><div class="eyebrow">Last time</div><p>No previous result yet.</p></div>';
+  const result = previous.sets
+    .map((set) => `${fmt(set.weight)} kg × ${set.reps}`)
+    .join(" · ");
+  return `<div class="previous-performance"><div class="eyebrow">Last time · ${date(previous.session.completedAt)}</div><strong>${previous.sets.length} ${previous.sets.length === 1 ? "set" : "sets"}</strong><p>${esc(result)}<br><span>${esc(previous.session.workoutName)}</span></p></div>`;
+}
 function renderToday() {
   const draft = store.state.draft;
   if (!draft) {
@@ -1304,6 +1387,7 @@ function renderToday() {
     bindStart();
     return;
   }
+  restoreRest(draft);
   const total = draft.exercises.reduce((n, e) => n + e.sets.length, 0),
     done = completedSets(draft),
     draftEnrollment = draft.program
@@ -1314,7 +1398,35 @@ function renderToday() {
       : undefined;
   $("#screen").innerHTML =
     `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+  const restTimer = $("#rest-timer");
+  restTimer.removeAttribute("role");
+  restTimer.setAttribute("aria-label", "Rest timer");
+  restTimer.innerHTML = `<div><span class="eyebrow">Rest timer</span><strong id="rest-time" role="timer" aria-live="polite">Ready</strong></div><div class="rest-actions"><button class="secondary" id="rest-start">Start ${draft.rest || 90} sec</button><button class="secondary" id="rest-add">+30 sec</button><button class="text-button" id="rest-skip">Skip</button></div>`;
+  document
+    .querySelectorAll(".logging-exercise")
+    .forEach((card, index) =>
+      card
+        .querySelector(".set-grid.labels")
+        ?.insertAdjacentHTML(
+          "beforebegin",
+          previousPerformanceHtml(
+            draft.exercises[index].exerciseId,
+            draft.exercises[index].name,
+          ),
+        ),
+    );
   action("#edit-session-details", () => sessionDetails());
+  action("#rest-start", () => startRest(draft.rest || 90));
+  action("#rest-add", () => {
+    if (restUntil > Date.now()) {
+      restUntil += 30_000;
+      restDuration += 30;
+      restAlerted = false;
+      persistRest(draft.id);
+      updateRest();
+    }
+  });
+  action("#rest-skip", stopRest);
   action("#session-add", sessionExerciseDialog);
   action("[data-session-remove]", (event) =>
     removeSessionItem(
@@ -1394,7 +1506,7 @@ function renderToday() {
       set.done = !set.done;
       const rest =
         state.draft.exercises[Number(b.dataset.ex)].rest ?? state.draft.rest;
-      if (set.done && rest) restUntil = Date.now() + rest * 1000;
+      if (set.done && rest) startRest(rest);
     });
     render();
   });
@@ -1437,7 +1549,7 @@ function renderToday() {
         updated.updatedAt = Date.now();
         await store.put("programs", updated);
       }
-      restUntil = 0;
+      stopRest();
       close();
       view = s.program ? "today" : "history";
       await saved();
@@ -1454,7 +1566,7 @@ function renderToday() {
     );
     action("#discard-confirm", async () => {
       await store.saveDraft(null);
-      restUntil = 0;
+      stopRest();
       close();
       render();
     });
@@ -1462,12 +1574,27 @@ function renderToday() {
   updateRest();
 }
 function updateRest() {
-  const target = document.querySelector("#rest-timer");
-  if (!target) return;
   const seconds = Math.max(0, Math.ceil((restUntil - Date.now()) / 1000));
-  target.textContent = seconds
-    ? `Rest · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
-    : "";
+  if (restUntil && !seconds) {
+    restUntil = 0;
+    clearRestStorage();
+    if (!restAlerted) {
+      restAlerted = true;
+      if (document.querySelector("#toast"))
+        toast("Rest complete. Ready for your next set.");
+      navigator.vibrate?.([200, 100, 200]);
+    }
+  }
+  const time = document.querySelector<HTMLElement>("#rest-time"),
+    add = document.querySelector<HTMLButtonElement>("#rest-add"),
+    skip = document.querySelector<HTMLButtonElement>("#rest-skip");
+  if (!time) return;
+  time.textContent = seconds
+    ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
+    : "Ready";
+  time.closest("#rest-timer")?.classList.toggle("active", Boolean(seconds));
+  if (add) add.disabled = !seconds;
+  if (skip) skip.disabled = !seconds;
 }
 setInterval(updateRest, 1000);
 function renderHistory() {
