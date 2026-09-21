@@ -77,6 +77,7 @@ let store: Store,
   restAlerted = false,
   loadedRestSession = "";
 let restAudio: AudioContext | null = null;
+let restChime: HTMLAudioElement | null = null;
 let userReady = false,
   pageError = "",
   deferredUpdate: ServiceWorker | null = null;
@@ -1319,8 +1320,63 @@ function clearRestStorage() {
     // Nothing else is required when storage is unavailable.
   }
 }
+function createRestChimeUrl() {
+  const sampleRate = 8000,
+    duration = 0.44,
+    sampleCount = Math.floor(sampleRate * duration),
+    buffer = new ArrayBuffer(44 + sampleCount),
+    view = new DataView(buffer),
+    text = (offset: number, value: string) =>
+      [...value].forEach((character, index) =>
+        view.setUint8(offset + index, character.charCodeAt(0)),
+      );
+  text(0, "RIFF");
+  view.setUint32(4, 36 + sampleCount, true);
+  text(8, "WAVE");
+  text(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate, true);
+  view.setUint16(32, 1, true);
+  view.setUint16(34, 8, true);
+  text(36, "data");
+  view.setUint32(40, sampleCount, true);
+  for (let index = 0; index < sampleCount; index++) {
+    const time = index / sampleRate;
+    let sample = 0;
+    if (time < 0.17)
+      sample =
+        Math.sin(2 * Math.PI * 880 * time) * Math.sin((Math.PI * time) / 0.17);
+    else if (time >= 0.22 && time < 0.42) {
+      const noteTime = time - 0.22;
+      sample =
+        Math.sin(2 * Math.PI * 1175 * noteTime) *
+        Math.sin((Math.PI * noteTime) / 0.2);
+    }
+    view.setUint8(44 + index, 128 + Math.round(sample * 72));
+  }
+  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+}
 function prepareRestAudio() {
   try {
+    if (!restChime) {
+      restChime = new Audio(createRestChimeUrl());
+      restChime.preload = "auto";
+      restChime.setAttribute("playsinline", "");
+    }
+    restChime.volume = 0.0001;
+    const unlock = restChime.play();
+    void unlock
+      ?.then(() => {
+        restChime?.pause();
+        if (restChime) {
+          restChime.currentTime = 0;
+          restChime.volume = 1;
+        }
+      })
+      .catch(() => undefined);
     restAudio ||= new AudioContext();
     if (restAudio.state === "suspended") void restAudio.resume();
     const oscillator = restAudio.createOscillator(),
@@ -1333,7 +1389,7 @@ function prepareRestAudio() {
     // Visual and vibration alerts remain available when audio is unsupported.
   }
 }
-function pingRest() {
+function pingWebAudio() {
   if (!restAudio) return;
   void restAudio
     .resume()
@@ -1358,10 +1414,20 @@ function pingRest() {
     })
     .catch(() => undefined);
 }
-function startRest(seconds: number) {
+function pingRest() {
+  if (!restChime) {
+    pingWebAudio();
+    return;
+  }
+  restChime.pause();
+  restChime.currentTime = 0;
+  restChime.volume = 1;
+  void restChime.play().catch(pingWebAudio);
+}
+function startRest(seconds: number, unlockAudio = true) {
   const draft = store.state.draft;
   if (!draft || seconds <= 0) return;
-  prepareRestAudio();
+  if (unlockAudio) prepareRestAudio();
   restDuration = seconds;
   restUntil = Date.now() + seconds * 1000;
   restAlerted = false;
@@ -1541,6 +1607,9 @@ function renderToday() {
       "input",
     ))
       if (!input.disabled && !input.reportValidity()) return;
+    // iOS standalone apps require audio to be unlocked during the tap itself.
+    // IndexedDB work below can outlive the browser's transient user activation.
+    prepareRestAudio();
     const inputs = b.parentElement!.querySelectorAll<HTMLInputElement>("input");
     const weight = Number(inputs[0].value),
       reps = Number(inputs[1].value);
@@ -1553,7 +1622,7 @@ function renderToday() {
       set.done = !set.done;
       const rest =
         state.draft.exercises[Number(b.dataset.ex)].rest ?? state.draft.rest;
-      if (set.done && rest) startRest(rest);
+      if (set.done && rest) startRest(rest, false);
     });
     render();
   });

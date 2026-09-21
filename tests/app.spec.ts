@@ -494,6 +494,30 @@ test("rest timer persists and the next workout shows the previous result", async
 test("rest timer plays a completion chime", async ({ page }) => {
   await page.addInitScript(() => {
     (window as any).__audioStarts = 0;
+    (window as any).__mediaPlayCalls = 0;
+    (window as any).__insideTap = false;
+    (window as any).__mediaCreatedInsideTap = false;
+    document.addEventListener(
+      "click",
+      () => {
+        (window as any).__insideTap = true;
+        setTimeout(() => ((window as any).__insideTap = false));
+      },
+      true,
+    );
+    class AudioMock {
+      currentTime = 0;
+      preload = "";
+      volume = 1;
+      constructor() {
+        (window as any).__mediaCreatedInsideTap = (window as any).__insideTap;
+      }
+      setAttribute() {}
+      pause() {}
+      async play() {
+        (window as any).__mediaPlayCalls++;
+      }
+    }
     class AudioParamMock {
       setValueAtTime() {}
       exponentialRampToValueAtTime() {}
@@ -525,6 +549,7 @@ test("rest timer plays a completion chime", async ({ page }) => {
         };
       }
     }
+    Object.defineProperty(window, "Audio", { value: AudioMock });
     Object.defineProperty(window, "AudioContext", { value: AudioContextMock });
   });
   await createWorkout(page, "Timer sound", "/", 1);
@@ -541,8 +566,11 @@ test("rest timer plays a completion chime", async ({ page }) => {
     timeout: 3000,
   });
   await expect
-    .poll(() => page.evaluate(() => (window as any).__audioStarts))
-    .toBeGreaterThanOrEqual(3);
+    .poll(() => page.evaluate(() => (window as any).__mediaPlayCalls))
+    .toBeGreaterThanOrEqual(2);
+  expect(
+    await page.evaluate(() => (window as any).__mediaCreatedInsideTap),
+  ).toBe(true);
 });
 
 test("build a session while recording and resume structural edits", async ({
