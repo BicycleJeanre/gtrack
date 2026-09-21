@@ -1,2 +1,125 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f0f0f"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="description" content="Plan your workouts, log your sets, and see your strength grow."><link rel="icon" href="%BASE_URL%icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png"><link rel="manifest" href="%BASE_URL%manifest.webmanifest"><title>GTrack</title></head><body><div id="app"><p class="boot">Opening your training log…</p></div><div id="toast" role="status" aria-live="polite"></div><dialog id="dialog"></dialog><script type="module" src="/src/main.ts"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="description"
+      content="Plan your workouts, log your sets, and see your strength grow."
+    />
+    <link rel="icon" href="%BASE_URL%icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <title>GTrack</title>
+  </head>
+  <body>
+    <div id="app"><p class="boot">Opening your training log…</p></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="dialog"></dialog>
+    <script>
+      (() => {
+        const key = "gtrack-startup-diagnostics-v1";
+        let entries = [];
+        try {
+          const saved = JSON.parse(localStorage.getItem(key) || "[]");
+          if (Array.isArray(saved)) entries = saved.slice(-30);
+        } catch {}
+        const persist = () => {
+          try {
+            localStorage.setItem(key, JSON.stringify(entries.slice(-40)));
+          } catch {}
+        };
+        const mark = (phase, detail = "") => {
+          entries.push({
+            at: new Date().toISOString(),
+            phase,
+            detail: String(detail || "").slice(0, 300),
+          });
+          persist();
+        };
+        const report = () =>
+          JSON.stringify(
+            {
+              capturedAt: new Date().toISOString(),
+              online: navigator.onLine,
+              standalone:
+                matchMedia("(display-mode: standalone)").matches ||
+                navigator.standalone === true,
+              serviceWorkerControlled: Boolean(
+                navigator.serviceWorker && navigator.serviceWorker.controller,
+              ),
+              path: location.pathname,
+              userAgent: navigator.userAgent,
+              module:
+                document.querySelector('script[type="module"]')?.src || "",
+              entries: entries.slice(-20),
+            },
+            null,
+            2,
+          );
+        let timer;
+        const showFailure = (reason = "startup-timeout") => {
+          const app = document.querySelector("#app");
+          if (!app || !app.querySelector(".boot")) return;
+          mark(reason);
+          app.innerHTML = `<main style="max-width:640px;margin:0 auto;padding:32px 18px"><h1>GTrack could not finish opening.</h1><p>The diagnostic details below do not include your account or workout data. Copy them and send them to the person helping you.</p><div class="actions"><button class="primary" id="startup-retry">Try again</button><button class="secondary" id="startup-copy">Copy diagnostics</button></div><details open><summary>Startup diagnostics</summary><pre id="startup-report" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.5"></pre></details><p class="hint">If this only happens from the Home Screen, close the app, open GTrack once in Safari while online, then try the Home Screen icon again.</p></main>`;
+          document.querySelector("#startup-report").textContent = report();
+          document.querySelector("#startup-retry").onclick = () =>
+            location.reload();
+          document.querySelector("#startup-copy").onclick = async (event) => {
+            const button = event.currentTarget;
+            try {
+              await navigator.clipboard.writeText(report());
+              button.textContent = "Copied";
+            } catch {
+              const selection = getSelection();
+              const range = document.createRange();
+              range.selectNodeContents(
+                document.querySelector("#startup-report"),
+              );
+              selection.removeAllRanges();
+              selection.addRange(range);
+              button.textContent = "Selected — choose Copy";
+            }
+          };
+        };
+        window.__gtrackStartup = {
+          mark,
+          showFailure,
+          ready() {
+            clearTimeout(timer);
+            mark("app-ready");
+          },
+        };
+        mark("html-loaded");
+        addEventListener(
+          "error",
+          (event) => {
+            const resource = event.target && event.target.src;
+            mark("window-error", event.message || resource || "unknown error");
+            if (event.target instanceof HTMLScriptElement)
+              setTimeout(() => showFailure("module-load-error"));
+          },
+          true,
+        );
+        addEventListener("unhandledrejection", (event) =>
+          mark(
+            "unhandled-rejection",
+            event.reason && (event.reason.message || event.reason),
+          ),
+        );
+        timer = setTimeout(() => showFailure(), 12000);
+      })();
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -82,6 +82,24 @@ async function createWorkout(
   await page.getByRole("button", { name: "Save workout", exact: true }).click();
   await expect(page.locator(".plan h2")).toHaveText(name);
 }
+test("startup failures expose privacy-safe diagnostics instead of hanging", async ({
+  page,
+}) => {
+  await page.route("**/assets/*.js", (route) => route.abort());
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "GTrack could not finish opening." }),
+  ).toBeVisible();
+  const report = page.locator("#startup-report");
+  await expect(report).toContainText("module-load-error");
+  await expect(report).toContainText("serviceWorkerControlled");
+  await expect(report).toContainText("userAgent");
+  await expect(
+    page.getByRole("button", { name: "Copy diagnostics" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+});
+
 test("plans, custom library, editing, reordering and persistence", async ({
   page,
 }) => {

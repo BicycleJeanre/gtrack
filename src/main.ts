@@ -40,6 +40,12 @@ import {
   type CustomProgramDefinition,
   type CustomProgramDay,
 } from "./model";
+const startup = (phase: string, detail = "") =>
+  (window as any).__gtrackStartup?.mark(phase, detail);
+const startupReady = () => (window as any).__gtrackStartup?.ready();
+const startupFailure = (reason: string) =>
+  (window as any).__gtrackStartup?.showFailure(reason);
+startup("module-loaded");
 const $ = <T extends HTMLElement = HTMLElement>(s: string) =>
   document.querySelector<T>(s)!;
 const esc = (s: unknown) =>
@@ -1825,24 +1831,34 @@ function authDialog() {
   });
 }
 async function boot() {
+  startup("boot-started");
   watchAuth(async (user) => {
+    startup("auth-state-ready", user ? "signed-in" : "signed-out");
     try {
       userReady = false;
       cloud?.stop();
       cloud = null;
       email = user?.email || "";
       store = new Store(user?.uid || "local");
+      startup("storage-load-started");
       await store.load();
+      startup("storage-load-complete");
       view = store.state.draft ? "today" : "workouts";
       userReady = true;
       render();
+      startupReady();
       if (user) {
         cloud = new Cloud(store, changed);
         cloud.start();
       }
-    } catch {
+    } catch (error) {
+      startup(
+        "storage-load-error",
+        error instanceof Error ? error.message : String(error),
+      );
       $("#app").innerHTML =
         "<main><h1>Storage is unavailable.</h1><p>GTrack needs browser storage to protect your training log. Check available space and browser storage settings, then reload.</p></main>";
+      startupReady();
     }
   });
   window.addEventListener("online", () => {
@@ -1857,6 +1873,7 @@ async function boot() {
     }
   });
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
+    startup("service-worker-registering");
     const hadController = !!navigator.serviceWorker.controller;
     let controlled = hadController;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -1866,6 +1883,10 @@ async function boot() {
     const registration = await navigator.serviceWorker.register(
       `${import.meta.env.BASE_URL}sw.js`,
       { updateViaCache: "none" },
+    );
+    startup(
+      "service-worker-registered",
+      registration.active?.state || "pending",
     );
     const waiting = () => {
       if (
@@ -1894,17 +1915,33 @@ async function boot() {
 }
 // One editing tab per origin prevents two tabs from changing the same active session.
 if (navigator.locks) {
-  void navigator.locks.request(
-    "gtrack-editor",
-    { ifAvailable: true },
-    async (lock) => {
+  startup("editor-lock-requested");
+  void navigator.locks
+    .request("gtrack-editor", { ifAvailable: true }, async (lock) => {
+      startup(lock ? "editor-lock-acquired" : "editor-lock-unavailable");
       if (!lock) {
         $("#app").innerHTML =
           "<main><h1>GTrack is open in another tab.</h1><p>Use that tab to keep your session in one place. Close it, then reload here.</p></main>";
+        startupReady();
         return;
       }
       await boot();
       await new Promise(() => {});
-    },
-  );
-} else void boot();
+    })
+    .catch((error) => {
+      startup(
+        "editor-lock-error",
+        error instanceof Error ? error.message : String(error),
+      );
+      startupFailure("editor-lock-error");
+    });
+} else {
+  startup("editor-lock-unsupported");
+  void boot().catch((error) => {
+    startup(
+      "boot-error",
+      error instanceof Error ? error.message : String(error),
+    );
+    startupFailure("boot-error");
+  });
+}
