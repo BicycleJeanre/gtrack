@@ -70,6 +70,7 @@ let store: Store,
   restDuration = 90,
   restAlerted = false,
   loadedRestSession = "";
+let restAudio: AudioContext | null = null;
 let userReady = false,
   pageError = "",
   deferredUpdate: ServiceWorker | null = null;
@@ -1312,9 +1313,49 @@ function clearRestStorage() {
     // Nothing else is required when storage is unavailable.
   }
 }
+function prepareRestAudio() {
+  try {
+    restAudio ||= new AudioContext();
+    if (restAudio.state === "suspended") void restAudio.resume();
+    const oscillator = restAudio.createOscillator(),
+      gain = restAudio.createGain();
+    gain.gain.setValueAtTime(0.0001, restAudio.currentTime);
+    oscillator.connect(gain).connect(restAudio.destination);
+    oscillator.start();
+    oscillator.stop(restAudio.currentTime + 0.01);
+  } catch {
+    // Visual and vibration alerts remain available when audio is unsupported.
+  }
+}
+function pingRest() {
+  if (!restAudio) return;
+  void restAudio
+    .resume()
+    .then(() => {
+      const now = restAudio!.currentTime;
+      [
+        [0, 880],
+        [0.2, 1175],
+      ].forEach(([delay, frequency]) => {
+        const oscillator = restAudio!.createOscillator(),
+          gain = restAudio!.createGain(),
+          start = now + delay;
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.24, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+        oscillator.connect(gain).connect(restAudio!.destination);
+        oscillator.start(start);
+        oscillator.stop(start + 0.18);
+      });
+    })
+    .catch(() => undefined);
+}
 function startRest(seconds: number) {
   const draft = store.state.draft;
   if (!draft || seconds <= 0) return;
+  prepareRestAudio();
   restDuration = seconds;
   restUntil = Date.now() + seconds * 1000;
   restAlerted = false;
@@ -1582,6 +1623,7 @@ function updateRest() {
       restAlerted = true;
       if (document.querySelector("#toast"))
         toast("Rest complete. Ready for your next set.");
+      pingRest();
       navigator.vibrate?.([200, 100, 200]);
     }
   }

@@ -55,12 +55,20 @@ async function offlineServer(cachePages = false) {
     },
   };
 }
-async function createWorkout(page: Page, name = "Upper body A", url = "/") {
+async function createWorkout(
+  page: Page,
+  name = "Upper body A",
+  url = "/",
+  rest = 90,
+) {
   await page.goto(url);
   await page
     .getByRole("button", { name: "Create workout", exact: false })
     .click();
   await page.getByLabel("Workout name", { exact: true }).fill(name);
+  await page
+    .getByLabel("Rest between sets (seconds)", { exact: true })
+    .fill(String(rest));
   await page
     .getByLabel("Exercise from library")
     .selectOption({ label: "Barbell bench press" });
@@ -407,6 +415,60 @@ test("rest timer persists and the next workout shows the previous result", async
   await expect(previous).toContainText("2 sets");
   await expect(previous).toContainText("40 kg × 8 · 45 kg × 6");
   await expect(previous).toContainText("Bench day");
+});
+
+test("rest timer plays a completion chime", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).__audioStarts = 0;
+    class AudioParamMock {
+      setValueAtTime() {}
+      exponentialRampToValueAtTime() {}
+    }
+    class AudioContextMock {
+      state = "running";
+      currentTime = 0;
+      destination = {};
+      async resume() {}
+      createOscillator() {
+        return {
+          type: "sine",
+          frequency: new AudioParamMock(),
+          connect() {
+            return this;
+          },
+          start() {
+            (window as any).__audioStarts++;
+          },
+          stop() {},
+        };
+      }
+      createGain() {
+        return {
+          gain: new AudioParamMock(),
+          connect() {
+            return this;
+          },
+        };
+      }
+    }
+    Object.defineProperty(window, "AudioContext", { value: AudioContextMock });
+  });
+  await createWorkout(page, "Timer sound", "/", 1);
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator("#toast")).toContainText("Rest complete", {
+    timeout: 3000,
+  });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__audioStarts))
+    .toBeGreaterThanOrEqual(3);
 });
 
 test("build a session while recording and resume structural edits", async ({
