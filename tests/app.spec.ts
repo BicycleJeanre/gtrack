@@ -786,6 +786,142 @@ test("Today follows the current program and starts each next workout directly", 
   );
 });
 
+test("custom programs can be created, edited and followed", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page.getByRole("button", { name: "Create program" }).click();
+  await page.getByLabel("Program name").fill("My strength plan");
+  await page.getByLabel("Weeks").fill("6");
+  await page.getByLabel("Session length").fill("50–70");
+  const first = page.locator(".program-day-editor").first();
+  await first.getByLabel("Workout name").fill("Upper strength");
+  await first.getByLabel("Schedule label").fill("Monday");
+  await first.getByLabel("Workout 1 exercise 1").selectOption({
+    label: "Barbell bench press",
+  });
+  await first.locator("[data-program-exercise-sets]").fill("4");
+  await first.locator("[data-program-exercise-reps]").fill("6");
+  await first.locator("[data-program-exercise-rest]").fill("180");
+  await first
+    .locator("[data-program-exercise-effort]")
+    .fill("2 reps in reserve");
+  await page.getByRole("button", { name: "Add workout day" }).click();
+  const second = page.locator(".program-day-editor").nth(1);
+  await second.getByLabel("Workout name").fill("Lower strength");
+  await second.getByLabel("Schedule label").fill("Thursday");
+  await second.getByLabel("Workout 2 exercise 1").selectOption({
+    label: "Barbell squat",
+  });
+  await second.locator("[data-program-exercise-sets]").fill("3");
+  await second.locator("[data-program-exercise-reps]").fill("5");
+  await second.locator("[data-program-exercise-rest]").fill("240");
+  await second
+    .locator("[data-program-exercise-effort]")
+    .fill("3 reps in reserve");
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/program-builder-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Save program", exact: true }).click();
+
+  await expect(page.locator(".today-program")).toContainText(
+    "My strength plan",
+  );
+  await expect(page.locator(".today-program")).toContainText(
+    "Up next: Upper strength",
+  );
+  await expect(page.locator(".today-program")).toContainText("4 × 6");
+  await page.getByRole("button", { name: "Edit program", exact: true }).click();
+  await page.getByLabel("Program name").fill("My revised strength plan");
+  await page
+    .locator(".program-day-editor")
+    .nth(1)
+    .locator("[data-program-exercise-sets]")
+    .fill("5");
+  await page.getByRole("button", { name: "Save program", exact: true }).click();
+  await expect(page.locator(".today-program")).toContainText(
+    "My revised strength plan",
+  );
+
+  await page
+    .getByRole("button", { name: "Start next workout", exact: true })
+    .click();
+  await expect(page.locator(".logging-exercise")).toHaveCount(1);
+  await expect(page.locator(".check")).toHaveCount(4);
+  await expect(page.locator(".training-guidance")).toContainText(
+    "2 reps in reserve",
+  );
+  await page
+    .getByLabel("Barbell bench press set 1 reps", { exact: true })
+    .fill("7");
+  await page
+    .getByRole("button", { name: "Add set to Barbell bench press" })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Finish workout", exact: false })
+    .click();
+  await page.locator("#update-program-workout").check();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+  await expect(page.locator(".today-program")).toContainText(
+    "Up next: Upper strength",
+  );
+  await page
+    .getByRole("button", { name: "Start next workout", exact: true })
+    .click();
+  await expect(page.locator(".check")).toHaveCount(5);
+  await expect(
+    page.getByLabel("Barbell bench press set 1 reps", { exact: true }),
+  ).toHaveValue("7");
+  await page.reload();
+  await expect(page.locator(".session-head")).toContainText(
+    "My revised strength plan",
+  );
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Discard this session" }).click();
+  await page.getByRole("button", { name: "Discard session" }).click();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  const original = page
+    .locator(".program-enrollment")
+    .filter({ hasText: "My revised strength plan" });
+  await original.getByRole("button", { name: "Duplicate" }).click();
+  await expect(page.getByLabel("Program name")).toHaveValue(
+    "My revised strength plan copy",
+  );
+  await page.getByRole("button", { name: "Save program", exact: true }).click();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  const copy = page
+    .locator(".program-enrollment")
+    .filter({ hasText: "My revised strength plan copy" });
+  await copy.getByRole("button", { name: "Remove" }).click();
+  await page
+    .getByRole("button", { name: "Remove program", exact: true })
+    .click();
+  await expect(
+    page
+      .locator(".program-enrollment")
+      .filter({ hasText: "My revised strength plan copy" }),
+  ).toHaveCount(0);
+});
+
 test("exercise guides search, display photos offline and fit a narrow phone", async ({
   page,
 }) => {

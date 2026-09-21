@@ -8,6 +8,10 @@ import {
 export interface ProgramExercise {
   exerciseName: string;
   role: string;
+  sets?: number;
+  reps?: number;
+  rest?: number;
+  effort?: string;
 }
 export interface ProgramPhase {
   weeks: number[];
@@ -27,13 +31,43 @@ export interface ProgramTemplate {
 }
 export const programs = catalog.programs as ProgramTemplate[];
 export const templateFor = (id: string) => programs.find((p) => p.id === id)!;
+export function templateForEnrollment(
+  enrollment: ProgramEnrollment,
+): ProgramTemplate {
+  if (!enrollment.custom) return templateFor(enrollment.templateId);
+  return {
+    id: enrollment.templateId,
+    name: enrollment.custom.name,
+    weeks: enrollment.custom.weeks,
+    audience: "Your custom training program",
+    schedule: enrollment.custom.sessions.map((session) => session.schedule),
+    estimatedMinutes: enrollment.custom.estimatedMinutes,
+    sessions: enrollment.custom.sessions.map((session) => ({
+      name: session.name,
+      exercises: session.exercises.map((exercise) => ({
+        ...exercise,
+        role: "custom",
+      })),
+    })),
+    phases: [
+      {
+        weeks: Array.from(
+          { length: enrollment.custom.weeks },
+          (_, index) => index + 1,
+        ),
+        name: "Your plan",
+        rir: "",
+      },
+    ],
+  };
+}
 export const phaseFor = (p: ProgramTemplate, week: number) =>
   p.phases.find((ph) => ph.weeks.includes(week))!;
 export function programProgress(
   enrollment: ProgramEnrollment,
   sessions: Session[],
 ) {
-  const template = templateFor(enrollment.templateId);
+  const template = templateForEnrollment(enrollment);
   const completed = new Set(
     sessions
       .filter(
@@ -61,6 +95,14 @@ export function programProgress(
 export function prescription(phase: ProgramPhase, role: string): number[] {
   return phase[role] as number[];
 }
+export function exercisePrescription(
+  phase: ProgramPhase,
+  exercise: ProgramExercise,
+): number[] {
+  return exercise.sets && exercise.reps
+    ? [exercise.sets, exercise.reps]
+    : prescription(phase, exercise.role);
+}
 export function restFor(role: string): number {
   return role === "primary" || role === "practice"
     ? 180
@@ -82,6 +124,13 @@ export function effortFor(
     return `${["3", "2–3", "2"][phase.weeks.indexOf(week)]} reps in reserve`;
   return phase.rir.split(";")[0] + " reps in reserve";
 }
+export function exerciseEffort(
+  phase: ProgramPhase,
+  exercise: ProgramExercise,
+  week: number,
+) {
+  return exercise.effort || effortFor(phase, exercise.role, week);
+}
 export function createProgramSession(
   enrollment: ProgramEnrollment,
   week: number,
@@ -89,7 +138,7 @@ export function createProgramSession(
   library: Exercise[],
   weights: number[],
 ): Session {
-  const p = templateFor(enrollment.templateId),
+  const p = templateForEnrollment(enrollment),
     phase = phaseFor(p, week),
     template = p.sessions[day - 1];
   if (
@@ -115,13 +164,21 @@ export function createProgramSession(
     exercises: template.exercises.map((item, i) => {
       const exercise = library.find((e) => e.name === item.exerciseName);
       if (!exercise) throw Error(`Exercise unavailable: ${item.exerciseName}`);
-      const [sets, reps] = prescription(phase, item.role);
+      const [sets, reps] = exercisePrescription(phase, item);
+      const rest = item.rest ?? restFor(item.role),
+        restLabel = item.rest
+          ? `${Math.round(item.rest / 60)} min`
+          : item.role === "primary" || item.role === "practice"
+            ? "3–5 min"
+            : item.role === "secondary"
+              ? "2–3 min"
+              : "1–2 min";
       return {
         exerciseId: exercise.id,
         name: exercise.name,
         description: exercise.description,
-        rest: restFor(item.role),
-        guidance: `${item.role} · ${effortFor(phase, item.role, week)} · Rest ${item.role === "primary" || item.role === "practice" ? "3–5" : item.role === "secondary" ? "2–3" : "1–2"} min. Warm up separately; log working sets here.`,
+        rest,
+        guidance: `${item.role === "custom" ? "Program target" : item.role} · ${exerciseEffort(phase, item, week)} · Rest ${restLabel}. Warm up separately; log working sets here.`,
         sets: Array.from({ length: sets }, () => ({
           weight: weights[i],
           reps,

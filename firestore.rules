@@ -32,23 +32,37 @@ service cloud.firestore {
         && d.completedAt is number && d.completedAt >= d.startedAt
         && d.exercises is list && d.exercises.size() > 0 && d.exercises.size() <= 30;
     }
-    function programTemplate(id) { return id in ['foundation-3','strength-size-4','barbell-strength-4']; }
+    function programTemplate(id) {
+      return id in ['foundation-3','strength-size-4','barbell-strength-4']
+        || (id is string && id.matches('^custom-[a-zA-Z0-9-]{1,128}$'));
+    }
     function validProgramSession(p) {
       return p is map && p.keys().hasAll(['enrollmentId','templateId','week','day','countsForProgress'])
         && p.keys().hasOnly(['enrollmentId','templateId','week','day','countsForProgress'])
         && p.enrollmentId is string && p.enrollmentId.matches('^[a-zA-Z0-9-]{1,128}$')
         && programTemplate(p.templateId)
-        && p.week is int && p.week >= 1 && p.week <= (p.templateId == 'foundation-3' ? 8 : 12)
-        && p.day is int && p.day >= 1 && p.day <= (p.templateId == 'foundation-3' ? 3 : 4)
+        && p.week is int && p.week >= 1 && p.week <= (p.templateId == 'foundation-3' ? 8 : (p.templateId.matches('^custom-.*$') ? 52 : 12))
+        && p.day is int && p.day >= 1 && p.day <= (p.templateId == 'foundation-3' ? 3 : (p.templateId.matches('^custom-.*$') ? 7 : 4))
         && p.countsForProgress is bool;
+    }
+    function validCustomProgram(custom) {
+      return custom is map
+        && custom.keys().hasAll(['name','weeks','estimatedMinutes','sessions'])
+        && custom.keys().hasOnly(['name','weeks','estimatedMinutes','sessions'])
+        && stringBetween(custom.name, 60)
+        && custom.weeks is int && custom.weeks >= 1 && custom.weeks <= 52
+        && stringBetween(custom.estimatedMinutes, 20)
+        && custom.sessions is list && custom.sessions.size() > 0 && custom.sessions.size() <= 7;
     }
     function validProgram(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','templateId','version','startedAt','updatedAt','archived'])
-        && d.keys().hasOnly(['id','templateId','version','startedAt','updatedAt','archived'])
+        && d.keys().hasOnly(['id','templateId','version','startedAt','updatedAt','archived','deleted','custom'])
         && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$') && programTemplate(d.templateId)
+        && (d.templateId.matches('^custom-.*$') ? ('custom' in d && validCustomProgram(d.custom)) : !('custom' in d))
         && d.version == 1 && d.startedAt is number && d.startedAt > 0
-        && d.updatedAt is number && d.updatedAt >= d.startedAt && d.archived is bool;
+        && d.updatedAt is number && d.updatedAt >= d.startedAt && d.archived is bool
+        && (!('deleted' in d) || d.deleted is bool);
     }
     match /users/{uid}/programs/{id} {
       allow read: if owner(uid);

@@ -133,3 +133,58 @@ test("program enrollments and optional session metadata validate; older backups 
   });
   assert.deepEqual(restored.programs.enrollment, enrollment);
 });
+
+test("custom programs validate bounded workout days and targets", () => {
+  const custom = {
+    id: "custom-plan",
+    templateId: "custom-custom-plan",
+    version: 1,
+    startedAt: 1,
+    updatedAt: 1,
+    archived: false,
+    custom: {
+      name: "My strength plan",
+      weeks: 8,
+      estimatedMinutes: "45–60",
+      sessions: [
+        {
+          id: "day-1",
+          name: "Upper",
+          schedule: "Monday",
+          exercises: [
+            {
+              exerciseName: "Barbell bench press",
+              sets: 4,
+              reps: 6,
+              rest: 180,
+              effort: "2 reps in reserve",
+            },
+          ],
+        },
+      ],
+    },
+  };
+  assert.equal(validateRecord("programs", custom), true);
+  assert.equal(
+    validateRecord("programs", {
+      ...custom,
+      custom: { ...custom.custom, weeks: 53 },
+    }),
+    false,
+  );
+  assert.equal(
+    validateRecord("programs", {
+      ...custom,
+      custom: {
+        ...custom.custom,
+        sessions: [
+          {
+            ...custom.custom.sessions[0],
+            exercises: [{ ...custom.custom.sessions[0].exercises[0], sets: 0 }],
+          },
+        ],
+      },
+    }),
+    false,
+  );
+});

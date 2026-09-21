@@ -31,6 +31,25 @@ export interface LoggedSet {
   reps: number;
   done: boolean;
 }
+export interface CustomProgramExercise {
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  rest: number;
+  effort: string;
+}
+export interface CustomProgramDay {
+  id: string;
+  name: string;
+  schedule: string;
+  exercises: CustomProgramExercise[];
+}
+export interface CustomProgramDefinition {
+  name: string;
+  weeks: number;
+  estimatedMinutes: string;
+  sessions: CustomProgramDay[];
+}
 export interface ProgramEnrollment {
   id: string;
   templateId: string;
@@ -38,6 +57,8 @@ export interface ProgramEnrollment {
   startedAt: number;
   updatedAt: number;
   archived: boolean;
+  deleted?: boolean;
+  custom?: CustomProgramDefinition;
 }
 export interface ProgramSession {
   enrollmentId: string;
@@ -109,6 +130,42 @@ const count = (v: unknown, max: number) =>
   number(v, 1, max) && Number.isInteger(v);
 const validId = (v: unknown): v is string =>
   typeof v === "string" && /^[a-zA-Z0-9-]{1,128}$/.test(v);
+const validCustomProgram = (value: any): value is CustomProgramDefinition =>
+  value &&
+  Object.keys(value).every((key) =>
+    ["name", "weeks", "estimatedMinutes", "sessions"].includes(key),
+  ) &&
+  text(value.name, 60) &&
+  count(value.weeks, 52) &&
+  text(value.estimatedMinutes, 20) &&
+  Array.isArray(value.sessions) &&
+  value.sessions.length > 0 &&
+  value.sessions.length <= 7 &&
+  value.sessions.every(
+    (session: any) =>
+      session &&
+      Object.keys(session).every((key) =>
+        ["id", "name", "schedule", "exercises"].includes(key),
+      ) &&
+      validId(session.id) &&
+      text(session.name, 60) &&
+      text(session.schedule, 40) &&
+      Array.isArray(session.exercises) &&
+      session.exercises.length > 0 &&
+      session.exercises.length <= 30 &&
+      session.exercises.every(
+        (exercise: any) =>
+          exercise &&
+          Object.keys(exercise).every((key) =>
+            ["exerciseName", "sets", "reps", "rest", "effort"].includes(key),
+          ) &&
+          text(exercise.exerciseName, 80) &&
+          count(exercise.sets, 12) &&
+          count(exercise.reps, 100) &&
+          number(exercise.rest, 0, 600) &&
+          text(exercise.effort, 80),
+      ),
+  );
 export function validateRecord(kind: Kind, value: any): boolean {
   if (!value || !validId(value.id)) return false;
   if (kind === "programs")
@@ -121,15 +178,24 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "startedAt",
           "updatedAt",
           "archived",
+          "deleted",
+          "custom",
         ].includes(k),
       ) &&
-      ["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
+      (["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
         value.templateId,
-      ) &&
+      ) ||
+        (typeof value.templateId === "string" &&
+          value.templateId.startsWith("custom-") &&
+          validCustomProgram(value.custom))) &&
+      ((typeof value.templateId === "string" &&
+        value.templateId.startsWith("custom-")) ||
+        value.custom === undefined) &&
       value.version === 1 &&
       number(value.startedAt, 1, 9e15) &&
       number(value.updatedAt, value.startedAt, 9e15) &&
-      typeof value.archived === "boolean"
+      typeof value.archived === "boolean" &&
+      (value.deleted === undefined || typeof value.deleted === "boolean")
     );
   const allowed =
     kind === "exercises"
@@ -195,11 +261,29 @@ export function validateRecord(kind: Kind, value: any): boolean {
           ].includes(k),
       ) ||
       !validId(program.enrollmentId) ||
-      !["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
-        program.templateId,
+      !(
+        typeof program.templateId === "string" &&
+        (["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
+          program.templateId,
+        ) ||
+          program.templateId.startsWith("custom-"))
       ) ||
-      !count(program.week, program.templateId === "foundation-3" ? 8 : 12) ||
-      !count(program.day, program.templateId === "foundation-3" ? 3 : 4) ||
+      !count(
+        program.week,
+        program.templateId === "foundation-3"
+          ? 8
+          : program.templateId.startsWith("custom-")
+            ? 52
+            : 12,
+      ) ||
+      !count(
+        program.day,
+        program.templateId === "foundation-3"
+          ? 3
+          : program.templateId.startsWith("custom-")
+            ? 7
+            : 4,
+      ) ||
       typeof program.countsForProgress !== "boolean")
   )
     return false;

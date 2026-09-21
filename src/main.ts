@@ -2,10 +2,14 @@ import { guideFor, photoFor } from "./exercise-guides";
 import {
   programs,
   templateFor,
+  templateForEnrollment,
   phaseFor,
   programProgress,
   prescription,
+  exercisePrescription,
   effortFor,
+  exerciseEffort,
+  restFor,
   createProgramSession,
 } from "./programs";
 import "./style.css";
@@ -32,6 +36,9 @@ import {
   type Target,
   type Session,
   type Exercise,
+  type ProgramEnrollment,
+  type CustomProgramDefinition,
+  type CustomProgramDay,
 } from "./model";
 const $ = <T extends HTMLElement = HTMLElement>(s: string) =>
   document.querySelector<T>(s)!;
@@ -122,7 +129,8 @@ function changed() {
   const label = document.querySelector("#sync");
   if (label) label.textContent = syncLabel();
   if (
-    !["builder", "today"].includes(view) &&
+    (!["builder", "today", "program-builder"].includes(view) ||
+      (view === "today" && !store.state.draft)) &&
     !$<HTMLDialogElement>("#dialog").open &&
     !["INPUT", "TEXTAREA", "SELECT"].includes(
       document.activeElement?.tagName || "",
@@ -138,6 +146,10 @@ const headings: Record<string, string[]> = {
   guide: ["Move with confidence.", "Exercise demonstrations and form cues."],
   today: ["Ready to train?", "Your session, one set at a time."],
   programs: ["Your training program.", "A plan for the weeks ahead."],
+  "program-builder": [
+    "Build your program.",
+    "Plan each training day and follow it week by week.",
+  ],
   workouts: ["Your workouts.", "Set it up once. Make it your routine."],
   builder: ["Build your workout.", "Choose your exercises and make a plan."],
   history: ["Every session adds up.", "The work you’ve put in, saved for you."],
@@ -151,7 +163,7 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main><div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
@@ -171,6 +183,7 @@ function render() {
       today: renderToday,
       workouts: renderWorkouts,
       programs: renderPrograms,
+      "program-builder": renderProgramBuilder,
       guide: renderGuide,
       builder: renderBuilder,
       history: renderHistory,
@@ -181,9 +194,9 @@ function render() {
   if (view !== "guide") bindGuideButtons();
 }
 async function navigate(next: string) {
-  if (view === "builder" && next !== "builder") {
+  if (["builder", "program-builder"].includes(view) && next !== view) {
     modal(
-      '<h2>Leave this workout?</h2><p>Your changes to this plan have not been saved.</p><div class="actions"><button class="secondary" data-close>Keep editing</button><button class="primary" id="leave-editor">Discard changes</button></div>',
+      `<h2>Leave this ${view === "program-builder" ? "program" : "workout"}?</h2><p>Your changes have not been saved.</p><div class="actions"><button class="secondary" data-close>Keep editing</button><button class="primary" id="leave-editor">Discard changes</button></div>`,
     );
     action("#leave-editor", () => {
       close();
@@ -203,7 +216,7 @@ function empty(title: string, description: string, button = "") {
 let previewProgram: string | null = null;
 function activePrograms() {
   return Object.values(store.state.programs)
-    .filter((p) => !p.archived)
+    .filter((p) => !p.archived && !p.deleted)
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 function currentProgram() {
@@ -231,7 +244,7 @@ async function startNextProgramSession(id: string) {
   }
   const enrollment = store.state.programs[id];
   if (!enrollment || enrollment.archived) return;
-  const p = templateFor(enrollment.templateId),
+  const p = templateForEnrollment(enrollment),
     progress = programProgress(enrollment, history());
   if (progress.finished) return;
   const next = p.sessions[progress.day - 1],
@@ -257,23 +270,66 @@ async function startNextProgramSession(id: string) {
   );
 }
 function todayProgramCard(enrollment: import("./model").ProgramEnrollment) {
-  const p = templateFor(enrollment.templateId),
+  const p = templateForEnrollment(enrollment),
     progress = programProgress(enrollment, history()),
     phase = phaseFor(p, progress.week),
     next = p.sessions[progress.day - 1];
   return `<section class="card pad today-program"><div class="eyebrow">Current program · Week ${progress.week} of ${p.weeks}</div><h2>Up next: ${esc(next.name)}</h2><p>${esc(p.name)}<br>${esc(p.schedule[progress.day - 1])} · ${esc(phase.name)}</p><div class="program-position"><span>Session ${progress.day} of ${p.sessions.length} this week</span><span>${progress.completed} / ${progress.total} sessions complete</span></div><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div><ol class="program-exercises compact">${next.exercises
     .map((exercise) => {
-      const [sets, reps] = prescription(phase, exercise.role);
+      const [sets, reps] = exercisePrescription(phase, exercise);
       return `<li><strong>${esc(exercise.exerciseName)}</strong><span>${sets} × ${reps}</span></li>`;
     })
     .join(
       "",
-    )}</ol><button class="primary" data-program-quick-start="${enrollment.id}">Start next workout</button><div class="actions"><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button><button class="text-button" data-program-preview="${p.id}">View full program</button></div></section>`;
+    )}</ol><button class="primary" data-program-quick-start="${enrollment.id}">Start next workout</button><div class="actions"><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button>${enrollment.custom ? `<button class="text-button" data-program-edit="${enrollment.id}">Edit program</button>` : `<button class="text-button" data-program-preview="${p.id}">View full program</button>`}</div></section>`;
 }
 function programCard(enrollment: import("./model").ProgramEnrollment) {
-  const p = templateFor(enrollment.templateId),
+  const p = templateForEnrollment(enrollment),
     progress = programProgress(enrollment, history());
-  return `<article class="card pad program-enrollment"><div class="eyebrow">${enrollment.archived ? "Paused" : progress.finished ? "Program complete" : `Week ${progress.week} of ${p.weeks}`}</div><h2>${esc(p.name)}</h2><p>${progress.completed} / ${progress.total} sessions completed</p><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div>${!progress.finished && !enrollment.archived ? `<p>Next: ${esc(p.sessions[progress.day - 1].name)} · ${esc(phaseFor(p, progress.week).name)}</p><button class="primary" data-program-quick-start="${enrollment.id}">${store.state.draft?.program?.enrollmentId === enrollment.id ? "Resume workout" : "Start next workout"}</button><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button>` : ""}<div class="actions"><button class="text-button" data-program-preview="${p.id}">View program</button><button class="text-button" data-program-pause="${enrollment.id}">${enrollment.archived ? "Resume program" : "Pause program"}</button></div></article>`;
+  return `<article class="card pad program-enrollment"><div class="eyebrow">${enrollment.custom ? "Custom program · " : ""}${enrollment.archived ? "Paused" : progress.finished ? "Program complete" : `Week ${progress.week} of ${p.weeks}`}</div><h2>${esc(p.name)}</h2><p>${progress.completed} / ${progress.total} sessions completed</p><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div>${!progress.finished && !enrollment.archived ? `<p>Next: ${esc(p.sessions[progress.day - 1].name)} · ${esc(phaseFor(p, progress.week).name)}</p><button class="primary" data-program-quick-start="${enrollment.id}">${store.state.draft?.program?.enrollmentId === enrollment.id ? "Resume workout" : "Start next workout"}</button><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button>` : ""}<div class="actions">${enrollment.custom ? `<button class="text-button" data-program-edit="${enrollment.id}">Edit program</button>` : `<button class="text-button" data-program-preview="${p.id}">View program</button>`}<button class="text-button" data-program-copy="${enrollment.id}">Duplicate</button><button class="text-button" data-program-pause="${enrollment.id}">${enrollment.archived ? "Resume program" : "Pause program"}</button><button class="text-button danger-link" data-program-delete="${enrollment.id}">Remove</button></div></article>`;
+}
+function duplicateProgram(enrollment: ProgramEnrollment) {
+  const p = templateForEnrollment(enrollment),
+    progress = programProgress(enrollment, history()),
+    week = progress.finished ? 1 : progress.week,
+    phase = phaseFor(p, week);
+  editingProgram = null;
+  programDraft = enrollment.custom
+    ? {
+        ...structuredClone(enrollment.custom),
+        name: `${enrollment.custom.name} copy`,
+        sessions: structuredClone(enrollment.custom.sessions).map((day) => ({
+          ...day,
+          id: uid(),
+        })),
+      }
+    : {
+        name: `${p.name.split(" — ")[0]} copy`,
+        weeks: p.weeks,
+        estimatedMinutes: p.estimatedMinutes,
+        sessions: p.sessions.map((session, index) => ({
+          id: uid(),
+          name: session.name,
+          schedule: p.schedule[index],
+          exercises: session.exercises.map((exercise) => {
+            const [sets, reps] = exercisePrescription(phase, exercise);
+            return {
+              exerciseName: exercise.exerciseName,
+              sets,
+              reps,
+              rest: exercise.rest ?? restFor(exercise.role),
+              effort: exerciseEffort(phase, exercise, week),
+            };
+          }),
+        })),
+      };
+  view = "program-builder";
+  render();
+  window.scrollTo(0, 0);
+  if (!enrollment.custom)
+    toast(
+      `Copied the week ${week} targets into an editable program. Review them before saving.`,
+    );
 }
 function bindPrograms() {
   action("[data-program-preview]", (e) => {
@@ -292,6 +348,38 @@ function bindPrograms() {
       (e.currentTarget as HTMLElement).dataset.programQuickStart!,
     ),
   );
+  action("[data-program-edit]", (e) =>
+    openProgramBuilder((e.currentTarget as HTMLElement).dataset.programEdit),
+  );
+  action("[data-program-copy]", (e) => {
+    const id = (e.currentTarget as HTMLElement).dataset.programCopy!;
+    duplicateProgram(store.state.programs[id]);
+  });
+  action("[data-program-delete]", (e) => {
+    const id = (e.currentTarget as HTMLElement).dataset.programDelete!,
+      enrollment = store.state.programs[id],
+      name = templateForEnrollment(enrollment).name;
+    if (store.state.draft?.program?.enrollmentId === id) {
+      toast(
+        "Finish or discard its active workout before removing this program.",
+      );
+      return;
+    }
+    modal(
+      `<h2>Remove ${esc(name)}?</h2><p>The program will disappear from your plans. Completed training history remains available.</p><div class="actions"><button class="secondary" data-close>Keep program</button><button class="danger" id="program-delete-confirm">Remove program</button></div>`,
+    );
+    action("#program-delete-confirm", async () => {
+      await store.put("programs", {
+        ...enrollment,
+        archived: true,
+        deleted: true,
+        updatedAt: Date.now(),
+      });
+      close();
+      await saved();
+      toast("Program removed. Completed history was kept.");
+    });
+  });
   action("[data-program-pause]", async (e) => {
     const id = (e.currentTarget as HTMLElement).dataset.programPause!;
     if (store.state.draft?.program?.enrollmentId === id) {
@@ -307,10 +395,254 @@ function bindPrograms() {
   });
 }
 const programGuidance = `<details class="card pad program-guidance"><summary>How to choose weights and progress</summary><p>RIR (reps in reserve) means how many more clean reps you could perform. Keep technique consistent and stop if it deteriorates.</p><p>Warm up with light, non-fatiguing sets before your working sets. Log working sets against the program targets. Rest 3–5 minutes for main lifts, 2–3 for supporting exercises and 1–2 for accessories; take longer when needed.</p><p>When all targets are met at the intended effort, increase by the smallest practical amount next time. Repeat or reduce the weight after missed reps. At a new phase, select the load again for its new sets, reps and effort.</p><p>After two poor sessions or accumulating fatigue, use roughly half the sets and lighter weights with four or more reps in reserve. Missed a day? Continue the sequence without doubling up.</p><p>These are original GTrack examples informed by Sebastian Oreb’s public principles, not official or endorsed Strength System programs. <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-2/" target="_blank" rel="noopener">Load selection</a> · <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-3/" target="_blank" rel="noopener">Progression</a></p></details>`;
+let editingProgram: string | null = null;
+let programDraft: CustomProgramDefinition;
+function blankProgramDay(number: number): CustomProgramDay {
+  return {
+    id: uid(),
+    name: `Workout ${number}`,
+    schedule: `Day ${number}`,
+    exercises: [
+      {
+        exerciseName: exercises()[0]?.name || "",
+        sets: 3,
+        reps: 8,
+        rest: 120,
+        effort: "2–3 reps in reserve",
+      },
+    ],
+  };
+}
+function openProgramBuilder(id?: string) {
+  const enrollment = id ? store.state.programs[id] : undefined;
+  editingProgram = enrollment?.custom ? enrollment.id : null;
+  programDraft = enrollment?.custom
+    ? structuredClone(enrollment.custom)
+    : {
+        name: "",
+        weeks: 8,
+        estimatedMinutes: "45–60",
+        sessions: [blankProgramDay(1)],
+      };
+  view = "program-builder";
+  render();
+  window.scrollTo(0, 0);
+}
+function captureProgramDraft() {
+  const form = document.querySelector<HTMLFormElement>("#program-form");
+  if (!form) return;
+  const values = new FormData(form);
+  programDraft.name = String(values.get("program-name") || "").trim();
+  programDraft.weeks = Number(values.get("program-weeks"));
+  programDraft.estimatedMinutes = String(
+    values.get("program-duration") || "",
+  ).trim();
+  document
+    .querySelectorAll<HTMLElement>(".program-day-editor")
+    .forEach((dayElement, dayIndex) => {
+      const day = programDraft.sessions[dayIndex];
+      day.name = dayElement
+        .querySelector<HTMLInputElement>("[data-program-day-name]")!
+        .value.trim();
+      day.schedule = dayElement
+        .querySelector<HTMLInputElement>("[data-program-day-schedule]")!
+        .value.trim();
+      day.exercises = Array.from(
+        dayElement.querySelectorAll<HTMLElement>(".program-exercise-editor"),
+      ).map((exerciseElement) => ({
+        exerciseName: exerciseElement.querySelector<HTMLSelectElement>(
+          "[data-program-exercise-name]",
+        )!.value,
+        sets: Number(
+          exerciseElement.querySelector<HTMLInputElement>(
+            "[data-program-exercise-sets]",
+          )!.value,
+        ),
+        reps: Number(
+          exerciseElement.querySelector<HTMLInputElement>(
+            "[data-program-exercise-reps]",
+          )!.value,
+        ),
+        rest: Number(
+          exerciseElement.querySelector<HTMLInputElement>(
+            "[data-program-exercise-rest]",
+          )!.value,
+        ),
+        effort: exerciseElement
+          .querySelector<HTMLInputElement>("[data-program-exercise-effort]")!
+          .value.trim(),
+      }));
+    });
+}
+function renderProgramBuilder() {
+  const original = editingProgram
+      ? store.state.programs[editingProgram]
+      : undefined,
+    hasHistory = original
+      ? history().some(
+          (session) => session.program?.enrollmentId === original.id,
+        )
+      : false;
+  $("#screen").innerHTML =
+    `<form id="program-form"><div class="card pad"><label>Program name<input name="program-name" required maxlength="60" value="${esc(programDraft.name)}" placeholder="e.g. My four-day strength plan"></label><div class="program-meta"><label>Weeks<input name="program-weeks" required type="number" min="1" max="52" step="1" inputmode="numeric" value="${programDraft.weeks}"></label><label>Session length<input name="program-duration" required maxlength="20" value="${esc(programDraft.estimatedMinutes)}" placeholder="e.g. 45–60"></label></div>${hasHistory ? '<p class="hint">This program already has recorded sessions. Saving creates a revised program from week 1; your existing history is preserved.</p>' : '<p class="hint">Changes apply to future sessions. Completed training history is never rewritten.</p>'}</div><div class="section-title"><h2>Workout days</h2><span>${programDraft.sessions.length} per week</span></div><div id="program-days">${programDraft.sessions
+      .map(
+        (day, dayIndex) =>
+          `<section class="card pad program-day-editor" data-day="${dayIndex}"><div class="target-head"><h3>Workout ${dayIndex + 1}</h3><div><button type="button" class="text-button program-day-up" data-day="${dayIndex}" ${dayIndex === 0 ? "disabled" : ""} aria-label="Move workout ${dayIndex + 1} up">↑</button><button type="button" class="text-button program-day-remove" data-day="${dayIndex}" ${programDraft.sessions.length === 1 ? "disabled" : ""}>Remove</button></div></div><label>Workout name<input data-program-day-name required maxlength="60" value="${esc(day.name)}" placeholder="e.g. Lower A"></label><label>Schedule label<input data-program-day-schedule required maxlength="40" value="${esc(day.schedule)}" placeholder="e.g. Monday"></label><div class="program-exercises-editor">${day.exercises
+            .map(
+              (exercise, exerciseIndex) =>
+                `<div class="program-exercise-editor" data-exercise="${exerciseIndex}"><div class="program-exercise-head"><strong>Exercise ${exerciseIndex + 1}</strong><div><button type="button" class="text-button program-exercise-up" data-day="${dayIndex}" data-exercise="${exerciseIndex}" ${exerciseIndex === 0 ? "disabled" : ""} aria-label="Move exercise ${exerciseIndex + 1} up">↑</button><button type="button" class="text-button program-exercise-remove" data-day="${dayIndex}" data-exercise="${exerciseIndex}" ${day.exercises.length === 1 ? "disabled" : ""}>Remove</button></div></div><label>Exercise<select data-program-exercise-name required aria-label="Workout ${dayIndex + 1} exercise ${exerciseIndex + 1}">${exercises()
+                  .map(
+                    (item) =>
+                      `<option value="${esc(item.name)}" ${item.name === exercise.exerciseName ? "selected" : ""}>${esc(item.name)}</option>`,
+                  )
+                  .join(
+                    "",
+                  )}</select></label><div class="program-targets"><label>Sets<input data-program-exercise-sets required type="number" min="1" max="12" step="1" inputmode="numeric" value="${exercise.sets}" aria-label="${esc(day.name)} ${esc(exercise.exerciseName)} sets"></label><label>Reps<input data-program-exercise-reps required type="number" min="1" max="100" step="1" inputmode="numeric" value="${exercise.reps}" aria-label="${esc(day.name)} ${esc(exercise.exerciseName)} reps"></label><label>Rest sec<input data-program-exercise-rest required type="number" min="0" max="600" step="5" inputmode="numeric" value="${exercise.rest}" aria-label="${esc(day.name)} ${esc(exercise.exerciseName)} rest seconds"></label></div><label>Effort target<input data-program-exercise-effort required maxlength="80" value="${esc(exercise.effort)}" placeholder="e.g. 2 reps in reserve" aria-label="${esc(day.name)} ${esc(exercise.exerciseName)} effort target"></label></div>`,
+            )
+            .join(
+              "",
+            )}</div><button type="button" class="secondary program-exercise-add" data-day="${dayIndex}">＋ Add exercise</button><button type="button" class="text-button program-library-add" data-day="${dayIndex}">＋ New exercise for the library</button></section>`,
+      )
+      .join(
+        "",
+      )}</div><button type="button" class="secondary" id="program-day-add" ${programDraft.sessions.length >= 7 ? "disabled" : ""}>＋ Add workout day</button><div class="save-area"><button type="submit" class="primary">Save program</button><button type="button" class="danger" id="cancel-program">Cancel</button></div><p id="program-builder-error" class="error" role="alert"></p></form>`;
+  action("#cancel-program", () => {
+    view = "programs";
+    render();
+  });
+  action("#program-day-add", () => {
+    captureProgramDraft();
+    if (programDraft.sessions.length < 7)
+      programDraft.sessions.push(
+        blankProgramDay(programDraft.sessions.length + 1),
+      );
+    renderProgramBuilder();
+  });
+  action(".program-day-remove", (event) => {
+    captureProgramDraft();
+    programDraft.sessions.splice(
+      Number((event.currentTarget as HTMLElement).dataset.day),
+      1,
+    );
+    renderProgramBuilder();
+  });
+  action(".program-day-up", (event) => {
+    captureProgramDraft();
+    const index = Number((event.currentTarget as HTMLElement).dataset.day);
+    [programDraft.sessions[index - 1], programDraft.sessions[index]] = [
+      programDraft.sessions[index],
+      programDraft.sessions[index - 1],
+    ];
+    renderProgramBuilder();
+  });
+  action(".program-exercise-add", (event) => {
+    captureProgramDraft();
+    const day =
+      programDraft.sessions[
+        Number((event.currentTarget as HTMLElement).dataset.day)
+      ];
+    if (day.exercises.length < 30)
+      day.exercises.push({
+        exerciseName: exercises()[0]?.name || "",
+        sets: 3,
+        reps: 8,
+        rest: 120,
+        effort: "2–3 reps in reserve",
+      });
+    renderProgramBuilder();
+  });
+  action(".program-exercise-remove", (event) => {
+    captureProgramDraft();
+    const button = event.currentTarget as HTMLElement;
+    programDraft.sessions[Number(button.dataset.day)].exercises.splice(
+      Number(button.dataset.exercise),
+      1,
+    );
+    renderProgramBuilder();
+  });
+  action(".program-exercise-up", (event) => {
+    captureProgramDraft();
+    const button = event.currentTarget as HTMLElement,
+      list = programDraft.sessions[Number(button.dataset.day)].exercises,
+      index = Number(button.dataset.exercise);
+    [list[index - 1], list[index]] = [list[index], list[index - 1]];
+    renderProgramBuilder();
+  });
+  action(".program-library-add", (event) => {
+    captureProgramDraft();
+    const dayIndex = Number((event.currentTarget as HTMLElement).dataset.day);
+    exerciseDialog(0, async (exercise) => {
+      programDraft.sessions[dayIndex].exercises.push({
+        exerciseName: exercise.name,
+        sets: 3,
+        reps: 8,
+        rest: 120,
+        effort: "2–3 reps in reserve",
+      });
+      close();
+      renderProgramBuilder();
+    });
+  });
+  $("#program-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = (event.currentTarget as HTMLFormElement).querySelector(
+      "button[type=submit]",
+    ) as HTMLButtonElement;
+    button.disabled = true;
+    try {
+      captureProgramDraft();
+      const now = Date.now(),
+        revise = Boolean(original && hasHistory),
+        id = original && !revise ? original.id : uid(),
+        record: ProgramEnrollment = {
+          id,
+          templateId: `custom-${id}`,
+          version: 1,
+          startedAt: original && !revise ? original.startedAt : now,
+          updatedAt: now,
+          archived: false,
+          custom: structuredClone(programDraft),
+        };
+      if (!validateRecord("programs", record))
+        throw Error(
+          "Complete the program details and add at least one valid exercise to every workout.",
+        );
+      await store.mutate((state) => {
+        Object.values(state.programs).forEach((program) => {
+          if (!program.archived) {
+            program.archived = true;
+            program.updatedAt = now;
+            if (store.account !== "local")
+              state.pending.push({
+                kind: "programs",
+                id: program.id,
+                token: uid(),
+              });
+          }
+        });
+        state.programs[id] = record;
+        if (store.account !== "local")
+          state.pending.push({ kind: "programs", id, token: uid() });
+      });
+      editingProgram = null;
+      view = "today";
+      await saved();
+      toast(
+        revise
+          ? "Revised program saved. It starts at week 1; earlier history is preserved."
+          : "Program saved. Your first workout is ready.",
+      );
+    } catch (error) {
+      $("#program-builder-error").textContent =
+        error instanceof Error ? error.message : "Could not save program.";
+      button.disabled = false;
+    }
+  });
+}
 function renderPrograms() {
-  const enrollments = Object.values(store.state.programs).sort(
-    (a, b) => b.startedAt - a.startedAt,
-  );
+  const enrollments = Object.values(store.state.programs)
+    .filter((enrollment) => !enrollment.deleted)
+    .sort((a, b) => b.startedAt - a.startedAt);
   if (previewProgram) {
     const p = templateFor(previewProgram);
     $("#screen").innerHTML =
@@ -343,7 +675,10 @@ function renderPrograms() {
       await store.mutate((state) => {
         const now = Date.now(),
           existing = Object.values(state.programs)
-            .filter((enrollment) => enrollment.templateId === p.id)
+            .filter(
+              (enrollment) =>
+                enrollment.templateId === p.id && !enrollment.deleted,
+            )
             .sort((a, b) => b.updatedAt - a.updatedAt)[0],
           selectedId = existing?.id || uid();
         Object.values(state.programs).forEach((enrollment) => {
@@ -383,7 +718,8 @@ function renderPrograms() {
     });
   } else {
     $("#screen").innerHTML =
-      `${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Choose a program</h2></div><p class="hint">A sequence of workouts with weekly targets. Choose one that fits your experience and schedule.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
+      `<button class="primary" id="create-program">＋ Create program</button>${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Suggested programs</h2></div><p class="hint">Use a ready-made plan or create your own sequence of workouts.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
+    action("#create-program", () => openProgramBuilder());
     bindPrograms();
   }
 }
@@ -396,7 +732,7 @@ function prepareProgramSession(id: string) {
   }
   const enrollment = store.state.programs[id];
   if (!enrollment || enrollment.archived) return;
-  const p = templateFor(enrollment.templateId),
+  const p = templateForEnrollment(enrollment),
     progress = programProgress(enrollment, history());
   if (progress.finished) return;
   const phase = phaseFor(p, progress.week),
@@ -409,10 +745,10 @@ function prepareProgramSession(id: string) {
           .flatMap((s) => s.exercises)
           .find((x) => x.name === e.exerciseName && x.sets.some((s) => s.done));
         const weight = previous?.sets.find((s) => s.done)?.weight;
-        const [sets, reps] = prescription(phase, e.role);
+        const [sets, reps] = exercisePrescription(phase, e);
         const description =
           exercises().find((x) => x.name === e.exerciseName)?.description || "";
-        return `<label>${esc(e.exerciseName)} weight (kg)<input name="weight-${i}" required type="number" min="0" max="1000" step="0.5" inputmode="decimal" placeholder="Choose weight" value="${weight ?? ""}"></label><p class="hint">${sets} × ${reps} · ${esc(effortFor(phase, e.role, progress.week))}<br>${esc(description)}</p>`;
+        return `<label>${esc(e.exerciseName)} weight (kg)<input name="weight-${i}" required type="number" min="0" max="1000" step="0.5" inputmode="decimal" placeholder="Choose weight" value="${weight ?? ""}"></label><p class="hint">${sets} × ${reps} · ${esc(exerciseEffort(phase, e, progress.week))}<br>${esc(description)}</p>`;
       })
       .join(
         "",
@@ -969,9 +1305,15 @@ function renderToday() {
     return;
   }
   const total = draft.exercises.reduce((n, e) => n + e.sets.length, 0),
-    done = completedSets(draft);
+    done = completedSets(draft),
+    draftEnrollment = draft.program
+      ? store.state.programs[draft.program.enrollmentId]
+      : undefined,
+    draftTemplate = draftEnrollment
+      ? templateForEnrollment(draftEnrollment)
+      : undefined;
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program ? `<p>${esc(templateFor(draft.program.templateId).name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(templateFor(draft.program.templateId), draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>${e.sets.map((s, j) => `<div class="set-grid session-set"><span>${j + 1}</span><input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${s.weight}" data-ex="${i}" data-set="${j}" data-field="weight" aria-label="${esc(e.name)} set ${j + 1} weight" ${s.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${s.reps}" data-ex="${i}" data-set="${j}" data-field="reps" aria-label="${esc(e.name)} set ${j + 1} reps" ${s.done ? "disabled" : ""}><button class="check" data-ex="${i}" data-set="${j}" aria-pressed="${s.done}" aria-label="Complete ${esc(e.name)} set ${j + 1}">✓</button><button class="text-button" data-session-set-remove="${i}" data-set="${j}" ${e.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${esc(e.name)} set ${j + 1}">×</button></div>`).join("")}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   action("#edit-session-details", () => sessionDetails());
   action("#session-add", sessionExerciseDialog);
   action("[data-session-remove]", (event) =>
@@ -1057,8 +1399,12 @@ function renderToday() {
     render();
   });
   action("#finish", () => {
+    const programRecord = draft.program
+        ? store.state.programs[draft.program.enrollmentId]
+        : undefined,
+      canUpdateProgram = Boolean(programRecord?.custom);
     modal(
-      `<h2>Finish this workout?</h2><p>${done} of ${total} sets completed. ${done < total ? "Only ticked sets count toward your progress." : ""}</p>${draft.program ? `<label class="checkbox"><input type="checkbox" id="advance-program" ${done === total ? "checked" : ""}>Mark this program session complete</label><p class="hint">When checked, your program advances to the next session. Leave unchecked to repeat this session later.</p>` : ""}<div class="actions"><button class="secondary" data-close>Keep training</button><button class="primary" id="finish-confirm">Save session</button></div>`,
+      `<h2>Finish this workout?</h2><p>${done} of ${total} sets completed. ${done < total ? "Only ticked sets count toward your progress." : ""}</p>${draft.program ? `<label class="checkbox"><input type="checkbox" id="advance-program" ${done === total ? "checked" : ""}>Mark this program session complete</label><p class="hint">When checked, your program advances to the next session. Leave unchecked to repeat this session later.</p>` : ""}${canUpdateProgram ? '<label class="checkbox"><input type="checkbox" id="update-program-workout">Use this exercise setup in future weeks</label><p class="hint">Leave unchecked to keep additions, removals, order and target changes for today only. When checked, the current exercise order, set count, first-set reps and rest replace this workout in your program.</p>' : ""}<div class="actions"><button class="secondary" data-close>Keep training</button><button class="primary" id="finish-confirm">Save session</button></div>`,
     );
     action("#finish-confirm", async () => {
       const s = {
@@ -1071,6 +1417,26 @@ function renderToday() {
       if (!validateRecord("sessions", s))
         throw new Error("Check the weights and reps before finishing.");
       await store.finish(s);
+      if (
+        programRecord?.custom &&
+        document.querySelector<HTMLInputElement>("#update-program-workout")
+          ?.checked
+      ) {
+        const updated = structuredClone(programRecord),
+          day = updated.custom!.sessions[s.program!.day - 1];
+        day.exercises = s.exercises.map((exercise) => ({
+          exerciseName: exercise.name,
+          sets: exercise.sets.length,
+          reps: exercise.sets[0].reps,
+          rest: exercise.rest ?? s.rest,
+          effort:
+            day.exercises.find(
+              (target) => target.exerciseName === exercise.name,
+            )?.effort || "Use a controlled effort",
+        }));
+        updated.updatedAt = Date.now();
+        await store.put("programs", updated);
+      }
       restUntil = 0;
       close();
       view = s.program ? "today" : "history";

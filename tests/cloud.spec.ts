@@ -151,3 +151,52 @@ test("program enrollment and completed progress sync privately to a second devic
     await strangerContext.close();
   }
 });
+
+test("custom programs and edits sync privately", async ({ page, browser }) => {
+  test.setTimeout(90000);
+  const email = `custom-program-${Date.now()}@example.test`;
+  await signIn(page, email, true);
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page.getByRole("button", { name: "Create program" }).click();
+  await page.getByLabel("Program name").fill("Cloud strength plan");
+  await page.getByLabel("Workout name").fill("Monday strength");
+  await page.getByLabel("Schedule label").fill("Monday");
+  await page.getByRole("button", { name: "Save program", exact: true }).click();
+  await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
+
+  const secondContext = await browser.newContext(),
+    second = await secondContext.newPage(),
+    strangerContext = await browser.newContext(),
+    stranger = await strangerContext.newPage();
+  try {
+    await signIn(second, email, false);
+    await second.getByRole("button", { name: "Programs", exact: true }).click();
+    await expect(second.locator(".program-enrollment")).toContainText(
+      "Cloud strength plan",
+      { timeout: 15000 },
+    );
+    await second
+      .getByRole("button", { name: "Edit program", exact: true })
+      .click();
+    await second.getByLabel("Program name").fill("Cloud strength plan v2");
+    await second
+      .getByRole("button", { name: "Save program", exact: true })
+      .click();
+    await expect(second.locator("#sync")).toHaveText("Synced", {
+      timeout: 15000,
+    });
+    await expect(page.locator(".today-program")).toContainText(
+      "Cloud strength plan v2",
+      { timeout: 15000 },
+    );
+
+    await signIn(stranger, `custom-stranger-${Date.now()}@example.test`, true);
+    await stranger
+      .getByRole("button", { name: "Programs", exact: true })
+      .click();
+    await expect(stranger.locator(".program-enrollment")).toHaveCount(0);
+  } finally {
+    await secondContext.close();
+    await strangerContext.close();
+  }
+});

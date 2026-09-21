@@ -165,4 +165,57 @@ test("program enrollments are private and program session metadata is validated"
       program: { ...logged.program, week: 9 },
     }),
   );
+  const custom = {
+    id: "custom-plan",
+    templateId: "custom-custom-plan",
+    version: 1,
+    startedAt: 1,
+    updatedAt: 1,
+    archived: false,
+    custom: {
+      name: "My strength plan",
+      weeks: 6,
+      estimatedMinutes: "45–60",
+      sessions: [
+        {
+          id: "day-1",
+          name: "Upper",
+          schedule: "Monday",
+          exercises: [
+            {
+              exerciseName: "Synthetic press",
+              sets: 3,
+              reps: 8,
+              rest: 120,
+              effort: "2 reps in reserve",
+            },
+          ],
+        },
+      ],
+    },
+  };
+  await assertSucceeds(
+    setDoc(doc(alice, "users/alice/programs/custom-plan"), custom),
+  );
+  await assertFails(
+    setDoc(doc(alice, "users/alice/programs/custom-bad"), {
+      ...custom,
+      id: "custom-bad",
+      templateId: "custom-custom-bad",
+      custom: { ...custom.custom, weeks: 53 },
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(alice, "users/alice/sessions/custom-program-session"), {
+      ...session,
+      id: "custom-program-session",
+      program: {
+        enrollmentId: "custom-plan",
+        templateId: "custom-custom-plan",
+        week: 1,
+        day: 1,
+        countsForProgress: true,
+      },
+    }),
+  );
 });
