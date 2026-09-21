@@ -601,6 +601,44 @@ dialog h2 {
 .program-exercises {
   padding-left: 22px;
 }
+.today-program {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.today-program h2 {
+  font-size: 22px;
+}
+.program-position {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  margin: 18px 0 8px;
+}
+.program-exercises.compact {
+  margin: 18px 0;
+}
+.program-exercises.compact li {
+  padding: 9px 0;
+}
+.other-workouts {
+  margin-top: 22px;
+}
+.other-workouts > summary {
+  color: var(--muted);
+  font-size: 13px;
+  min-height: 44px;
+  padding: 12px 2px;
+  cursor: pointer;
+}
+.other-workouts[open] > summary {
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.other-workouts > .secondary {
+  margin-bottom: 16px;
+}
 .program-exercises li {
   margin: 16px 0;
   font-size: 14px;

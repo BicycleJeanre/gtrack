@@ -106,7 +106,7 @@ test("program enrollment and completed progress sync privately to a second devic
   await page
     .getByRole("button", { name: "Use this program", exact: true })
     .click();
-  await expect(page.locator(".program-enrollment")).toHaveCount(1);
+  await expect(page.locator(".today-program")).toHaveCount(1);
   await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
   const secondContext = await browser.newContext(),
     second = await secondContext.newPage();
@@ -119,7 +119,7 @@ test("program enrollment and completed progress sync privately to a second devic
       "0 / 24 sessions",
     );
     await page
-      .getByRole("button", { name: "Prepare next session", exact: true })
+      .getByRole("button", { name: "Review weights first", exact: true })
       .click();
     for (const input of await page.locator("#program-prepare input").all())
       await input.fill("10");

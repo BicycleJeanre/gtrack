@@ -202,12 +202,78 @@ function empty(title: string, description: string, button = "") {
 }
 let previewProgram: string | null = null;
 function activePrograms() {
-  return Object.values(store.state.programs).filter((p) => !p.archived);
+  return Object.values(store.state.programs)
+    .filter((p) => !p.archived)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+function currentProgram() {
+  return activePrograms().find((enrollment) => {
+    return !programProgress(enrollment, history()).finished;
+  });
+}
+function previousProgramWeights(id: string, names: string[]) {
+  const completed = history().filter(
+    (session) => session.program?.enrollmentId === id,
+  );
+  return names.map((name) => {
+    const exercise = completed
+      .flatMap((session) => session.exercises)
+      .find((item) => item.name === name && item.sets.some((set) => set.done));
+    return exercise?.sets.find((set) => set.done)?.weight ?? 0;
+  });
+}
+async function startNextProgramSession(id: string) {
+  if (store.state.draft) {
+    view = "today";
+    render();
+    toast("Resume or discard your current session first.");
+    return;
+  }
+  const enrollment = store.state.programs[id];
+  if (!enrollment || enrollment.archived) return;
+  const p = templateFor(enrollment.templateId),
+    progress = programProgress(enrollment, history());
+  if (progress.finished) return;
+  const next = p.sessions[progress.day - 1],
+    weights = previousProgramWeights(
+      id,
+      next.exercises.map((exercise) => exercise.exerciseName),
+    ),
+    draft = createProgramSession(
+      enrollment,
+      progress.week,
+      progress.day,
+      exercises(),
+      weights,
+    );
+  await store.saveDraft(draft);
+  view = "today";
+  render();
+  window.scrollTo(0, 0);
+  toast(
+    weights.some((weight) => weight > 0)
+      ? "Previous weights loaded. Adjust them for today as needed."
+      : "Program workout ready. Set your weights as you train.",
+  );
+}
+function todayProgramCard(enrollment: import("./model").ProgramEnrollment) {
+  const p = templateFor(enrollment.templateId),
+    progress = programProgress(enrollment, history()),
+    phase = phaseFor(p, progress.week),
+    next = p.sessions[progress.day - 1];
+  return `<section class="card pad today-program"><div class="eyebrow">Current program · Week ${progress.week} of ${p.weeks}</div><h2>Up next: ${esc(next.name)}</h2><p>${esc(p.name)}<br>${esc(p.schedule[progress.day - 1])} · ${esc(phase.name)}</p><div class="program-position"><span>Session ${progress.day} of ${p.sessions.length} this week</span><span>${progress.completed} / ${progress.total} sessions complete</span></div><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div><ol class="program-exercises compact">${next.exercises
+    .map((exercise) => {
+      const [sets, reps] = prescription(phase, exercise.role);
+      return `<li><strong>${esc(exercise.exerciseName)}</strong><span>${sets} × ${reps}</span></li>`;
+    })
+    .join(
+      "",
+    )}</ol><button class="primary" data-program-quick-start="${enrollment.id}">Start next workout</button><div class="actions"><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button><button class="text-button" data-program-preview="${p.id}">View full program</button></div></section>`;
 }
 function programCard(enrollment: import("./model").ProgramEnrollment) {
   const p = templateFor(enrollment.templateId),
     progress = programProgress(enrollment, history());
-  return `<article class="card pad program-enrollment"><div class="eyebrow">${enrollment.archived ? "Paused" : progress.finished ? "Program complete" : `Week ${progress.week} of ${p.weeks}`}</div><h2>${esc(p.name)}</h2><p>${progress.completed} / ${progress.total} sessions completed</p><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div>${!progress.finished && !enrollment.archived ? `<p>Next: ${esc(p.sessions[progress.day - 1].name)} · ${esc(phaseFor(p, progress.week).name)}</p><button class="primary" data-program-start="${enrollment.id}">${store.state.draft?.program?.enrollmentId === enrollment.id ? "Resume session" : "Prepare next session"}</button>` : ""}<div class="actions"><button class="text-button" data-program-preview="${p.id}">View program</button><button class="text-button" data-program-pause="${enrollment.id}">${enrollment.archived ? "Resume program" : "Pause program"}</button></div></article>`;
+  return `<article class="card pad program-enrollment"><div class="eyebrow">${enrollment.archived ? "Paused" : progress.finished ? "Program complete" : `Week ${progress.week} of ${p.weeks}`}</div><h2>${esc(p.name)}</h2><p>${progress.completed} / ${progress.total} sessions completed</p><div class="progress-line"><i style="width:${(progress.completed / progress.total) * 100}%"></i></div>${!progress.finished && !enrollment.archived ? `<p>Next: ${esc(p.sessions[progress.day - 1].name)} · ${esc(phaseFor(p, progress.week).name)}</p><button class="primary" data-program-quick-start="${enrollment.id}">${store.state.draft?.program?.enrollmentId === enrollment.id ? "Resume workout" : "Start next workout"}</button><button class="text-button" data-program-start="${enrollment.id}">Review weights first</button>` : ""}<div class="actions"><button class="text-button" data-program-preview="${p.id}">View program</button><button class="text-button" data-program-pause="${enrollment.id}">${enrollment.archived ? "Resume program" : "Pause program"}</button></div></article>`;
 }
 function bindPrograms() {
   action("[data-program-preview]", (e) => {
@@ -219,6 +285,11 @@ function bindPrograms() {
   action("[data-program-start]", (e) =>
     prepareProgramSession(
       (e.currentTarget as HTMLElement).dataset.programStart!,
+    ),
+  );
+  action("[data-program-quick-start]", (e) =>
+    startNextProgramSession(
+      (e.currentTarget as HTMLElement).dataset.programQuickStart!,
     ),
   );
   action("[data-program-pause]", async (e) => {
@@ -270,28 +341,45 @@ function renderPrograms() {
     });
     action("#program-use", async () => {
       await store.mutate((state) => {
-        if (
-          Object.values(state.programs).some(
-            (e) => e.templateId === p.id && !e.archived,
-          )
-        )
-          return;
         const now = Date.now(),
-          id = uid();
-        state.programs[id] = {
-          id,
-          templateId: p.id,
-          version: 1,
-          startedAt: now,
-          updatedAt: now,
-          archived: false,
-        };
+          existing = Object.values(state.programs)
+            .filter((enrollment) => enrollment.templateId === p.id)
+            .sort((a, b) => b.updatedAt - a.updatedAt)[0],
+          selectedId = existing?.id || uid();
+        Object.values(state.programs).forEach((enrollment) => {
+          const archived = enrollment.id !== selectedId;
+          if (enrollment.archived === archived) return;
+          enrollment.archived = archived;
+          enrollment.updatedAt = now;
+          if (store.account !== "local")
+            state.pending.push({
+              kind: "programs",
+              id: enrollment.id,
+              token: uid(),
+            });
+        });
+        state.programs[selectedId] = existing
+          ? { ...existing, archived: false, updatedAt: now }
+          : {
+              id: selectedId,
+              templateId: p.id,
+              version: 1,
+              startedAt: now,
+              updatedAt: now,
+              archived: false,
+            };
         if (store.account !== "local")
-          state.pending.push({ kind: "programs", id, token: uid() });
+          state.pending.push({
+            kind: "programs",
+            id: selectedId,
+            token: uid(),
+          });
       });
       previewProgram = null;
+      view = "today";
       await saved();
       window.scrollTo(0, 0);
+      toast("Program selected. Your next workout is ready on Today.");
     });
   } else {
     $("#screen").innerHTML =
@@ -868,19 +956,14 @@ function removeSessionItem(exerciseIndex: number, setIndex?: number) {
 function renderToday() {
   const draft = store.state.draft;
   if (!draft) {
-    const list = workouts();
+    const list = workouts(),
+      program = currentProgram(),
+      alternatives = `${list.length ? `${list.map((w) => `<article class="card plan"><h2>${esc(w.name)}</h2><p>${w.exercises.length} exercises · ${w.exercises.reduce((n, e) => n + e.sets, 0)} sets</p><button class="primary" data-start="${w.id}">Start workout</button></article>`).join("")}` : empty("Make room for your first workout.", "Build a session, then come here to log every set.", '<button class="primary" id="first-workout">Create workout</button>')}<button class="secondary" id="start-empty">＋ Start empty session</button>`;
     $("#screen").innerHTML =
-      `${history().length ? `<div class="summary"><span><strong>${history().length}</strong> sessions</span><span><strong>${fmt(history().reduce((n, s) => n + volume(s), 0))}</strong> kg logged</span></div>` : ""}${list.length ? `<div class="section-title"><h2>Choose a session</h2></div>${list.map((w) => `<article class="card plan"><h2>${esc(w.name)}</h2><p>${w.exercises.length} exercises · ${w.exercises.reduce((n, e) => n + e.sets, 0)} sets</p><button class="primary" data-start="${w.id}">Start workout</button></article>`).join("")}` : empty("Make room for your first workout.", "Build a session, then come here to log every set.", '<button class="primary" id="first-workout">Create workout</button>')}`;
-    $("#screen").insertAdjacentHTML(
-      "afterbegin",
-      '<button class="secondary" id="start-empty">＋ Start empty session</button>',
-    );
+      `${program ? todayProgramCard(program) : '<div class="card pad no-program"><div class="eyebrow">Training plan</div><h2>Follow a program</h2><p>Choose a structured program once and Today will always show your next workout.</p><button class="primary" id="choose-program">Choose a program</button></div>'}${history().length ? `<div class="summary"><span><strong>${history().length}</strong> sessions</span><span><strong>${fmt(history().reduce((n, s) => n + volume(s), 0))}</strong> kg logged</span></div>` : ""}${program ? `<details class="other-workouts"><summary>Choose a different workout</summary>${alternatives}</details>` : `<div class="section-title"><h2>Choose a session</h2></div>${alternatives}`}`;
     action("#start-empty", () => sessionDetails(true));
     action("#first-workout", () => openBuilder());
-    $("#screen").insertAdjacentHTML(
-      "afterbegin",
-      activePrograms().map(programCard).join(""),
-    );
+    action("#choose-program", () => navigate("programs"));
     bindPrograms();
     bindStart();
     return;
@@ -990,9 +1073,13 @@ function renderToday() {
       await store.finish(s);
       restUntil = 0;
       close();
-      view = "history";
+      view = s.program ? "today" : "history";
       await saved();
-      toast("Session saved. Well done.");
+      toast(
+        s.program?.countsForProgress
+          ? "Workout complete. Your next program session is ready."
+          : "Session saved. This program workout remains next so you can repeat it.",
+      );
     });
   });
   action("#discard", () => {

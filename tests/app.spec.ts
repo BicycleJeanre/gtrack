@@ -544,11 +544,9 @@ test("program catalog, phases, enrollment, session recovery and progression", as
   await page
     .getByRole("button", { name: "Use this program", exact: true })
     .click();
-  await expect(page.locator(".program-enrollment")).toContainText(
-    "0 / 24 sessions",
-  );
+  await expect(page.locator(".today-program")).toContainText("0 / 24 sessions");
   await page
-    .getByRole("button", { name: "Prepare next session", exact: true })
+    .getByRole("button", { name: "Review weights first", exact: true })
     .click();
   await expect(
     page.getByLabel("Goblet squat weight (kg)", { exact: true }),
@@ -577,7 +575,7 @@ test("program catalog, phases, enrollment, session recovery and progression", as
     "0 / 24 sessions",
   );
   await page
-    .getByRole("button", { name: "Prepare next session", exact: true })
+    .getByRole("button", { name: "Review weights first", exact: true })
     .click();
   await expect(
     page.getByLabel("Goblet squat weight (kg)", { exact: true }),
@@ -602,7 +600,7 @@ test("program catalog, phases, enrollment, session recovery and progression", as
     .getByRole("button", { name: "Pause program", exact: true })
     .click();
   await expect(
-    page.getByRole("button", { name: "Prepare next session", exact: true }),
+    page.getByRole("button", { name: "Start next workout", exact: true }),
   ).toHaveCount(0);
   await page.reload();
   await page.getByRole("button", { name: "Programs", exact: true }).click();
@@ -693,7 +691,7 @@ test("program backup restores weeks, phase targets, completion and duplicate-slo
     "6 / 24 sessions",
   );
   await page
-    .getByRole("button", { name: "Prepare next session", exact: true })
+    .getByRole("button", { name: "Review weights first", exact: true })
     .click();
   await expect(page.locator("#program-prepare")).toContainText("3 × 8");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -705,8 +703,87 @@ test("program backup restores weeks, phase targets, completion and duplicate-slo
     "24 / 24 sessions",
   );
   await expect(
-    page.getByRole("button", { name: "Prepare next session", exact: true }),
+    page.getByRole("button", { name: "Start next workout", exact: true }),
   ).toHaveCount(0);
+});
+
+test("Today follows the current program and starts each next workout directly", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Preview Foundation", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Use this program", exact: true })
+    .click();
+  await expect(page.locator(".today-program")).toContainText(
+    "Up next: A — Squat and horizontal push/pull",
+  );
+  await expect(page.locator(".today-program")).toContainText(
+    "Session 1 of 3 this week",
+  );
+  await expect(page.getByText("Choose a different workout")).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `test-results/program-today-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+
+  await page
+    .getByRole("button", { name: "Start next workout", exact: true })
+    .click();
+  await expect(page.locator(".session-head")).toContainText(
+    "Week 1, session 1",
+  );
+  await expect(
+    page.getByLabel("Goblet squat set 1 weight", { exact: true }),
+  ).toHaveValue("0");
+  await page
+    .getByLabel("Goblet squat set 1 weight", { exact: true })
+    .fill("16");
+  await page
+    .getByRole("button", { name: "Complete Goblet squat set 1", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Finish workout", exact: false })
+    .click();
+  await expect(page.locator("#advance-program")).not.toBeChecked();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+
+  await expect(page.locator(".today-program")).toContainText(
+    "Up next: A — Squat and horizontal push/pull",
+  );
+  await page
+    .getByRole("button", { name: "Start next workout", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Goblet squat set 1 weight", { exact: true }),
+  ).toHaveValue("16");
+  await page
+    .getByRole("button", { name: "Complete Goblet squat set 1", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Finish workout", exact: false })
+    .click();
+  await page.locator("#advance-program").check();
+  await page.getByRole("button", { name: "Save session", exact: true }).click();
+
+  await expect(page.locator(".today-program")).toContainText(
+    "Up next: B — Hinge and vertical push/pull",
+  );
+  await page
+    .getByRole("button", { name: "Start next workout", exact: true })
+    .click();
+  await expect(page.locator(".session-head")).toContainText(
+    "Week 1, session 2",
+  );
 });
 
 test("exercise guides search, display photos offline and fit a narrow phone", async ({
