@@ -138,7 +138,7 @@ const helpTopics: Record<
   session: {
     eyebrow: "Active workout",
     title: "Build the workout while you train",
-    body: `<ol class="help-steps"><li>Edit weight, reps, time or distance before completing a set.</li><li>Tap the tick to complete or reopen a set. Your rest timer starts when a set is completed.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft.</p>`,
+    body: `<ol class="help-steps"><li>Edit weight, reps, time or distance before completing a set.</li><li>The previous result beneath each set shows the matching set from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. Your rest timer starts when a set is completed.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
   },
   history: {
     eyebrow: "Workout history",
@@ -148,7 +148,7 @@ const helpTopics: Record<
   progress: {
     eyebrow: "Personal records",
     title: "Understand your PRs",
-    body: `<dl class="help-definitions"><dt>Highest weight</dt><dd>The heaviest completed set for that exercise.</dd><dt>Estimated 1RM</dt><dd>An estimate based on weight and repetitions using the Epley formula. Sets above 12 reps use the lifted weight because high-rep estimates are unreliable.</dd><dt>Highest reps</dt><dd>The most repetitions in one completed set.</dd><dt>Best set total</dt><dd>Weight multiplied by reps for one set.</dd><dt>Best workout total</dt><dd>The combined result from all completed sets of that exercise in one workout.</dd><dt>Muscle map</dt><dd>Completed sets from the last 30 days are assigned to each exercise’s primary muscle.</dd></dl><p class="help-note">Timed, distance and reps-only exercises show the best set and best workout total in their selected unit. PRs use completed workout history only.</p>`,
+    body: `<dl class="help-definitions"><dt>Highest weight</dt><dd>The heaviest completed set for that exercise.</dd><dt>Estimated 1RM</dt><dd>An estimate based on weight and repetitions using the Epley formula. Sets above 12 reps use the lifted weight because high-rep estimates are unreliable.</dd><dt>Highest reps</dt><dd>The most repetitions in one completed set.</dd><dt>Best set total</dt><dd>Weight multiplied by reps for one set.</dd><dt>Best workout total</dt><dd>The combined result from all completed sets of that exercise in one workout.</dd><dt>Live PR marker</dt><dd>While training, a gold marker and banner appear when a completed set beats a saved record in the same unit.</dd><dt>Muscle map</dt><dd>Completed sets from the last 30 days are assigned to each exercise’s primary muscle.</dd></dl><p class="help-note">Timed, distance and reps-only exercises show the best set and best workout total in their selected unit. PRs use completed workout history only.</p>`,
   },
   body: {
     eyebrow: "Body tracking",
@@ -168,7 +168,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -1842,32 +1842,141 @@ function restoreRest(draft: Session) {
     clearRestStorage();
   }
 }
-function previousPerformance(exerciseId: string, name: string) {
-  const normalizedName = normalize(name);
+function comparableExercise(
+  candidate: SessionExercise,
+  exercise: SessionExercise,
+) {
+  return (
+    (candidate.exerciseId === exercise.exerciseId ||
+      normalize(candidate.name) === normalize(exercise.name)) &&
+    trackingFor(candidate) === trackingFor(exercise) &&
+    unitFor(candidate) === unitFor(exercise)
+  );
+}
+function previousPerformance(exercise: SessionExercise) {
   for (const session of history()) {
-    const exercise = session.exercises.find(
-      (item) =>
-        item.exerciseId === exerciseId ||
-        normalize(item.name) === normalizedName,
+    const previousExercise = session.exercises.find((item) =>
+      comparableExercise(item, exercise),
     );
-    const sets = exercise?.sets.filter((set) => set.done) || [];
-    if (sets.length) return { session, sets };
+    const sets = previousExercise?.sets.filter((set) => set.done) || [];
+    if (sets.length) return { session, exercise: previousExercise!, sets };
   }
   return null;
 }
-function previousPerformanceHtml(exerciseId: string, name: string) {
-  const previous = previousPerformance(exerciseId, name);
+function previousPerformanceHtml(exercise: SessionExercise) {
+  const previous = previousPerformance(exercise);
   if (!previous)
     return '<div class="previous-performance"><div class="eyebrow">Last time</div><p>No previous result yet.</p></div>';
-  const exercise = previous.session.exercises.find(
-    (item) =>
-      item.exerciseId === exerciseId ||
-      normalize(item.name) === normalize(name),
-  )!;
   const result = previous.sets
-    .map((set) => setSummary(exercise, set))
+    .map((set) => setSummary(previous.exercise, set))
     .join(" · ");
   return `<div class="previous-performance"><div class="eyebrow">Last time · ${date(previous.session.completedAt)}</div><strong>${previous.sets.length} ${previous.sets.length === 1 ? "set" : "sets"}</strong><p>${esc(result)}<br><span>${esc(previous.session.workoutName)}</span></p></div>`;
+}
+type LiveRecord = {
+  label: string;
+  current: string;
+  previous: string;
+};
+function liveRecord(
+  exercise: SessionExercise,
+  set: LoggedSet,
+  requireNewSessionBest = false,
+): LiveRecord | null {
+  const savedSets = history().flatMap((session) =>
+    session.exercises
+      .filter((item) => comparableExercise(item, exercise))
+      .flatMap((item) => item.sets.filter((itemSet) => itemSet.done)),
+  );
+  if (!savedSets.length) return null;
+  const currentSets = exercise.sets.filter(
+    (itemSet) => itemSet !== set && itemSet.done,
+  );
+  const historicalSets = [...savedSets, ...currentSets];
+  const reachesSessionBest = (
+    current: number,
+    metric: (item: LoggedSet) => number,
+  ) => {
+    const sessionBest = Math.max(-Infinity, ...currentSets.map(metric));
+    return requireNewSessionBest
+      ? current > sessionBest
+      : current >= sessionBest;
+  };
+  const tracking = trackingFor(exercise),
+    unit = unitFor(exercise);
+  if (tracking === "weight_reps") {
+    const savedWeight = Math.max(...savedSets.map((item) => item.weight));
+    const bestWeight = Math.max(...historicalSets.map((item) => item.weight));
+    if (
+      set.weight > savedWeight &&
+      reachesSessionBest(set.weight, (item) => item.weight)
+    )
+      return {
+        label: "weight PR",
+        current: `${fmt(set.weight)} ${unit} × ${set.reps}`,
+        previous: `${fmt(bestWeight)} ${unit}`,
+      };
+    const savedReps = Math.max(...savedSets.map((item) => item.reps));
+    const bestReps = Math.max(...historicalSets.map((item) => item.reps));
+    if (
+      set.reps > savedReps &&
+      reachesSessionBest(set.reps, (item) => item.reps)
+    )
+      return {
+        label: "rep PR",
+        current: `${set.reps} reps at ${fmt(set.weight)} ${unit}`,
+        previous: `${bestReps} reps`,
+      };
+    const savedTotal = Math.max(
+      ...savedSets.map((item) => item.weight * item.reps),
+    );
+    const bestTotal = Math.max(
+      ...historicalSets.map((item) => item.weight * item.reps),
+    );
+    const currentTotal = set.weight * set.reps;
+    if (
+      currentTotal > savedTotal &&
+      reachesSessionBest(currentTotal, (item) => item.weight * item.reps)
+    )
+      return {
+        label: "set total PR",
+        current: `${fmt(currentTotal)} ${unit} × reps`,
+        previous: `${fmt(bestTotal)} ${unit} × reps`,
+      };
+    return null;
+  }
+  const current = tracking === "reps" ? set.reps : set.value || 0;
+  const metric = (item: LoggedSet) =>
+    tracking === "reps" ? item.reps : item.value || 0;
+  const savedBest = Math.max(...savedSets.map(metric));
+  const best = Math.max(
+    ...historicalSets.map((item) =>
+      tracking === "reps" ? item.reps : item.value || 0,
+    ),
+  );
+  if (current <= savedBest || !reachesSessionBest(current, metric)) return null;
+  return {
+    label:
+      tracking === "reps"
+        ? "rep PR"
+        : tracking === "duration"
+          ? "time PR"
+          : "distance PR",
+    current: `${fmt(current)} ${tracking === "reps" ? "reps" : unit}`,
+    previous: `${fmt(best)} ${tracking === "reps" ? "reps" : unit}`,
+  };
+}
+function showRecordCelebration(exercise: SessionExercise, record: LiveRecord) {
+  document.querySelector("#pr-celebration")?.remove();
+  const popup = document.createElement("div");
+  popup.id = "pr-celebration";
+  popup.setAttribute("role", "alert");
+  popup.innerHTML = `<div><span class="eyebrow">🏅 New personal record</span><strong>${esc(exercise.name)}</strong><p>${esc(record.current)} · previous best ${esc(record.previous)}</p><small>${esc(record.label)}</small></div><button aria-label="Dismiss personal record notification">×</button>`;
+  document.body.append(popup);
+  popup
+    .querySelector("button")!
+    .addEventListener("click", () => popup.remove());
+  navigator.vibrate?.([80, 60, 120]);
+  window.setTimeout(() => popup.remove(), 12000);
 }
 function sessionSetLabels(exercise: SessionExercise) {
   const tracking = trackingFor(exercise);
@@ -1877,17 +1986,22 @@ function sessionSetLabels(exercise: SessionExercise) {
 }
 function sessionSetRows(exercise: SessionExercise, exerciseIndex: number) {
   const tracking = trackingFor(exercise),
-    unit = unitFor(exercise);
+    unit = unitFor(exercise),
+    previous = previousPerformance(exercise);
   return exercise.sets
     .map((set, setIndex) => {
       const label = `${esc(exercise.name)} set ${setIndex + 1}`;
+      const record = set.done ? liveRecord(exercise, set) : null;
+      const previousSet = previous?.exercise.sets[setIndex]?.done
+        ? previous.exercise.sets[setIndex]
+        : undefined;
       const fields =
         tracking === "weight_reps"
           ? `<input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="weight" aria-label="${label} weight" ${set.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}>`
           : tracking === "reps"
             ? `<input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}><span class="unit-cell">reps</span>`
             : `<input required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} ${tracking}" ${set.done ? "disabled" : ""}><span class="unit-cell">${unit}</span>`;
-      return `<div class="set-grid session-set"><span>${setIndex + 1}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${label}">×</button></div>`;
+      return `<div class="set-grid session-set${record ? " is-pr" : ""}"><span class="set-position">${record ? '<span class="pr-medal" aria-label="Personal record">🏅</span>' : setIndex + 1}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${label}">×</button><small class="set-previous">Previous: ${previousSet ? esc(setSummary(previous!.exercise, previousSet)) : "—"}${record ? ` · ${esc(record.label)}` : ""}</small></div>`;
     })
     .join("");
 }
@@ -1935,10 +2049,7 @@ function renderToday() {
         .querySelector(".set-grid.labels")
         ?.insertAdjacentHTML(
           "beforebegin",
-          previousPerformanceHtml(
-            draft.exercises[index].exerciseId,
-            draft.exercises[index].name,
-          ),
+          previousPerformanceHtml(draft.exercises[index]),
         ),
     );
   action("#edit-session-details", () => sessionDetails());
@@ -2024,20 +2135,28 @@ function renderToday() {
     // IndexedDB work below can outlive the browser's transient user activation.
     prepareRestAudio();
     const inputs = b.parentElement!.querySelectorAll<HTMLInputElement>("input");
+    const exerciseIndex = Number(b.dataset.ex),
+      setIndex = Number(b.dataset.set),
+      wasDone = store.state.draft!.exercises[exerciseIndex].sets[setIndex].done;
+    document.querySelector("#pr-celebration")?.remove();
     await store.mutate((state) => {
       if (!state.draft) return;
-      const set =
-        state.draft.exercises[Number(b.dataset.ex)].sets[Number(b.dataset.set)];
+      const set = state.draft.exercises[exerciseIndex].sets[setIndex];
       for (const input of inputs)
         set[input.dataset.field as "weight" | "reps" | "value"] = Number(
           input.value,
         );
       set.done = !set.done;
       const rest =
-        state.draft.exercises[Number(b.dataset.ex)].rest ?? state.draft.rest;
+        state.draft.exercises[exerciseIndex].rest ?? state.draft.rest;
       if (set.done && rest) startRest(rest, false);
     });
+    const completedExercise = store.state.draft!.exercises[exerciseIndex],
+      record = !wasDone
+        ? liveRecord(completedExercise, completedExercise.sets[setIndex], true)
+        : null;
     render();
+    if (record) showRecordCelebration(completedExercise, record);
   });
   action("#finish", () => {
     const programRecord = draft.program
