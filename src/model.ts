@@ -1,8 +1,19 @@
+import {
+  catalogueMetadata,
+  equipmentTypes,
+  exerciseCatalogue,
+  muscleGroups,
+} from "./exercise-catalog.ts";
+
 export interface Exercise {
   id: string;
   name: string;
   description: string;
   createdAt: number;
+  equipment?: string;
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
+  category?: string;
 }
 export interface PlannedSet {
   reps: number;
@@ -92,12 +103,26 @@ export interface Session {
   rest: number;
   exercises: SessionExercise[];
 }
-export type Kind = "exercises" | "workouts" | "sessions" | "programs";
+export interface BodyEntry {
+  id: string;
+  recordedAt: number;
+  weight?: number;
+  weightUnit?: "kg" | "lb";
+  bodyFat?: number;
+  waist?: number;
+  chest?: number;
+  upperArm?: number;
+  thigh?: number;
+  measurementUnit?: "cm" | "in";
+}
+export type Kind =
+  "exercises" | "workouts" | "sessions" | "programs" | "bodyEntries";
 export interface Records {
   programs: Record<string, ProgramEnrollment>;
   exercises: Record<string, Exercise>;
   workouts: Record<string, Workout>;
   sessions: Record<string, Session>;
+  bodyEntries: Record<string, BodyEntry>;
 }
 export interface Pending {
   kind: Kind;
@@ -115,6 +140,7 @@ export const emptyState = (): State => ({
   exercises: {},
   workouts: {},
   sessions: {},
+  bodyEntries: {},
   draft: null,
   pending: [],
 });
@@ -202,6 +228,40 @@ const validCustomProgram = (value: any): value is CustomProgramDefinition =>
   );
 export function validateRecord(kind: Kind, value: any): boolean {
   if (!value || !validId(value.id)) return false;
+  if (kind === "bodyEntries") {
+    const optionalNumber = (key: string, min: number, max: number) =>
+      value[key] === undefined || number(value[key], min, max);
+    return (
+      Object.keys(value).every((key) =>
+        [
+          "id",
+          "recordedAt",
+          "weight",
+          "weightUnit",
+          "bodyFat",
+          "waist",
+          "chest",
+          "upperArm",
+          "thigh",
+          "measurementUnit",
+        ].includes(key),
+      ) &&
+      number(value.recordedAt, 1, 9e15) &&
+      optionalNumber("weight", 1, 1000) &&
+      optionalNumber("bodyFat", 0, 100) &&
+      optionalNumber("waist", 1, 500) &&
+      optionalNumber("chest", 1, 500) &&
+      optionalNumber("upperArm", 1, 500) &&
+      optionalNumber("thigh", 1, 500) &&
+      (value.weightUnit === undefined ||
+        ["kg", "lb"].includes(value.weightUnit)) &&
+      (value.measurementUnit === undefined ||
+        ["cm", "in"].includes(value.measurementUnit)) &&
+      ["weight", "bodyFat", "waist", "chest", "upperArm", "thigh"].some(
+        (key) => value[key] !== undefined,
+      )
+    );
+  }
   if (kind === "programs")
     return (
       Object.keys(value).every((k) =>
@@ -233,7 +293,16 @@ export function validateRecord(kind: Kind, value: any): boolean {
     );
   const allowed =
     kind === "exercises"
-      ? ["id", "name", "description", "createdAt"]
+      ? [
+          "id",
+          "name",
+          "description",
+          "createdAt",
+          "equipment",
+          "primaryMuscles",
+          "secondaryMuscles",
+          "category",
+        ]
       : kind === "workouts"
         ? ["id", "name", "rest", "exercises", "updatedAt", "archived"]
         : [
@@ -250,7 +319,30 @@ export function validateRecord(kind: Kind, value: any): boolean {
     return (
       text(value.name, 80) &&
       text(value.description, 600) &&
-      number(value.createdAt, 1, 9e15)
+      number(value.createdAt, 1, 9e15) &&
+      (value.equipment === undefined ||
+        equipmentTypes.includes(value.equipment)) &&
+      (value.category === undefined ||
+        [
+          "strength",
+          "stretching",
+          "plyometrics",
+          "powerlifting",
+          "olympic weightlifting",
+          "strongman",
+          "cardio",
+        ].includes(value.category)) &&
+      ["primaryMuscles", "secondaryMuscles"].every(
+        (key) =>
+          value[key] === undefined ||
+          (Array.isArray(value[key]) &&
+            value[key].length <= 8 &&
+            value[key].every(
+              (muscle: unknown) =>
+                typeof muscle === "string" &&
+                muscleGroups.includes(muscle as (typeof muscleGroups)[number]),
+            )),
+      )
     );
   if (kind === "workouts")
     return (
@@ -410,14 +502,20 @@ export async function validateBackup(input: unknown): Promise<Records> {
     workouts: {},
     sessions: {},
     programs: {},
+    bodyEntries: {},
   };
   for (const kind of [
     "exercises",
     "workouts",
     "sessions",
     "programs",
+    "bodyEntries",
   ] as Kind[]) {
-    if (kind === "programs" && data.records[kind] === undefined) continue;
+    if (
+      ["programs", "bodyEntries"].includes(kind) &&
+      data.records[kind] === undefined
+    )
+      continue;
     if (!Array.isArray(data.records[kind]) || data.records[kind].length > 10000)
       throw new Error("Invalid or oversized backup.");
     for (const record of data.records[kind]) {
@@ -687,12 +785,31 @@ export async function seedExercises(): Promise<Exercise[]> {
       "Back extension on a bench. Record added weight only, or 0 kg for bodyweight.",
     ],
   ];
+  const preferred = new Map(
+    seeds.map(([name, description]) => [
+      normalize(name),
+      { name, description },
+    ]),
+  );
+  const combined = exerciseCatalogue.map((exercise) => ({
+    ...exercise,
+    ...(preferred.get(normalize(exercise.name)) || {}),
+  }));
+  for (const seed of preferred.values()) {
+    if (
+      !combined.some(
+        (exercise) => normalize(exercise.name) === normalize(seed.name),
+      )
+    )
+      combined.push({ ...seed, ...catalogueMetadata(seed.name) });
+  }
   return Promise.all(
-    seeds.map(async ([name, description]) => ({
+    combined.map(async ({ name, description, ...metadata }) => ({
       id: await exerciseId(name),
       name,
       description,
       createdAt: 1,
+      ...metadata,
     })),
   );
 }

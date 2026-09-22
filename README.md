@@ -7,10 +7,11 @@ A personal gym training PWA for iPhone: plan workouts, log sets without receptio
 - Programs catalog: Foundation (3 days, 8 weeks), Strength and Size (4 days, 12 weeks), and Barbell Strength (4 days, 12 weeks). Preview every week, enroll, confirm working weights, follow phase-specific sets/reps/effort/rest, and pause/resume. Completed session slots advance the program; partial logs advance only when explicitly marked complete. Program enrollment/history sync and export with the account.
 
 - Create, edit and archive workout plans; set exercise order, rest periods, and individual reps and weights for each set. Add or remove sets for warm-ups and working sets. Existing plans with uniform targets remain compatible.
-- Select exercises from a reusable library, with descriptions and new exercise contributions. 64 common exercises are included; no fake workouts or history are created.
+- Select from an offline catalogue of 876 exercises, searchable by name and filterable by equipment or primary muscle. Custom shared exercises include descriptions, equipment and muscle metadata. Existing GTrack movement images and videos remain available where configured; no fake workouts or history are created.
 - Start an empty session or use a saved plan. While recording, add library or new exercises, remove or reorder exercises, add or remove sets, and edit session name/rest. Completed work requires confirmation before removal. Changes save on the device and leave the original plan unchanged.
 - Log a session with automatic device saves, a rest countdown, restart recovery, and partial-session completion.
-- Review completed sessions and best working weights by exercise.
+- Review completed sessions, exercise PRs, estimated one-rep max, recent performance and a 30-day muscle workload heat map.
+- Privately track body weight, body-fat percentage and waist, chest, upper-arm and thigh measurements. Use built-in plate-loading and warm-up calculators.
 - Export/import JSON backups; imports add missing records and preserve existing IDs.
 - Installable PWA with a versioned offline app cache and safe update prompt.
 - Optional Firebase email/password accounts, a shared exercise library, private plans/history, and a durable synchronization queue.
@@ -57,14 +58,15 @@ All signed-in users can read and create library entries. Entries cannot be edite
 
 ## Data and offline behavior
 
-| Record                        | Storage and access                                                                                                                      |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `exercises/{nameHash}`        | Shared with authenticated users; create-only.                                                                                           |
-| `users/{uid}/workouts/{id}`   | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
-| `users/{uid}/sessions/{uuid}` | Private completed sessions; owners may correct the name, counted sets and logged values while the session ID and start time stay fixed. |
-| `users/{uid}/programs/{uuid}` | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions. |
-| Active session                | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
-| Pending sync queue            | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
+| Record                           | Storage and access                                                                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `exercises/{nameHash}`           | Shared with authenticated users; create-only.                                                                                           |
+| `users/{uid}/workouts/{id}`      | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
+| `users/{uid}/sessions/{uuid}`    | Private completed sessions; owners may correct the name, counted sets and logged values while the session ID and start time stay fixed. |
+| `users/{uid}/programs/{uuid}`    | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions.                     |
+| `users/{uid}/bodyEntries/{date}` | Private body measurements. Owners may add or correct their own records.                                                                 |
+| Active session                   | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
+| Pending sync queue               | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
 
 Every user edit is saved to IndexedDB before the UI reports success. Cloud mode also explicitly enables Firestore’s persistent multi-tab cache. Listeners download the shared library and all plans/completed sessions for the signed-in account, then merge downloaded records around pending local edits. This full-history approach is appropriate for a few users; add pagination/retention before growing the app.
 
@@ -74,7 +76,7 @@ One editor tab is allowed per origin using Web Locks where supported. This preve
 
 Use the app on trusted devices: locally cached account data remains in browser storage after sign-out and is not encrypted by GTrack. Signing out does not expose it in another account’s UI. Pending records or active sessions must be finished/synced before app sign-out. Browser storage can be cleared or evicted; synchronization is not a backup.
 
-Exports contain exercises, plans (including archived plans) and **completed** sessions. Active sessions stay device-local and are not exported. Import validates the format before any write, merges missing IDs in one transaction, and does not replace existing records. Keep an independent export even when syncing.
+Exports contain custom exercises, plans (including archived plans), **completed** sessions, programs and body measurements. The bundled exercise catalogue is omitted because every app installation already contains it. Active sessions stay device-local and are not exported. Import validates the format before any write, merges missing IDs in one transaction, and does not replace existing records. Keep an independent export even when syncing.
 
 ## Deployment
 
@@ -123,7 +125,7 @@ Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, 
 
 The version 1 catalog lives in `docs/research/example-programs.json`; its source rationale is in `docs/research/sebastian-oreb-program-proposals.md`. These are original GTrack examples informed by public Sebastian Oreb principles, not endorsed or official Strength System programs. Keep version 1 prescriptions stable for existing enrollments. Personal structural changes affect the current session only. Current program logging covers working sets; warm-ups should be done separately. No universal starting weight or automatic load progression is prescribed.
 
-Exercise guidance is available under **Workouts → Exercise guide** and through **View form** on program exercises, workout plans and active sessions. Includes 64 movement guides and 62 photo pairs, cached for offline use. See [exercise-guide sources and coverage](docs/exercise-guides.md).
+Exercise guidance is available under **Workouts → Exercise guide** and through **View form** on program exercises, workout plans and active sessions. The catalogue contains 876 exercises with equipment and muscle metadata. Existing GTrack media coverage remains separate, currently including 64 movement guides and 62 photo pairs cached for offline use. See [exercise-guide sources and coverage](docs/exercise-guides.md) and [catalogue source and maintenance](docs/exercise-catalog.md).
 
 Select a structured plan under **Programs** to make it your current program. **Today** then shows the prescribed next workout, week and phase automatically. Starting it carries forward the most recently logged weights for those exercises; finishing advances to the next session only when the program-complete option is selected. Choosing another program pauses the current one, while ordinary workouts remain available under **Choose a different workout**.
 

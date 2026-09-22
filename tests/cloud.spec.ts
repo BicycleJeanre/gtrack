@@ -93,11 +93,25 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
     "Corrected Alice log",
     { timeout: 15000 },
   );
+  await page.getByRole("button", { name: "Progress", exact: true }).click();
+  await page.getByRole("tab", { name: "Body" }).click();
+  await page.getByRole("button", { name: "Add measurement" }).click();
+  await page.getByLabel("Weight", { exact: true }).fill("82.4");
+  await page.getByRole("button", { name: "Save measurement" }).click();
+  await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
+  await device.getByRole("button", { name: "Progress", exact: true }).click();
+  await device.getByRole("tab", { name: "Body" }).click();
+  await expect(device.locator(".body-entry")).toContainText("82.4 kg", {
+    timeout: 15000,
+  });
   await other.getByRole("button", { name: "History", exact: true }).click();
   await other
     .getByRole("button", { name: "Discard changes", exact: true })
     .click();
   await expect(other.locator(".history")).toHaveCount(0);
+  await other.getByRole("button", { name: "Progress", exact: true }).click();
+  await other.getByRole("tab", { name: "Body" }).click();
+  await expect(other.locator(".body-entry")).toHaveCount(0);
   await deviceContext.close();
   await otherContext.close();
 });
