@@ -529,6 +529,29 @@ details summary {
   border-color: #00d4ff66;
   background: #00d4ff20;
 }
+.session-set.is-pr {
+  margin-inline: -8px;
+  padding: 8px;
+  border: 1px solid #f4c34f55;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #6d541f33, #25200f18);
+}
+.set-position {
+  text-align: center;
+}
+.pr-medal {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 3px #0008);
+}
+.set-previous {
+  grid-column: 2 / -1;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.session-set.is-pr .set-previous {
+  color: #f4c34f;
+}
 .history-exercise {
   padding: 12px 0;
   border-top: 1px solid var(--border);
@@ -957,6 +980,46 @@ dialog h2 {
   border: 0;
   background: none;
   color: var(--accent);
+  font-size: 26px;
+}
+#pr-celebration {
+  position: fixed;
+  z-index: 21;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  width: calc(100% - 28px);
+  max-width: 480px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #f4c34f;
+  border-radius: 12px;
+  background: #292312f7;
+  box-shadow: 0 12px 40px #000b;
+}
+#pr-celebration strong {
+  display: block;
+  margin-top: 5px;
+  color: #f4c34f;
+  font-size: 20px;
+}
+#pr-celebration p {
+  margin: 4px 0;
+}
+#pr-celebration small {
+  color: #f4c34f;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+#pr-celebration button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: none;
+  color: #f4c34f;
   font-size: 26px;
 }
 .boot {

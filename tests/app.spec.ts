@@ -490,6 +490,7 @@ test("individual set targets survive editing and flow into training", async ({
 test("rest timer persists and the next workout shows the previous result", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
   await createWorkout(page, "Bench day");
   await page
     .getByRole("button", { name: "Start workout", exact: true })
@@ -538,6 +539,39 @@ test("rest timer persists and the next workout shows the previous result", async
   await expect(previous).toContainText("2 sets");
   await expect(previous).toContainText("40 kg × 8 · 45 kg × 6");
   await expect(previous).toContainText("Bench day");
+  const priorSets = page.locator(".set-previous");
+  await expect(priorSets.nth(0)).toContainText("Previous: 40 kg × 8");
+  await expect(priorSets.nth(1)).toContainText("Previous: 45 kg × 6");
+  await page
+    .getByLabel("Barbell bench press set 1 weight", { exact: true })
+    .fill("50");
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  const celebration = page.locator("#pr-celebration");
+  await expect(celebration).toContainText("New personal record");
+  await expect(celebration).toContainText("50 kg × 10");
+  await expect(celebration).toContainText("previous best 45 kg");
+  await expect(celebration).toContainText("weight PR");
+  const firstSet = page.locator(".session-set:not(.labels)").nth(0);
+  await expect(firstSet).toHaveClass(/is-pr/);
+  await expect(firstSet.getByLabel("Personal record")).toBeVisible();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await expect(firstSet).not.toHaveClass(/is-pr/);
+  await expect(celebration).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("rest timer plays a completion chime", async ({ page }) => {

@@ -19,7 +19,9 @@ Each exercise in a workout or active session has a tracking type:
 | Time          | Holds, carries and intervals            | seconds or minutes          |
 | Distance      | Cardio and carries                      | metres, kilometres or miles |
 
-Enter the result and tap the tick to complete the set. Tap the tick again to reopen it. GTrack saves every valid change to the device and shows the most recent completed result for that exercise under **Last time**.
+Enter the result and tap the tick to complete the set. Tap the tick again to reopen it. GTrack saves every valid change to the device. **Last time** summarizes the most recent comparable workout, and each set shows the result from the matching previous set.
+
+When a completed set beats a saved weight, reps, set-total, time or distance record, GTrack marks that row with a gold medal and shows a short congratulations banner with the new result and previous best. A first-ever result establishes the baseline. Live PRs compare completed workout history in the same tracking type and unit, so kilograms and pounds are never compared as if they were equal.
 
 Use the same unit for an exercise over time so previous results and personal records are easy to compare.
 
@@ -50,7 +52,7 @@ The original workout date and program position do not change. Signed-in edits sy
 
 ## Understand personal records
 
-Open **Progress** and select an exercise. PRs use completed sets in saved workout history.
+Open **Progress** and select an exercise. PRs use completed sets in saved workout history. During an active workout, the same history powers the gold live PR marker and congratulations banner.
 
 - **Highest weight** is the heaviest completed set.
 - **Highest reps** is the most repetitions in one completed set.
