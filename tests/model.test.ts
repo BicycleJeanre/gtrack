@@ -6,6 +6,7 @@ import {
   volume,
   validateBackup,
   validateRecord,
+  seedExercises,
 } from "../src/model.ts";
 test("exercise identities normalize spaces, Unicode and case", async () => {
   assert.equal(await exerciseId(" Cable  fly "), await exerciseId("cable fly"));
@@ -227,4 +228,54 @@ test("timed and distance targets remain compatible with the session schema", () 
     }),
     false,
   );
+});
+
+test("bundled exercise catalogue includes equipment and muscle metadata", async () => {
+  const exercises = await seedExercises();
+  assert.ok(exercises.length >= 800);
+  assert.ok(
+    exercises.some(
+      (exercise) =>
+        exercise.equipment === "barbell" &&
+        exercise.primaryMuscles?.includes("chest"),
+    ),
+  );
+  assert.equal(
+    new Set(exercises.map((exercise) => exercise.id)).size,
+    exercises.length,
+  );
+});
+
+test("private body measurements validate and round-trip through backups", async () => {
+  const bodyEntry = {
+    id: "body-2026-09-22",
+    recordedAt: 1_800_000_000_000,
+    weight: 82.4,
+    weightUnit: "kg",
+    bodyFat: 18.5,
+    waist: 86,
+    measurementUnit: "cm",
+  };
+  assert.equal(validateRecord("bodyEntries", bodyEntry), true);
+  assert.equal(
+    validateRecord("bodyEntries", { ...bodyEntry, weight: 0 }),
+    false,
+  );
+  assert.equal(
+    validateRecord("bodyEntries", {
+      id: "empty-body",
+      recordedAt: bodyEntry.recordedAt,
+    }),
+    false,
+  );
+  const restored = await validateBackup({
+    schema: 1,
+    records: {
+      exercises: [],
+      workouts: [],
+      sessions: [],
+      bodyEntries: [bodyEntry],
+    },
+  });
+  assert.deepEqual(restored.bodyEntries[bodyEntry.id], bodyEntry);
 });

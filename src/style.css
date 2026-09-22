@@ -772,6 +772,138 @@ dialog h2 {
   border-left: 3px solid var(--accent);
   background: #121212;
 }
+.library-filters,
+.measurement-grid,
+.calculator-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.exercise-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.exercise-tags span,
+.plate-stack span {
+  padding: 5px 8px;
+  border: 1px solid #3b5960;
+  border-radius: 999px;
+  color: var(--accent);
+  background: #102126;
+  font-size: 11px;
+}
+.progress-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #151515;
+}
+.progress-tabs button {
+  min-height: 44px;
+  padding: 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+.progress-tabs button[aria-selected="true"] {
+  background: #26383d;
+  color: var(--accent);
+}
+.muscle-card {
+  margin-bottom: 18px;
+}
+.heatmap-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.8fr);
+  gap: 14px;
+  align-items: center;
+}
+.muscle-map {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+}
+.muscle-map text {
+  fill: var(--muted);
+  font-size: 9px;
+  text-anchor: middle;
+}
+.muscle-region {
+  stroke: #00d4ff55;
+  stroke-width: 1;
+}
+.muscle-leaders div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.muscle-leaders span {
+  color: var(--muted);
+}
+.body-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.body-entry p {
+  margin-bottom: 0;
+}
+.body-chart {
+  display: flex;
+  height: 130px;
+  align-items: end;
+  gap: 5px;
+  margin: 18px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.body-chart .bar {
+  position: relative;
+  flex: 1;
+  min-width: 4px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(#00d4ff, #08768d);
+}
+.body-chart .bar span {
+  position: absolute;
+  inset: -18px 0 auto;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+}
+.calculator {
+  margin-bottom: 16px;
+}
+.calculator-inputs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.calculator-result {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 7px;
+  background: #111;
+}
+.calculator-result > strong {
+  color: var(--accent);
+  font-size: 20px;
+}
+.plate-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
 #toast {
   position: fixed;
   left: 50%;
@@ -865,6 +997,15 @@ dialog h2 {
   }
   .history-edit-set {
     grid-template-columns: 40px minmax(0, 1fr) 64px;
+  }
+}
+@media (max-width: 390px) {
+  .library-filters,
+  .calculator-inputs {
+    grid-template-columns: 1fr;
+  }
+  .heatmap-layout {
+    grid-template-columns: 1fr;
   }
 }
 

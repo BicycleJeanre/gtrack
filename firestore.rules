@@ -7,10 +7,30 @@ service cloud.firestore {
     function validExercise(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','name','description','createdAt'])
-        && d.keys().hasOnly(['id','name','description','createdAt'])
+        && d.keys().hasOnly(['id','name','description','createdAt','equipment','primaryMuscles','secondaryMuscles','category'])
         && d.id == id && id.matches('^[a-f0-9]{64}$')
         && stringBetween(d.name, 80) && stringBetween(d.description, 600)
+        && (!('equipment' in d) || d.equipment in ['bands','barbell','body only','cable','dumbbell','e-z curl bar','exercise ball','foam roll','kettlebells','machine','medicine ball','other'])
+        && (!('category' in d) || d.category in ['strength','stretching','plyometrics','powerlifting','olympic weightlifting','strongman','cardio'])
+        && (!('primaryMuscles' in d) || (d.primaryMuscles is list && d.primaryMuscles.size() <= 8 && d.primaryMuscles.hasOnly(['abdominals','abductors','adductors','biceps','calves','chest','forearms','glutes','hamstrings','lats','lower back','middle back','neck','quadriceps','shoulders','traps','triceps'])))
+        && (!('secondaryMuscles' in d) || (d.secondaryMuscles is list && d.secondaryMuscles.size() <= 8 && d.secondaryMuscles.hasOnly(['abdominals','abductors','adductors','biceps','calves','chest','forearms','glutes','hamstrings','lats','lower back','middle back','neck','quadriceps','shoulders','traps','triceps'])))
         && d.createdAt is number && d.createdAt > 0;
+    }
+    function validBodyEntry(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','recordedAt'])
+        && d.keys().hasOnly(['id','recordedAt','weight','weightUnit','bodyFat','waist','chest','upperArm','thigh','measurementUnit'])
+        && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$')
+        && d.recordedAt is number && d.recordedAt > 0
+        && (!('weight' in d) || (d.weight is number && d.weight >= 1 && d.weight <= 1000))
+        && (!('bodyFat' in d) || (d.bodyFat is number && d.bodyFat >= 0 && d.bodyFat <= 100))
+        && (!('waist' in d) || (d.waist is number && d.waist >= 1 && d.waist <= 500))
+        && (!('chest' in d) || (d.chest is number && d.chest >= 1 && d.chest <= 500))
+        && (!('upperArm' in d) || (d.upperArm is number && d.upperArm >= 1 && d.upperArm <= 500))
+        && (!('thigh' in d) || (d.thigh is number && d.thigh >= 1 && d.thigh <= 500))
+        && (!('weightUnit' in d) || d.weightUnit in ['kg','lb'])
+        && (!('measurementUnit' in d) || d.measurementUnit in ['cm','in'])
+        && ('weight' in d || 'bodyFat' in d || 'waist' in d || 'chest' in d || 'upperArm' in d || 'thigh' in d);
     }
     function validWorkout(id) {
       let d = request.resource.data;
@@ -86,6 +106,11 @@ service cloud.firestore {
       // Owners may correct logged values while the stable session identity stays intact.
       allow update: if owner(uid) && validSession(id)
         && request.resource.data.startedAt == resource.data.startedAt;
+      allow delete: if false;
+    }
+    match /users/{uid}/bodyEntries/{id} {
+      allow read: if owner(uid);
+      allow create, update: if owner(uid) && validBodyEntry(id);
       allow delete: if false;
     }
     match /{document=**} { allow read, write: if false; }

@@ -1,5 +1,11 @@
 import { guideFor, photoFor } from "./exercise-guides";
 import {
+  catalogueMetadata,
+  displayLabel,
+  equipmentTypes,
+  muscleGroups,
+} from "./exercise-catalog";
+import {
   programs,
   templateFor,
   templateForEnrollment,
@@ -45,6 +51,7 @@ import {
   type SessionExercise,
   type TrackingType,
   type MeasureUnit,
+  type BodyEntry,
 } from "./model";
 const startup = (phase: string, detail = "") =>
   (window as any).__gtrackStartup?.mark(phase, detail);
@@ -109,7 +116,10 @@ function unitOptions(tracking: TrackingType, selected: MeasureUnit) {
 function helpButton(topic: string, label: string) {
   return `<button type="button" class="help-icon" data-help="${topic}" aria-label="${esc(label)}" title="${esc(label)}">?</button>`;
 }
-const helpTopics: Record<string, { eyebrow: string; title: string; body: string }> = {
+const helpTopics: Record<
+  string,
+  { eyebrow: string; title: string; body: string }
+> = {
   timer: {
     eyebrow: "Rest timer",
     title: "Rest without watching the clock",
@@ -123,7 +133,7 @@ const helpTopics: Record<string, { eyebrow: string; title: string; body: string 
   exercises: {
     eyebrow: "Exercise library",
     title: "Find or add exercises",
-    body: `<ol class="help-steps"><li>Search the library by name.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>.</li><li>If a movement is missing, choose <strong>New exercise for the library</strong> and give it a clear name and description.</li><li>Use <strong>View form</strong> for movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share exercise names and descriptions. Your workouts, programs and training history remain private.</p>`,
+    body: `<ol class="help-steps"><li>Search more than 800 bundled movements by name.</li><li>Use equipment and primary-muscle filters to shorten the list.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>.</li><li>If a movement is missing, add its name, description, equipment and primary muscle.</li><li>Use <strong>View form</strong> for your existing movement media and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names and metadata. Your workouts, programs, body measurements and training history remain private.</p>`,
   },
   session: {
     eyebrow: "Active workout",
@@ -138,7 +148,17 @@ const helpTopics: Record<string, { eyebrow: string; title: string; body: string 
   progress: {
     eyebrow: "Personal records",
     title: "Understand your PRs",
-    body: `<dl class="help-definitions"><dt>Highest weight</dt><dd>The heaviest completed set for that exercise.</dd><dt>Highest reps</dt><dd>The most repetitions in one completed set.</dd><dt>Best set total</dt><dd>Weight multiplied by reps for one set.</dd><dt>Best workout total</dt><dd>The combined result from all completed sets of that exercise in one workout.</dd></dl><p class="help-note">Timed, distance and reps-only exercises show the best set and best workout total in their selected unit. PRs use completed workout history only.</p>`,
+    body: `<dl class="help-definitions"><dt>Highest weight</dt><dd>The heaviest completed set for that exercise.</dd><dt>Estimated 1RM</dt><dd>An estimate based on weight and repetitions using the Epley formula. Sets above 12 reps use the lifted weight because high-rep estimates are unreliable.</dd><dt>Highest reps</dt><dd>The most repetitions in one completed set.</dd><dt>Best set total</dt><dd>Weight multiplied by reps for one set.</dd><dt>Best workout total</dt><dd>The combined result from all completed sets of that exercise in one workout.</dd><dt>Muscle map</dt><dd>Completed sets from the last 30 days are assigned to each exercise’s primary muscle.</dd></dl><p class="help-note">Timed, distance and reps-only exercises show the best set and best workout total in their selected unit. PRs use completed workout history only.</p>`,
+  },
+  body: {
+    eyebrow: "Body tracking",
+    title: "Record body changes privately",
+    body: `<p>Add any combination of body weight, body-fat percentage, waist, chest, upper-arm and thigh measurements. You do not need to fill every field.</p><p class="help-note">Body records stay in your private workspace. Signed-in records sync between your devices and are included in backups.</p>`,
+  },
+  calculators: {
+    eyebrow: "Training calculators",
+    title: "Prepare the next lift",
+    body: `<dl class="help-definitions"><dt>Plate calculator</dt><dd>Enter the desired total and bar weight. GTrack shows the standard plates needed on each side.</dd><dt>Warm-up calculator</dt><dd>Enter your working weight and reps. GTrack suggests four progressively heavier preparation sets and rounds them to the increment you choose.</dd></dl><p class="help-note">Calculator results are suggestions. Adjust them for the equipment, movement and your readiness.</p>`,
   },
   programs: {
     eyebrow: "Workout programs",
@@ -148,7 +168,7 @@ const helpTopics: Record<string, { eyebrow: string; title: string; body: string 
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, search the shared library and select one or several movements. You can also create a missing exercise with a name and description.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review previous results and PRs</summary><p>Each exercise shows your last completed result. <strong>Progress</strong> shows personal records for weight, reps, set total and workout total, or the matching measures for timed and distance work.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -159,11 +179,13 @@ function showHelp(topic: string) {
   $("#dialog").setAttribute("aria-labelledby", "help-title");
 }
 function bindHelpButtons(root: ParentNode = document) {
-  root.querySelectorAll<HTMLElement>("[data-help]").forEach((button) =>
-    button.addEventListener("click", () =>
-      showHelp(button.dataset.help || "user-guide"),
-    ),
-  );
+  root
+    .querySelectorAll<HTMLElement>("[data-help]")
+    .forEach((button) =>
+      button.addEventListener("click", () =>
+        showHelp(button.dataset.help || "user-guide"),
+      ),
+    );
 }
 const icon =
   '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 12h10M3 9v6m4-9v12m10-12v12m4-9v6M3 12h4m10 0h4"/></svg>';
@@ -182,6 +204,7 @@ let restChime: HTMLAudioElement | null = null;
 let userReady = false,
   pageError = "",
   deferredUpdate: ServiceWorker | null = null;
+let progressSection: "records" | "body" | "calculators" = "records";
 const workouts = () =>
   Object.values(store.state.workouts)
     .filter((w) => !w.archived)
@@ -235,7 +258,7 @@ function syncLabel() {
   if (store.state.pending.length)
     return `Saved on phone · ${store.state.pending.length} sync pending`;
   if (!navigator.onLine) return "Saved on phone · offline";
-  return cloud?.ready.size === 4 ? "Synced" : "Saved on phone · connecting";
+  return cloud?.ready.size === 5 ? "Synced" : "Saved on phone · connecting";
 }
 function changed() {
   if (!userReady) return;
@@ -313,8 +336,13 @@ function activeWorkoutBar() {
   if (!draft) return "";
   restoreRest(draft);
   const done = completedSets(draft),
-    total = draft.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0),
-    alerts = typeof Notification !== "undefined" && Notification.permission !== "granted";
+    total = draft.exercises.reduce(
+      (sum, exercise) => sum + exercise.sets.length,
+      0,
+    ),
+    alerts =
+      typeof Notification !== "undefined" &&
+      Notification.permission !== "granted";
   return `<aside class="active-workout-bar" aria-label="Active workout and rest timer"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button><div class="active-rest"><span class="eyebrow">Rest ${helpButton("timer", "How the rest timer and alerts work")}</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}</aside>`;
 }
 function bindActiveWorkoutBar() {
@@ -859,7 +887,7 @@ function renderPrograms() {
     });
   } else {
     $("#screen").innerHTML =
-    `<div class="feature-help"><p>Programs keep your next workout ready on Today.</p>${helpButton("programs", "How workout programs work")}</div><button class="primary" id="create-program">＋ Create program</button>${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Suggested programs</h2></div><p class="hint">Use a ready-made plan or create your own sequence of workouts.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
+      `<div class="feature-help"><p>Programs keep your next workout ready on Today.</p>${helpButton("programs", "How workout programs work")}</div><button class="primary" id="create-program">＋ Create program</button>${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Suggested programs</h2></div><p class="hint">Use a ready-made plan or create your own sequence of workouts.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
     action("#create-program", () => openProgramBuilder());
     bindPrograms();
   }
@@ -942,8 +970,13 @@ function bindGuideButtons() {
   });
 }
 function showExerciseGuide(name: string, description: string) {
-  const guide = guideFor(name);
-  modal(`<div class="exercise-guide"><div class="guide-heading"><div><div class="eyebrow">${guide ? esc(guide.category) + " · Movement guide" : "Exercise library"}</div><h2 id="guide-title">${esc(name)}</h2></div><button type="button" class="secondary" data-close aria-label="Close exercise guide">Close</button></div>
+  const guide = guideFor(name),
+    exercise = exercises().find((item) => item.name === name),
+    metadata = exercise || catalogueMetadata(name),
+    tags = [metadata.equipment, ...(metadata.primaryMuscles || [])].filter(
+      Boolean,
+    );
+  modal(`<div class="exercise-guide"><div class="guide-heading"><div><div class="eyebrow">${guide ? esc(guide.category) + " · Movement guide" : "Exercise library"}</div><h2 id="guide-title">${esc(name)}</h2>${tags.length ? `<p class="exercise-tags">${tags.map((tag) => `<span>${esc(displayLabel(tag!))}</span>`).join("")}</p>` : ""}</div><button type="button" class="secondary" data-close aria-label="Close exercise guide">Close</button></div>
     ${
       guide
         ? `${guide.images.length ? `<div class="guide-photos">${guide.images.map((path, i) => `<figure><img src="${photoFor(path)}" alt="${esc(name)} demonstration, position ${i + 1}" width="300" height="300"><figcaption>Position ${i + 1}</figcaption></figure>`).join("")}</div><p class="hint">Two positions of the movement; move smoothly between them.${name === "Lying leg raise" ? " Bench variation shown." : name === "Cable chest fly" ? " High-pulley variation shown." : ""}</p>` : '<p class="hint">Photos for this variation are not available yet.</p>'}
@@ -956,20 +989,41 @@ function showExerciseGuide(name: string, description: string) {
 }
 function renderGuide() {
   $("#screen").innerHTML =
-    `<button class="text-button" id="guide-back">← Workouts</button><p>Look up a movement before you lift, or tap View form while recording a session. Photos and cues are available offline once the app has finished downloading.</p><label>Find an exercise<input id="guide-search" type="search" placeholder="Try squat, chest, or dumbbell"></label><p id="guide-count" class="hint" role="status"></p><div id="guide-results"></div>`;
+    `<button class="text-button" id="guide-back">← Workouts</button><p>Browse more than 800 movements by name, equipment or muscle. Your existing photos and videos remain attached where available.</p><label>Find an exercise<input id="guide-search" type="search" placeholder="Try squat, chest, or dumbbell"></label><div class="library-filters"><label>Equipment<select id="guide-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="guide-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="guide-count" class="hint" role="status"></p><div id="guide-results"></div>`;
   const show = () => {
-    const query = normalize($<HTMLInputElement>("#guide-search").value);
-    const matches = exercises().filter((e) =>
-      normalize(e.name + " " + (guideFor(e.name)?.category || "")).includes(
-        query,
-      ),
-    );
-    $("#guide-count").textContent = `${matches.length} exercises`;
+    const query = normalize($<HTMLInputElement>("#guide-search").value),
+      equipment = $<HTMLSelectElement>("#guide-equipment").value,
+      muscle = $<HTMLSelectElement>("#guide-muscle").value;
+    const matches = exercises().filter((e) => {
+      const metadata = e.primaryMuscles
+        ? e
+        : { ...e, ...catalogueMetadata(e.name) };
+      return (
+        normalize(
+          [
+            e.name,
+            e.description,
+            metadata.equipment,
+            ...(metadata.primaryMuscles || []),
+          ].join(" "),
+        ).includes(query) &&
+        (!equipment || metadata.equipment === equipment) &&
+        (!muscle || metadata.primaryMuscles?.includes(muscle))
+      );
+    });
+    const visible = matches.slice(0, 80);
+    $("#guide-count").textContent =
+      matches.length > visible.length
+        ? `${matches.length} exercises · showing first ${visible.length}`
+        : `${matches.length} exercises`;
     $("#guide-results").innerHTML = matches.length
-      ? matches
+      ? visible
           .map((e) => {
             const guide = guideFor(e.name);
-            return `<article class="card pad guide-result"><div><div class="eyebrow">${guide ? esc(guide.category) : "Community exercise"}</div><h2>${esc(e.name)}</h2><p class="hint">${guide ? (guide.images.length ? "Photos · movement · form cues" : "Movement · form cues") : "Description only"}</p></div>${guideButton(e.name)}</article>`;
+            const metadata = e.primaryMuscles
+              ? e
+              : { ...e, ...catalogueMetadata(e.name) };
+            return `<article class="card pad guide-result"><div><div class="eyebrow">${esc(displayLabel(metadata.equipment || "other"))} · ${esc(displayLabel(metadata.primaryMuscles?.[0] || "general"))}</div><h2>${esc(e.name)}</h2><p class="hint">${guide ? (guide.images.length ? "Photos · movement · form cues" : "Movement · form cues") : "Instructions and tracking"}</p></div>${guideButton(e.name)}</article>`;
           })
           .join("")
       : '<p class="card pad">No exercises match. Try another name or body area.</p>';
@@ -977,6 +1031,8 @@ function renderGuide() {
   };
   show();
   $("#guide-search").addEventListener("input", show);
+  $("#guide-equipment").addEventListener("change", show);
+  $("#guide-muscle").addEventListener("change", show);
   action("#guide-back", () => navigate("workouts"));
 }
 
@@ -1099,9 +1155,8 @@ function renderBuilder() {
 function captureTargets() {
   draftTargets = [...document.querySelectorAll<HTMLElement>(".target")].map(
     (card) => {
-      const id = card.querySelector<HTMLSelectElement>(
-        "select[data-index]",
-      )!.value;
+      const id =
+        card.querySelector<HTMLSelectElement>("select[data-index]")!.value;
       const e = store.state.exercises[id];
       return {
         exerciseId: id,
@@ -1113,9 +1168,8 @@ function captureTargets() {
   );
 }
 function captureSetTargets(card: HTMLElement) {
-  const tracking = card.querySelector<HTMLSelectElement>(
-      "[name=tracking]",
-    )!.value as TrackingType,
+  const tracking = card.querySelector<HTMLSelectElement>("[name=tracking]")!
+      .value as TrackingType,
     unitSelect = card.querySelector<HTMLSelectElement>("[name=unit]"),
     selectedUnit = unitSelect?.value as MeasureUnit | undefined,
     unit =
@@ -1149,9 +1203,7 @@ function captureSetTargets(card: HTMLElement) {
         ...(values.at(-1) || {
           reps: tracking === "reps" ? 10 : 1,
           weight: 0,
-          ...(["duration", "distance"].includes(tracking)
-            ? { value: 0 }
-            : {}),
+          ...(["duration", "distance"].includes(tracking) ? { value: 0 } : {}),
         }),
       });
     values.length = count;
@@ -1195,7 +1247,7 @@ function renderTargets() {
   $("#targets").innerHTML = draftTargets
     .map(
       (t, i) =>
-        `<div class="card pad target"><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Type a name"></label><label>Exercise from library<select required data-index="${i}"><option value="">Choose an exercise…</option>${exercises()
+        `<div class="card pad target"><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select class="target-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select class="target-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Exercise from library<select required data-index="${i}"><option value="">Choose an exercise…</option>${exercises()
           .map(
             (e) =>
               `<option value="${e.id}" ${e.id === t.exerciseId ? "selected" : ""}>${esc(e.name)}</option>`,
@@ -1208,24 +1260,43 @@ function renderTargets() {
   action(".target-guide", (event) => {
     const select = (event.currentTarget as HTMLElement)
       .closest(".target")!
-      .querySelector("select")!;
+      .querySelector<HTMLSelectElement>("select[data-index]")!;
     const exercise = store.state.exercises[select.value];
     if (exercise) showExerciseGuide(exercise.name, exercise.description);
     else toast("Choose an exercise first.");
   });
-  document
-    .querySelectorAll<HTMLInputElement>("#targets .target-search")
-    .forEach((input) =>
-      input.addEventListener("input", () => {
-        const query = normalize(input.value),
-          select = input
-            .closest(".target")!
-            .querySelector<HTMLSelectElement>("select[data-index]")!;
-        for (const option of select.options)
-          option.hidden = Boolean(option.value) &&
-            !normalize(option.textContent || "").includes(query);
-      }),
-    );
+  document.querySelectorAll<HTMLElement>("#targets .target").forEach((card) => {
+    const filter = () => {
+      const query = normalize(
+          card.querySelector<HTMLInputElement>(".target-search")!.value,
+        ),
+        equipment =
+          card.querySelector<HTMLSelectElement>(".target-equipment")!.value,
+        muscle = card.querySelector<HTMLSelectElement>(".target-muscle")!.value,
+        select = card.querySelector<HTMLSelectElement>("select[data-index]")!;
+      for (const option of select.options) {
+        if (!option.value) continue;
+        const exercise = store.state.exercises[option.value],
+          metadata = exercise.primaryMuscles
+            ? exercise
+            : { ...exercise, ...catalogueMetadata(exercise.name) };
+        option.hidden = !(
+          normalize(
+            [
+              exercise.name,
+              metadata.equipment,
+              ...(metadata.primaryMuscles || []),
+            ].join(" "),
+          ).includes(query) &&
+          (!equipment || metadata.equipment === equipment) &&
+          (!muscle || metadata.primaryMuscles?.includes(muscle))
+        );
+      }
+    };
+    card.querySelector(".target-search")!.addEventListener("input", filter);
+    card.querySelector(".target-equipment")!.addEventListener("change", filter);
+    card.querySelector(".target-muscle")!.addEventListener("change", filter);
+  });
   document
     .querySelectorAll<HTMLInputElement>("#targets [name=sets]")
     .forEach((input) =>
@@ -1270,7 +1341,9 @@ function renderTargets() {
     }),
   );
   document
-    .querySelectorAll<HTMLSelectElement>("#targets [name=tracking], #targets [name=unit]")
+    .querySelectorAll<HTMLSelectElement>(
+      "#targets [name=tracking], #targets [name=unit]",
+    )
     .forEach((select) =>
       select.addEventListener("change", () => {
         captureTargets();
@@ -1304,7 +1377,7 @@ function exerciseDialog(
   onSelected?: (exercise: Exercise) => Promise<void>,
 ) {
   modal(
-    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "Names and descriptions are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
+    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "Names, descriptions and exercise metadata are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><div class="library-filters"><label>Equipment<select name="equipment">${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select name="primaryMuscle">${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
   );
   $("#exercise-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1316,7 +1389,9 @@ function exerciseDialog(
           .normalize("NFKC")
           .trim()
           .replace(/\s+/g, " "),
-        description = String(f.get("description")).trim();
+        description = String(f.get("description")).trim(),
+        equipment = String(f.get("equipment")),
+        primaryMuscle = String(f.get("primaryMuscle"));
       if (!name || !description)
         throw new Error("Enter a name and description.");
       const id = await exerciseId(name);
@@ -1328,6 +1403,10 @@ function exerciseDialog(
         name,
         description,
         createdAt: Date.now(),
+        equipment,
+        primaryMuscles: [primaryMuscle],
+        secondaryMuscles: [],
+        category: "strength",
       };
       if (!existing) await store.put("exercises", exercise);
       if (onSelected) {
@@ -1469,7 +1548,7 @@ function sessionExerciseDialog() {
     if (keepOpen) sessionExerciseDialog();
   };
   modal(
-    `<form id="session-exercise"><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by exercise name"></label><label>Exercise from library<select required multiple size="8">${exercises()
+    `<form id="session-exercise"><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="session-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Exercise from library<select required multiple size="8">${exercises()
       .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`)
       .join(
         "",
@@ -1484,11 +1563,36 @@ function sessionExerciseDialog() {
         ? store.state.exercises[select.value]?.description || ""
         : `${select.selectedOptions.length} exercises selected`;
   });
-  $("#session-exercise-search").addEventListener("input", (event) => {
-    const query = normalize((event.currentTarget as HTMLInputElement).value);
-    for (const option of select.options)
-      option.hidden = !normalize(option.textContent || "").includes(query);
-  });
+  const filterSessionExercises = () => {
+    const query = normalize(
+        $<HTMLInputElement>("#session-exercise-search").value,
+      ),
+      equipment = $<HTMLSelectElement>("#session-equipment").value,
+      muscle = $<HTMLSelectElement>("#session-muscle").value;
+    for (const option of select.options) {
+      const exercise = store.state.exercises[option.value],
+        metadata = exercise.primaryMuscles
+          ? exercise
+          : { ...exercise, ...catalogueMetadata(exercise.name) };
+      option.hidden = !(
+        normalize(
+          [
+            exercise.name,
+            metadata.equipment,
+            ...(metadata.primaryMuscles || []),
+          ].join(" "),
+        ).includes(query) &&
+        (!equipment || metadata.equipment === equipment) &&
+        (!muscle || metadata.primaryMuscles?.includes(muscle))
+      );
+    }
+  };
+  $("#session-exercise-search").addEventListener(
+    "input",
+    filterSessionExercises,
+  );
+  $("#session-equipment").addEventListener("change", filterSessionExercises);
+  $("#session-muscle").addEventListener("change", filterSessionExercises);
   trackingSelect.addEventListener("change", () => {
     const tracking = trackingSelect.value as TrackingType,
       label = $("#session-unit-label");
@@ -1505,7 +1609,8 @@ function sessionExerciseDialog() {
       .filter(Boolean);
     if (!selected.length) return select.reportValidity();
     const tracking = trackingSelect.value as TrackingType,
-      unit = tracking === "reps" ? undefined : (unitSelect.value as MeasureUnit);
+      unit =
+        tracking === "reps" ? undefined : (unitSelect.value as MeasureUnit);
     close();
     for (const exercise of selected) await add(exercise, tracking, unit);
   });
@@ -1676,12 +1781,17 @@ function restCompletePopup() {
   popup.setAttribute("role", "alert");
   popup.innerHTML = `<div><span class="eyebrow">Timer finished</span><strong>Rest complete</strong><p>Ready for your next set.</p></div><button aria-label="Dismiss rest complete notification">×</button>`;
   document.body.append(popup);
-  popup.querySelector("button")!.addEventListener("click", () => popup.remove());
+  popup
+    .querySelector("button")!
+    .addEventListener("click", () => popup.remove());
   window.setTimeout(() => popup.remove(), 12000);
 }
 async function notifyRestComplete() {
   restCompletePopup();
-  if (typeof Notification === "undefined" || Notification.permission !== "granted")
+  if (
+    typeof Notification === "undefined" ||
+    Notification.permission !== "granted"
+  )
     return;
   try {
     const registration = await navigator.serviceWorker?.ready;
@@ -1751,7 +1861,8 @@ function previousPerformanceHtml(exerciseId: string, name: string) {
     return '<div class="previous-performance"><div class="eyebrow">Last time</div><p>No previous result yet.</p></div>';
   const exercise = previous.session.exercises.find(
     (item) =>
-      item.exerciseId === exerciseId || normalize(item.name) === normalize(name),
+      item.exerciseId === exerciseId ||
+      normalize(item.name) === normalize(name),
   )!;
   const result = previous.sets
     .map((set) => setSummary(exercise, set))
@@ -1805,7 +1916,14 @@ function renderToday() {
       ? templateForEnrollment(draftEnrollment)
       : undefined;
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><div class="title-with-help"><h2>${esc(draft.workoutName)}</h2>${helpButton("session", "How to record and change an active workout")}</div>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => { const labels = sessionSetLabels(e); return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`; }).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><div class="title-with-help"><h2>${esc(draft.workoutName)}</h2>${helpButton("session", "How to record and change an active workout")}</div>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises
+      .map((e, i) => {
+        const labels = sessionSetLabels(e);
+        return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`;
+      })
+      .join(
+        "",
+      )}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   const restTimer = $("#rest-timer");
   restTimer.removeAttribute("role");
   restTimer.setAttribute("aria-label", "Rest timer");
@@ -2008,10 +2126,9 @@ function updateRest() {
     : "Ready";
   times.forEach((time) => {
     time.textContent = label;
-    time.closest("#rest-timer, .active-workout-bar")?.classList.toggle(
-      "active",
-      Boolean(seconds),
-    );
+    time
+      .closest("#rest-timer, .active-workout-bar")
+      ?.classList.toggle("active", Boolean(seconds));
   });
   if (add) add.disabled = !seconds;
   if (skip) skip.disabled = !seconds;
@@ -2039,10 +2156,10 @@ function renderHistory() {
             .join("")}</details></article>`,
       )
       .join("") ||
-    empty(
-      "Your first session is ahead.",
-      "Completed workouts will appear here with the weights and reps you actually logged.",
-    ));
+      empty(
+        "Your first session is ahead.",
+        "Completed workouts will appear here with the weights and reps you actually logged.",
+      ));
   action(".edit-history", (event) =>
     editCompletedSession(
       (event.currentTarget as HTMLElement).dataset.sessionId!,
@@ -2069,7 +2186,9 @@ function editCompletedSession(id: string) {
             })
             .join("")}</section>`,
       )
-      .join("")}<p id="history-edit-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Save changes</button></div></form>`,
+      .join(
+        "",
+      )}<p id="history-edit-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Save changes</button></div></form>`,
   );
   $("#history-edit").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -2082,11 +2201,13 @@ function editCompletedSession(id: string) {
         updated.exercises[Number(row.dataset.editEx)].sets[
           Number(row.dataset.editSet)
         ];
-      row.querySelectorAll<HTMLInputElement>("input[type=number]").forEach(
-        (input) =>
-          (set[input.name as "weight" | "reps" | "value"] =
-            input.valueAsNumber),
-      );
+      row
+        .querySelectorAll<HTMLInputElement>("input[type=number]")
+        .forEach(
+          (input) =>
+            (set[input.name as "weight" | "reps" | "value"] =
+              input.valueAsNumber),
+        );
       set.done = row.querySelector<HTMLInputElement>("[name=done]")!.checked;
     });
     if (!validateRecord("sessions", updated)) {
@@ -2100,7 +2221,222 @@ function editCompletedSession(id: string) {
     toast("Logged workout updated.");
   });
 }
+
+function muscleHeatmap() {
+  const since = Date.now() - 30 * 86_400_000,
+    counts = new Map<string, number>();
+  for (const session of history().filter((item) => item.completedAt >= since)) {
+    for (const exercise of session.exercises) {
+      const completed = exercise.sets.filter((set) => set.done).length;
+      if (!completed) continue;
+      const library = store.state.exercises[exercise.exerciseId],
+        metadata = library?.primaryMuscles
+          ? library
+          : catalogueMetadata(exercise.name);
+      for (const muscle of metadata.primaryMuscles || [])
+        counts.set(muscle, (counts.get(muscle) || 0) + completed);
+    }
+  }
+  const maximum = Math.max(1, ...counts.values()),
+    fill = (muscle: string) => {
+      const strength = counts.get(muscle) || 0,
+        opacity = strength ? 0.25 + (strength / maximum) * 0.75 : 0.08;
+      return `style="fill:rgba(0,212,255,${opacity.toFixed(2)})"`;
+    },
+    region = (muscle: string, shape: string) =>
+      `<g class="muscle-region" ${fill(muscle)}><title>${displayLabel(muscle)}: ${counts.get(muscle) || 0} completed sets</title>${shape}</g>`,
+    leaders = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  return `<section class="card pad muscle-card"><div class="eyebrow">Last 30 days</div><h2>Muscle workload</h2><p>Colour intensity represents completed sets for each exercise’s primary muscle.</p><div class="heatmap-layout"><svg class="muscle-map" viewBox="0 0 260 260" role="img" aria-label="Front and back muscle heat map">
+    <g transform="translate(15 6)"><text x="48" y="246">Front</text><circle cx="50" cy="20" r="13" fill="#303030"/>${region("neck", '<rect x="44" y="31" width="12" height="12" rx="4"/>')}${region("shoulders", '<circle cx="29" cy="51" r="12"/><circle cx="71" cy="51" r="12"/>')}${region("chest", '<path d="M34 43h32l5 30-21 8-21-8z"/>')}${region("abdominals", '<rect x="38" y="75" width="24" height="42" rx="9"/>')}${region("biceps", '<rect x="18" y="61" width="12" height="42" rx="6"/><rect x="70" y="61" width="12" height="42" rx="6"/>')}${region("forearms", '<rect x="14" y="101" width="11" height="43" rx="6"/><rect x="75" y="101" width="11" height="43" rx="6"/>')}${region("adductors", '<path d="M42 119h8v61H35z"/><path d="M50 119h8l7 61H50z"/>')}${region("quadriceps", '<path d="M28 117h15l-8 70H22z"/><path d="M57 117h15l6 70H65z"/>')}${region("calves", '<path d="M22 188h15l-4 43H25z"/><path d="M63 188h15l-3 43H67z"/>')}</g>
+    <g transform="translate(145 6)"><text x="48" y="246">Back</text><circle cx="50" cy="20" r="13" fill="#303030"/>${region("traps", '<path d="M35 40h30L50 67z"/>')}${region("shoulders", '<circle cx="28" cy="51" r="12"/><circle cx="72" cy="51" r="12"/>')}${region("lats", '<path d="M30 58l20 10-12 47H25z"/><path d="M70 58L50 68l12 47h13z"/>')}${region("middle back", '<rect x="42" y="63" width="16" height="34" rx="5"/>')}${region("lower back", '<rect x="38" y="96" width="24" height="22" rx="6"/>')}${region("triceps", '<rect x="17" y="61" width="12" height="42" rx="6"/><rect x="71" y="61" width="12" height="42" rx="6"/>')}${region("glutes", '<circle cx="39" cy="129" r="15"/><circle cx="61" cy="129" r="15"/>')}${region("hamstrings", '<path d="M27 140h20l-10 48H22z"/><path d="M53 140h20l5 48H63z"/>')}${region("calves", '<path d="M22 188h15l-4 43H25z"/><path d="M63 188h15l-3 43H67z"/>')}</g></svg><div class="muscle-leaders">${leaders.length ? leaders.map(([muscle, sets]) => `<div><span>${displayLabel(muscle)}</span><strong>${sets} sets</strong></div>`).join("") : '<p class="hint">Complete a workout to light up the map.</p>'}</div></div></section>`;
+}
+
+function bodyEntries() {
+  return Object.values(store.state.bodyEntries).sort(
+    (a, b) => b.recordedAt - a.recordedAt,
+  );
+}
+
+function renderBodyTracking() {
+  const entries = bodyEntries(),
+    latest = entries.find((entry) => entry.weight !== undefined),
+    points = entries
+      .filter((entry) => entry.weight !== undefined)
+      .slice(0, 12)
+      .reverse(),
+    values = points.map((entry) => entry.weight!),
+    min = values.length ? Math.min(...values) : 0,
+    max = values.length ? Math.max(...values) : 1;
+  $("#progress-panel").innerHTML =
+    `<div class="feature-help"><p>Keep private body measurements alongside your training history.</p>${helpButton("body", "How body tracking works")}</div><button class="primary" id="body-add">＋ Add measurement</button>${points.length ? `<section class="card pad"><div class="eyebrow">Body weight trend</div><div class="body-chart">${points.map((entry) => `<div class="bar" style="height:${Math.max(10, ((entry.weight! - min) / Math.max(1, max - min)) * 82 + 10)}%"><span>${fmt(entry.weight!)}</span></div>`).join("")}</div><p class="hint">Latest: ${fmt(latest?.weight ?? points.at(-1)!.weight!)} ${latest?.weightUnit || points.at(-1)!.weightUnit || "kg"}</p></section>` : ""}<div class="section-title"><h2>Measurements</h2><span>${entries.length} records</span></div>${
+      entries.length
+        ? entries
+            .map(
+              (entry) =>
+                `<article class="card pad body-entry"><div><div class="eyebrow">${date(entry.recordedAt)}</div><h2>${entry.weight === undefined ? "Body measurements" : `${fmt(entry.weight)} ${entry.weightUnit || "kg"}`}</h2><p>${[
+                  entry.bodyFat === undefined
+                    ? ""
+                    : `${fmt(entry.bodyFat)}% body fat`,
+                  entry.waist === undefined
+                    ? ""
+                    : `Waist ${fmt(entry.waist)} ${entry.measurementUnit || "cm"}`,
+                  entry.chest === undefined
+                    ? ""
+                    : `Chest ${fmt(entry.chest)} ${entry.measurementUnit || "cm"}`,
+                  entry.upperArm === undefined
+                    ? ""
+                    : `Arm ${fmt(entry.upperArm)} ${entry.measurementUnit || "cm"}`,
+                  entry.thigh === undefined
+                    ? ""
+                    : `Thigh ${fmt(entry.thigh)} ${entry.measurementUnit || "cm"}`,
+                ]
+                  .filter(Boolean)
+                  .join(
+                    " · ",
+                  )}</p></div><button class="secondary" data-body-edit="${entry.id}">Edit</button></article>`,
+            )
+            .join("")
+        : empty(
+            "No body measurements yet.",
+            "Add weight, body-fat percentage or circumference measurements when they are useful to you.",
+          )
+    }`;
+  action("#body-add", () => bodyEntryDialog());
+  action("[data-body-edit]", (event) =>
+    bodyEntryDialog(
+      store.state.bodyEntries[
+        (event.currentTarget as HTMLElement).dataset.bodyEdit!
+      ],
+    ),
+  );
+  bindHelpButtons($("#progress-panel"));
+}
+
+function bodyEntryDialog(entry?: BodyEntry) {
+  const value = (key: keyof BodyEntry) => entry?.[key] ?? "",
+    day = entry
+      ? new Date(
+          entry.recordedAt -
+            new Date(entry.recordedAt).getTimezoneOffset() * 60_000,
+        )
+          .toISOString()
+          .slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+  modal(
+    `<form id="body-form"><div class="eyebrow">Private progress record</div><h2>${entry ? "Edit" : "Add"} body measurement</h2><label>Date<input name="day" type="date" required value="${day}"></label><div class="measurement-grid"><label>Weight<input name="weight" type="number" min="1" max="1000" step="0.1" inputmode="decimal" value="${value("weight")}"></label><label>Unit<select name="weightUnit"><option value="kg" ${entry?.weightUnit !== "lb" ? "selected" : ""}>kg</option><option value="lb" ${entry?.weightUnit === "lb" ? "selected" : ""}>lb</option></select></label><label>Body fat %<input name="bodyFat" type="number" min="0" max="100" step="0.1" inputmode="decimal" value="${value("bodyFat")}"></label><label>Measure unit<select name="measurementUnit"><option value="cm" ${entry?.measurementUnit !== "in" ? "selected" : ""}>cm</option><option value="in" ${entry?.measurementUnit === "in" ? "selected" : ""}>in</option></select></label><label>Waist<input name="waist" type="number" min="1" max="500" step="0.1" inputmode="decimal" value="${value("waist")}"></label><label>Chest<input name="chest" type="number" min="1" max="500" step="0.1" inputmode="decimal" value="${value("chest")}"></label><label>Upper arm<input name="upperArm" type="number" min="1" max="500" step="0.1" inputmode="decimal" value="${value("upperArm")}"></label><label>Thigh<input name="thigh" type="number" min="1" max="500" step="0.1" inputmode="decimal" value="${value("thigh")}"></label></div><p id="body-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Save measurement</button></div></form>`,
+  );
+  $("#body-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement,
+      data = new FormData(form),
+      optional = (name: string) => {
+        const raw = String(data.get(name) || "");
+        return raw === "" ? undefined : Number(raw);
+      },
+      dayValue = String(data.get("day")),
+      record: BodyEntry = {
+        id: entry?.id || `body-${dayValue}`,
+        recordedAt: new Date(`${dayValue}T12:00:00`).getTime(),
+        weightUnit: data.get("weightUnit") as "kg" | "lb",
+        measurementUnit: data.get("measurementUnit") as "cm" | "in",
+      };
+    for (const key of [
+      "weight",
+      "bodyFat",
+      "waist",
+      "chest",
+      "upperArm",
+      "thigh",
+    ] as const) {
+      const number = optional(key);
+      if (number !== undefined) record[key] = number;
+    }
+    if (!validateRecord("bodyEntries", record)) {
+      $("#body-error").textContent = "Enter at least one valid measurement.";
+      return;
+    }
+    await store.put("bodyEntries", record);
+    close();
+    await saved();
+    progressSection = "body";
+    renderProgress();
+    toast("Body measurement saved.");
+  });
+}
+
+function renderCalculators() {
+  $("#progress-panel").innerHTML =
+    `<div class="feature-help"><p>Prepare working sets without leaving your workout log.</p>${helpButton("calculators", "How the training calculators work")}</div><section class="card pad calculator"><div class="eyebrow">Barbell setup</div><h2>Plate calculator</h2><div class="calculator-inputs"><label>Total weight<input id="plate-total" type="number" min="0" step="0.5" value="100"></label><label>Bar weight<input id="plate-bar" type="number" min="0" step="0.5" value="20"></label><label>Unit<select id="plate-unit"><option>kg</option><option>lb</option></select></label></div><div id="plate-result" class="calculator-result"></div></section><section class="card pad calculator"><div class="eyebrow">Working-set preparation</div><h2>Warm-up calculator</h2><div class="calculator-inputs"><label>Working weight<input id="warmup-weight" type="number" min="1" max="1000" step="0.5" value="100"></label><label>Working reps<input id="warmup-reps" type="number" min="1" max="100" step="1" value="5"></label><label>Round to<input id="warmup-round" type="number" min="0.5" max="50" step="0.5" value="2.5"></label></div><div id="warmup-result" class="calculator-result"></div></section>`;
+  const calculatePlates = () => {
+    const total = $<HTMLInputElement>("#plate-total").valueAsNumber,
+      bar = $<HTMLInputElement>("#plate-bar").valueAsNumber,
+      unit = $<HTMLSelectElement>("#plate-unit").value,
+      available =
+        unit === "kg"
+          ? [25, 20, 15, 10, 5, 2.5, 1.25, 0.5]
+          : [45, 35, 25, 10, 5, 2.5],
+      perSide = (total - bar) / 2,
+      plates: Array<[number, number]> = [];
+    let remaining = Math.max(0, perSide);
+    for (const plate of available) {
+      const count = Math.floor((remaining + 1e-6) / plate);
+      if (count) plates.push([plate, count]);
+      remaining -= count * plate;
+    }
+    $("#plate-result").innerHTML =
+      total < bar
+        ? "<p>Target weight must be at least the bar weight.</p>"
+        : `<strong>${fmt(perSide)} ${unit} per side</strong><div class="plate-stack">${plates.length ? plates.map(([plate, count]) => `<span>${count} × ${fmt(plate)}</span>`).join("") : "Empty bar"}</div>${remaining > 0.01 ? `<p class="hint">Closest load is ${fmt(total - remaining * 2)} ${unit}; ${fmt(remaining)} ${unit} remains per side.</p>` : '<p class="hint">Exact load with standard plates.</p>'}`;
+  };
+  const calculateWarmups = () => {
+    const weight = $<HTMLInputElement>("#warmup-weight").valueAsNumber,
+      reps = $<HTMLInputElement>("#warmup-reps").valueAsNumber,
+      rounding = $<HTMLInputElement>("#warmup-round").valueAsNumber || 1,
+      steps = [
+        [0.4, Math.max(8, reps + 3)],
+        [0.55, Math.max(5, reps + 1)],
+        [0.7, Math.min(5, reps)],
+        [0.85, Math.min(3, reps)],
+      ];
+    $("#warmup-result").innerHTML =
+      `<table><thead><tr><th>Set</th><th>Load</th><th>Reps</th></tr></thead><tbody>${steps.map(([percent, count], index) => `<tr><td>${index + 1} · ${Math.round(percent * 100)}%</td><td>${fmt(Math.round((weight * percent) / rounding) * rounding)}</td><td>${count}</td></tr>`).join("")}</tbody></table><p class="hint">These are preparation sets. Adjust or skip them based on the movement, your experience and how you feel today.</p>`;
+  };
+  document
+    .querySelectorAll(".calculator input, .calculator select")
+    .forEach((input) =>
+      input.addEventListener("input", () => {
+        calculatePlates();
+        calculateWarmups();
+      }),
+    );
+  calculatePlates();
+  calculateWarmups();
+  bindHelpButtons($("#progress-panel"));
+}
+
 function renderProgress() {
+  $("#screen").innerHTML =
+    `<div class="progress-tabs" role="tablist" aria-label="Progress sections">${[
+      ["records", "PRs & muscles"],
+      ["body", "Body"],
+      ["calculators", "Calculators"],
+    ]
+      .map(
+        ([key, label]) =>
+          `<button role="tab" data-progress-section="${key}" ${progressSection === key ? 'aria-selected="true"' : ""}>${label}</button>`,
+      )
+      .join("")}</div><div id="progress-panel"></div>`;
+  action("[data-progress-section]", (event) => {
+    progressSection = (event.currentTarget as HTMLElement).dataset
+      .progressSection as typeof progressSection;
+    renderProgress();
+  });
+  if (progressSection === "body") renderBodyTracking();
+  else if (progressSection === "calculators") renderCalculators();
+  else renderRecordProgress();
+}
+
+function renderRecordProgress() {
   const entries = new Map<string, string>();
   history().forEach((s) =>
     s.exercises.forEach((e) => {
@@ -2108,28 +2444,30 @@ function renderProgress() {
     }),
   );
   if (!entries.size) {
-    $("#screen").innerHTML =
-      `<div class="feature-help"><p>Learn how GTrack calculates your personal records.</p>${helpButton("progress", "How personal records are calculated")}</div>` +
+    $("#progress-panel").innerHTML =
+      `<div class="feature-help"><p>Learn how GTrack calculates your personal records.</p>${helpButton("progress", "How personal records are calculated")}</div>${muscleHeatmap()}` +
       empty(
         "Progress starts with a session.",
         "Log a workout to see your working weights and training volume over time.",
       );
     return;
   }
-  $("#screen").innerHTML =
-    `<div class="feature-help"><p>See your strongest completed results.</p>${helpButton("progress", "How personal records are calculated")}</div><label>Exercise<select id="progress-exercise">${[...entries].map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join("")}</select></label><div id="progress-results"></div>`;
+  $("#progress-panel").innerHTML =
+    `<div class="feature-help"><p>See your strongest completed results and recent muscle workload.</p>${helpButton("progress", "How personal records are calculated")}</div>${muscleHeatmap()}<label>Exercise<select id="progress-exercise">${[...entries].map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join("")}</select></label><div id="progress-results"></div>`;
   const draw = () => {
     const id = $<HTMLSelectElement>("#progress-exercise").value;
     const matching = history()
-      .filter((s) =>
-        s.exercises.some(
-          (e) => e.exerciseId === id && e.sets.some((x) => x.done),
-        ),
-      )
-      .map((session) => ({
-        session,
-        exercises: session.exercises.filter((exercise) => exercise.exerciseId === id),
-      })),
+        .filter((s) =>
+          s.exercises.some(
+            (e) => e.exerciseId === id && e.sets.some((x) => x.done),
+          ),
+        )
+        .map((session) => ({
+          session,
+          exercises: session.exercises.filter(
+            (exercise) => exercise.exerciseId === id,
+          ),
+        })),
       sample = matching[0].exercises[0],
       tracking = trackingFor(sample),
       unit = unitFor(sample),
@@ -2151,36 +2489,59 @@ function renderProgress() {
           ),
         })),
       allSets = matching.flatMap(({ exercises }) =>
-        exercises.flatMap((exercise) => exercise.sets.filter((set) => set.done)),
+        exercises.flatMap((exercise) =>
+          exercise.sets.filter((set) => set.done),
+        ),
       ),
       max = Math.max(1, ...points.map((point) => point.value)),
       bestReps = Math.max(...allSets.map((set) => set.reps)),
       bestSetVolume = Math.max(...allSets.map((set) => set.weight * set.reps)),
       bestSessionTotal = Math.max(
         ...matching.map(({ exercises }) =>
-          exercises.flatMap((exercise) => exercise.sets.filter((set) => set.done)).reduce(
-            (sum, set) =>
-              sum +
-              (tracking === "weight_reps"
-                ? set.weight * set.reps
-                : tracking === "reps"
-                  ? set.reps
-                  : set.value || 0),
-            0,
-          ),
+          exercises
+            .flatMap((exercise) => exercise.sets.filter((set) => set.done))
+            .reduce(
+              (sum, set) =>
+                sum +
+                (tracking === "weight_reps"
+                  ? set.weight * set.reps
+                  : tracking === "reps"
+                    ? set.reps
+                    : set.value || 0),
+              0,
+            ),
         ),
       ),
       metricUnit = tracking === "reps" ? "reps" : unit,
       cards =
         tracking === "weight_reps"
           ? [
-              ["Highest weight", Math.max(...allSets.map((set) => set.weight)), unit],
+              [
+                "Highest weight",
+                Math.max(...allSets.map((set) => set.weight)),
+                unit,
+              ],
               ["Highest reps", bestReps, "reps"],
+              [
+                "Estimated 1RM",
+                Math.max(
+                  ...allSets.map((set) =>
+                    set.reps <= 12
+                      ? set.weight * (1 + set.reps / 30)
+                      : set.weight,
+                  ),
+                ),
+                unit,
+              ],
               ["Best set total", bestSetVolume, `${unit} × reps`],
               ["Best workout total", bestSessionTotal, `${unit} × reps`],
             ]
           : [
-              [tracking === "reps" ? "Highest reps" : "Best set", Math.max(...allSets.map(metric)), metricUnit],
+              [
+                tracking === "reps" ? "Highest reps" : "Best set",
+                Math.max(...allSets.map(metric)),
+                metricUnit,
+              ],
               ["Best workout total", bestSessionTotal, metricUnit],
             ];
     $("#progress-results").innerHTML =
@@ -2192,7 +2553,7 @@ function renderProgress() {
 function renderAccount() {
   const local = store.account === "local";
   $("#screen").innerHTML =
-    `<div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts and history are private. Exercise names and descriptions are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, workouts and completed history. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported exercise names and descriptions will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
+    `<div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
   navigator.serviceWorker?.getRegistration().then((r) => {
     const el = document.querySelector("#offline-status");
     if (el)
@@ -2211,10 +2572,15 @@ function renderAccount() {
   });
   action("#export", () => {
     const records = {
-      exercises: Object.values(store.state.exercises),
+      // Bundled catalogue entries are already present in every app version.
+      // Backups only need user-created exercises and stay small enough to restore quickly.
+      exercises: Object.values(store.state.exercises).filter(
+        (exercise) => exercise.createdAt !== 1,
+      ),
       workouts: Object.values(store.state.workouts),
       sessions: history(),
       programs: Object.values(store.state.programs),
+      bodyEntries: Object.values(store.state.bodyEntries),
     };
     const url = URL.createObjectURL(
       new Blob(
@@ -2243,7 +2609,7 @@ function renderAccount() {
         throw new Error("Choose a backup smaller than 10 MB.");
       const records = await validateBackup(JSON.parse(await file.text()));
       modal(
-        `<h2>Import this backup?</h2><p>${Object.keys(records.programs).length} programs, ${Object.keys(records.workouts).length} workouts, ${Object.keys(records.sessions).length} sessions and ${Object.keys(records.exercises).length} exercises. Existing records are kept.</p>${!local ? "<p>Exercise names and descriptions will be shared with other users.</p>" : ""}<div class="actions"><button class="secondary" data-close>Cancel</button><button class="primary" id="confirm-import">Import records</button></div>`,
+        `<h2>Import this backup?</h2><p>${Object.keys(records.programs).length} programs, ${Object.keys(records.workouts).length} workouts, ${Object.keys(records.sessions).length} sessions, ${Object.keys(records.bodyEntries).length} body records and ${Object.keys(records.exercises).length} exercises. Existing records are kept.</p>${!local ? "<p>Custom exercise names and metadata will be shared with other users. Body records remain private.</p>" : ""}<div class="actions"><button class="secondary" data-close>Cancel</button><button class="primary" id="confirm-import">Import records</button></div>`,
       );
       action("#confirm-import", async () => {
         await store.import(records);

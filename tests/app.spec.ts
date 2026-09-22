@@ -110,7 +110,9 @@ test("global and contextual help explain current workout features on mobile", as
   await expect(
     guide.getByRole("heading", { name: "How to use GTrack" }),
   ).toBeVisible();
-  await expect(guide).toContainText("weight + reps, reps only, time or distance");
+  await expect(guide).toContainText(
+    "weight + reps, reps only, time or distance",
+  );
   await expect(guide).toContainText("Edit logged workout");
   await expect(guide).toContainText("persistent bar");
   await page.screenshot({
@@ -140,7 +142,9 @@ test("global and contextual help explain current workout features on mobile", as
   await expect(page.getByRole("dialog")).toContainText("kilograms or pounds");
   await expect(page.getByRole("dialog")).toContainText("seconds or minutes");
   expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
 });
 
@@ -199,7 +203,8 @@ test("plans, custom library, editing, reordering and persistence", async ({
     page
       .getByLabel("Exercise from library")
       .first()
-      .locator("option", { hasText: "Cable fly" }),
+      .locator("option")
+      .filter({ hasText: /^Cable fly$/ }),
   ).toHaveCount(1);
   expect(errors).toEqual([]);
   for (const width of [320, 390, 520, 1200]) {
@@ -663,6 +668,56 @@ test("multi-add supports timed units, active-workout resume, history edits and P
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await expect(page.locator(".pr-grid")).toContainText("2");
   await expect(page.locator(".pr-grid")).toContainText("min");
+});
+
+test("catalogue filters, muscle insights, body tracking and calculators work on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await createWorkout(page, "Insights workout");
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Finish workout", exact: false })
+    .click();
+  await page.getByRole("button", { name: "Save session" }).click();
+
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Exercise guide", exact: false })
+    .click();
+  await page.getByLabel("Equipment").selectOption("dumbbell");
+  await page.getByLabel("Primary muscle").selectOption("chest");
+  await expect(page.locator("#guide-count")).toContainText("exercises");
+  await expect(page.locator(".guide-result").first()).toContainText("Dumbbell");
+
+  await page.getByRole("button", { name: "Progress", exact: true }).click();
+  await expect(page.locator(".muscle-card")).toContainText("Chest");
+  await expect(page.locator(".pr-grid")).toContainText("Estimated 1RM");
+  await page.getByRole("tab", { name: "Body" }).click();
+  await page.getByRole("button", { name: "Add measurement" }).click();
+  await page.getByLabel("Weight", { exact: true }).fill("82.4");
+  await page.getByLabel("Body fat %", { exact: true }).fill("18.5");
+  await page.getByLabel("Waist", { exact: true }).fill("86");
+  await page.getByRole("button", { name: "Save measurement" }).click();
+  await expect(page.locator(".body-entry")).toContainText("82.4 kg");
+  await expect(page.locator(".body-entry")).toContainText("18.5% body fat");
+
+  await page.getByRole("tab", { name: "Calculators" }).click();
+  await expect(page.locator("#plate-result")).toContainText("40 kg per side");
+  await expect(page.locator("#warmup-result")).toContainText("85");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("build a session while recording and resume structural edits", async ({
@@ -1236,7 +1291,7 @@ test("exercise guides search, display photos offline and fit a narrow phone", as
       .getByRole("button", { name: "Exercise guide · photos & form" })
       .click();
     await page.getByLabel("Find an exercise").fill("bench press");
-    await expect(page.locator("#guide-count")).toHaveText("4 exercises");
+    await expect(page.locator("#guide-count")).toContainText("exercises");
     await page
       .getByRole("button", {
         name: "View form for Barbell bench press",

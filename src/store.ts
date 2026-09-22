@@ -19,6 +19,7 @@ export class Store {
   async load() {
     this.state =
       (await (await database).get("accounts", this.account)) || emptyState();
+    this.state.bodyEntries ||= {};
     const seeds = await seedExercises();
     await this.mutate((s) => {
       for (const e of seeds) if (!s.exercises[e.id]) s.exercises[e.id] = e;
@@ -29,6 +30,7 @@ export class Store {
     const tx = (await database).transaction("accounts", "readwrite");
     const latest = (await tx.store.get(this.account)) || emptyState();
     latest.programs ||= {};
+    latest.bodyEntries ||= {};
     change(latest);
     await tx.store.put(latest, this.account);
     await tx.done;
@@ -80,6 +82,7 @@ export class Store {
         "workouts",
         "sessions",
         "programs",
+        "bodyEntries",
       ] as Kind[]) {
         for (const r of Object.values(records[kind])) {
           // Merge missing IDs only. Import never overwrites existing history or newer plans.

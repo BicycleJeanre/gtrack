@@ -88,6 +88,17 @@ test("signed-in users share the create-only exercise library", async () => {
   await assertFails(
     setDoc(doc(alice, "exercises", "bad-id"), { ...exercise, id: "bad-id" }),
   );
+  await assertSucceeds(
+    setDoc(doc(alice, "exercises", "c".repeat(64)), {
+      ...exercise,
+      id: "c".repeat(64),
+      name: "Metadata press",
+      equipment: "barbell",
+      primaryMuscles: ["chest"],
+      secondaryMuscles: ["triceps"],
+      category: "strength",
+    }),
+  );
 });
 test("workouts are account isolated and validated", async () => {
   await assertSucceeds(
@@ -129,6 +140,29 @@ test("completed sessions are private, editable by their owner, and keep their id
   await assertFails(getDoc(doc(bob, "users/alice/sessions/session")));
   await assertFails(deleteDoc(doc(alice, "users/alice/sessions/session")));
   await assertFails(setDoc(doc(alice, "users/bob/sessions/session"), session));
+});
+test("body measurements are private and validated", async () => {
+  const body = {
+    id: "body-2026-09-22",
+    recordedAt: 1_800_000_000_000,
+    weight: 82.4,
+    weightUnit: "kg",
+    waist: 86,
+    measurementUnit: "cm",
+  };
+  const ref = doc(alice, "users/alice/bodyEntries/body-2026-09-22");
+  await assertSucceeds(setDoc(ref, body));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(
+    getDoc(doc(bob, "users/alice/bodyEntries/body-2026-09-22")),
+  );
+  await assertFails(
+    setDoc(doc(alice, "users/alice/bodyEntries/body-2026-09-22"), {
+      ...body,
+      weight: 0,
+    }),
+  );
+  await assertFails(deleteDoc(ref));
 });
 test("program enrollments are private and program session metadata is validated", async () => {
   const enrollment = {
