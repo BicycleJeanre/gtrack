@@ -106,6 +106,65 @@ function unitOptions(tracking: TrackingType, selected: MeasureUnit) {
     )
     .join("");
 }
+function helpButton(topic: string, label: string) {
+  return `<button type="button" class="help-icon" data-help="${topic}" aria-label="${esc(label)}" title="${esc(label)}">?</button>`;
+}
+const helpTopics: Record<string, { eyebrow: string; title: string; body: string }> = {
+  timer: {
+    eyebrow: "Rest timer",
+    title: "Rest without watching the clock",
+    body: `<ol class="help-steps"><li>Completing a set starts the exercise’s rest time automatically.</li><li>Use <strong>Start</strong> to restart it, <strong>+30</strong> to extend it, or <strong>Skip</strong> to stop it.</li><li>The timer stays in the top bar on every screen. Tap the workout name there to return to your active session.</li><li>Tap <strong>Enable alerts</strong> once to allow a chime, vibration, popup and system notification when supported.</li></ol><p class="help-note">On iPhone, iOS may suspend an installed web app while another app is open. If that happens, GTrack alerts you as soon as it becomes active again. Keep sound enabled and grant notifications for the best result.</p>`,
+  },
+  tracking: {
+    eyebrow: "Exercise measurements",
+    title: "Choose what each exercise records",
+    body: `<dl class="help-definitions"><dt>Weight + reps</dt><dd>For loaded strength work. Choose kilograms or pounds and enter both values.</dd><dt>Reps only</dt><dd>For bodyweight movements where the repetition count is the result.</dd><dt>Time</dt><dd>For holds, carries or intervals. Choose seconds or minutes.</dd><dt>Distance</dt><dd>For cardio and carries. Choose metres, kilometres or miles.</dd></dl><p class="help-note">The unit is stored with the workout and copied into the training session. Use the same unit over time so previous results and PRs are easy to compare.</p>`,
+  },
+  exercises: {
+    eyebrow: "Exercise library",
+    title: "Find or add exercises",
+    body: `<ol class="help-steps"><li>Search the library by name.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>.</li><li>If a movement is missing, choose <strong>New exercise for the library</strong> and give it a clear name and description.</li><li>Use <strong>View form</strong> for movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share exercise names and descriptions. Your workouts, programs and training history remain private.</p>`,
+  },
+  session: {
+    eyebrow: "Active workout",
+    title: "Build the workout while you train",
+    body: `<ol class="help-steps"><li>Edit weight, reps, time or distance before completing a set.</li><li>Tap the tick to complete or reopen a set. Your rest timer starts when a set is completed.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft.</p>`,
+  },
+  history: {
+    eyebrow: "Workout history",
+    title: "Correct a completed workout",
+    body: `<p>Open <strong>History</strong> and choose <strong>Edit logged workout</strong>. You can rename it, correct recorded values, and decide which sets count. Save at least one completed set.</p><p class="help-note">The original date and program position stay unchanged. Signed-in edits sync to your other devices.</p>`,
+  },
+  progress: {
+    eyebrow: "Personal records",
+    title: "Understand your PRs",
+    body: `<dl class="help-definitions"><dt>Highest weight</dt><dd>The heaviest completed set for that exercise.</dd><dt>Highest reps</dt><dd>The most repetitions in one completed set.</dd><dt>Best set total</dt><dd>Weight multiplied by reps for one set.</dd><dt>Best workout total</dt><dd>The combined result from all completed sets of that exercise in one workout.</dd></dl><p class="help-note">Timed, distance and reps-only exercises show the best set and best workout total in their selected unit. PRs use completed workout history only.</p>`,
+  },
+  programs: {
+    eyebrow: "Workout programs",
+    title: "Follow a plan week by week",
+    body: `<ol class="help-steps"><li>Choose a suggested program or create your own under <strong>Programs</strong>.</li><li><strong>Today</strong> always shows the next session in your active program.</li><li>Review weights before starting, or start the next workout directly.</li><li>When finishing, choose whether the workout advances the program.</li><li>Custom programs can be edited, duplicated, paused or removed without deleting completed history.</li></ol>`,
+  },
+  "user-guide": {
+    eyebrow: "GTrack help",
+    title: "How to use GTrack",
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, search the shared library and select one or several movements. You can also create a missing exercise with a name and description.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review previous results and PRs</summary><p>Each exercise shows your last completed result. <strong>Progress</strong> shows personal records for weight, reps, set total and workout total, or the matching measures for timed and distance work.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+  },
+};
+function showHelp(topic: string) {
+  const content = helpTopics[topic] || helpTopics["user-guide"];
+  modal(
+    `<div class="help-dialog"><div class="eyebrow">${content.eyebrow}</div><h2 id="help-title">${content.title}</h2>${content.body}<button class="primary" type="button" data-close>Got it</button></div>`,
+  );
+  $("#dialog").setAttribute("aria-labelledby", "help-title");
+}
+function bindHelpButtons(root: ParentNode = document) {
+  root.querySelectorAll<HTMLElement>("[data-help]").forEach((button) =>
+    button.addEventListener("click", () =>
+      showHelp(button.dataset.help || "user-guide"),
+    ),
+  );
+}
 const icon =
   '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 12h10M3 9v6m4-9v12m10-12v12m4-9v6M3 12h4m10 0h4"/></svg>';
 let store: Store,
@@ -162,8 +221,9 @@ function modal(content: string) {
   const d = $<HTMLDialogElement>("#dialog");
   d.removeAttribute("aria-labelledby");
   d.innerHTML = content;
-  d.showModal();
+  if (!d.open) d.showModal();
   action("[data-close]", () => d.close());
+  bindHelpButtons(d);
 }
 function close() {
   $<HTMLDialogElement>("#dialog").close();
@@ -216,7 +276,7 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></header><main>${activeWorkoutBar()}<div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><div class="header-actions">${helpButton("user-guide", "Open GTrack help")}<button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></div></header><main>${activeWorkoutBar()}<div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
@@ -245,6 +305,7 @@ function render() {
     }) as Record<string, () => void>
   )[view]();
   bindActiveWorkoutBar();
+  bindHelpButtons();
   if (view !== "guide") bindGuideButtons();
 }
 function activeWorkoutBar() {
@@ -254,7 +315,7 @@ function activeWorkoutBar() {
   const done = completedSets(draft),
     total = draft.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0),
     alerts = typeof Notification !== "undefined" && Notification.permission !== "granted";
-  return `<aside class="active-workout-bar" aria-label="Active workout and rest timer"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button><div class="active-rest"><span class="eyebrow">Rest</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}</aside>`;
+  return `<aside class="active-workout-bar" aria-label="Active workout and rest timer"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button><div class="active-rest"><span class="eyebrow">Rest ${helpButton("timer", "How the rest timer and alerts work")}</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}</aside>`;
 }
 function bindActiveWorkoutBar() {
   const draft = store.state.draft;
@@ -798,7 +859,7 @@ function renderPrograms() {
     });
   } else {
     $("#screen").innerHTML =
-      `<button class="primary" id="create-program">＋ Create program</button>${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Suggested programs</h2></div><p class="hint">Use a ready-made plan or create your own sequence of workouts.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
+    `<div class="feature-help"><p>Programs keep your next workout ready on Today.</p>${helpButton("programs", "How workout programs work")}</div><button class="primary" id="create-program">＋ Create program</button>${enrollments.length ? `<div class="section-title"><h2>My programs</h2></div>${enrollments.map(programCard).join("")}` : ""}<div class="section-title"><h2>Suggested programs</h2></div><p class="hint">Use a ready-made plan or create your own sequence of workouts.</p>${programs.map((p) => `<article class="card pad"><div class="eyebrow">${p.weeks} weeks · ${p.sessions.length} days/week</div><h2>${esc(p.name)}</h2><p>${esc(p.audience)}</p><button class="secondary" data-program-preview="${p.id}">Preview ${esc(p.name.split(" — ")[0])}</button></article>`).join("")}${programGuidance}`;
     action("#create-program", () => openProgramBuilder());
     bindPrograms();
   }
@@ -921,7 +982,7 @@ function renderGuide() {
 
 function renderWorkouts() {
   $("#screen").innerHTML =
-    `<button class="secondary" id="open-guide">Exercise guide · photos & form</button><button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
+    `<div class="feature-help"><p>Build reusable workouts or start with an empty session.</p>${helpButton("exercises", "How the exercise library and search work")}</div><button class="secondary" id="open-guide">Exercise guide · photos & form</button><button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
       workouts()
         .map(
           (w) =>
@@ -957,7 +1018,7 @@ function openBuilder(id?: string) {
 function renderBuilder() {
   const w = editing ? store.state.workouts[editing] : null;
   $("#screen").innerHTML =
-    `<form id="workout-form"><div class="card pad"><label>Workout name<input name="name" required maxlength="60" value="${esc(w?.name || "")}" placeholder="e.g. Upper body A"></label><label>Rest between sets (seconds)<input name="rest" required type="number" inputmode="numeric" min="0" max="600" step="1" value="${w?.rest ?? 90}"></label></div><div class="section-title"><h2>Exercises</h2><span>In training order</span></div><p class="hint">Choose from the library or contribute a new exercise.</p><div id="targets"></div><button class="secondary" type="button" id="add-target">＋ Add exercise</button><div class="save-area"><button class="primary" type="submit">Save workout</button>${w ? '<button class="danger" type="button" id="archive">Archive workout</button>' : ""}</div></form>`;
+    `<form id="workout-form"><div class="card pad"><label>Workout name<input name="name" required maxlength="60" value="${esc(w?.name || "")}" placeholder="e.g. Upper body A"></label><label>Rest between sets (seconds)<input name="rest" required type="number" inputmode="numeric" min="0" max="600" step="1" value="${w?.rest ?? 90}"></label></div><div class="section-title"><div class="title-with-help"><h2>Exercises</h2>${helpButton("tracking", "How exercise tracking types and units work")}</div><span>In training order</span></div><p class="hint">Search the library, choose how each exercise is measured, or contribute a new exercise.</p><div id="targets"></div><button class="secondary" type="button" id="add-target">＋ Add exercise</button><div class="save-area"><button class="primary" type="submit">Save workout</button>${w ? '<button class="danger" type="button" id="archive">Archive workout</button>' : ""}</div></form>`;
   if (!draftTargets.length)
     draftTargets.push({
       exerciseId: "",
@@ -1744,7 +1805,7 @@ function renderToday() {
       ? templateForEnrollment(draftEnrollment)
       : undefined;
   $("#screen").innerHTML =
-    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><h2>${esc(draft.workoutName)}</h2>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => { const labels = sessionSetLabels(e); return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`; }).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
+    `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><div class="title-with-help"><h2>${esc(draft.workoutName)}</h2>${helpButton("session", "How to record and change an active workout")}</div>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises.map((e, i) => { const labels = sessionSetLabels(e); return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`; }).join("")}</div>${!draft.exercises.length ? '<p class="hint">Add your first exercise to start recording. Build this session as you go.</p>' : ""}<button class="secondary" id="session-add" ${draft.exercises.length >= 30 ? "disabled" : ""}>＋ Add exercise</button><button class="danger" id="discard">Discard this session</button>`;
   const restTimer = $("#rest-timer");
   restTimer.removeAttribute("role");
   restTimer.setAttribute("aria-label", "Rest timer");
@@ -1961,7 +2022,8 @@ document.addEventListener("visibilitychange", () => {
 });
 function renderHistory() {
   $("#screen").innerHTML =
-    history()
+    `<div class="feature-help"><p>Review or correct completed workouts.</p>${helpButton("history", "How to edit a completed workout")}</div>` +
+    (history()
       .map(
         (s) =>
           `<article class="card pad history"><div class="eyebrow">${date(s.completedAt)}</div><h2>${esc(s.workoutName)}</h2>${s.program ? `<p class="hint">Program week ${s.program.week} · Session ${s.program.day} · ${s.program.countsForProgress ? "Completed" : "To repeat"}</p>` : ""}<p>${completedSets(s)} sets · ${Math.max(1, Math.round((s.completedAt - s.startedAt) / 60000))} min${volume(s) ? ` · ${fmt(volume(s))} load volume` : ""}</p><button class="secondary edit-history" data-session-id="${s.id}">Edit logged workout</button><details><summary>View logged sets</summary>${s.exercises
@@ -1980,7 +2042,7 @@ function renderHistory() {
     empty(
       "Your first session is ahead.",
       "Completed workouts will appear here with the weights and reps you actually logged.",
-    );
+    ));
   action(".edit-history", (event) =>
     editCompletedSession(
       (event.currentTarget as HTMLElement).dataset.sessionId!,
@@ -2046,14 +2108,16 @@ function renderProgress() {
     }),
   );
   if (!entries.size) {
-    $("#screen").innerHTML = empty(
-      "Progress starts with a session.",
-      "Log a workout to see your working weights and training volume over time.",
-    );
+    $("#screen").innerHTML =
+      `<div class="feature-help"><p>Learn how GTrack calculates your personal records.</p>${helpButton("progress", "How personal records are calculated")}</div>` +
+      empty(
+        "Progress starts with a session.",
+        "Log a workout to see your working weights and training volume over time.",
+      );
     return;
   }
   $("#screen").innerHTML =
-    `<label>Exercise<select id="progress-exercise">${[...entries].map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join("")}</select></label><div id="progress-results"></div>`;
+    `<div class="feature-help"><p>See your strongest completed results.</p>${helpButton("progress", "How personal records are calculated")}</div><label>Exercise<select id="progress-exercise">${[...entries].map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join("")}</select></label><div id="progress-results"></div>`;
   const draw = () => {
     const id = $<HTMLSelectElement>("#progress-exercise").value;
     const matching = history()

@@ -100,6 +100,50 @@ test("startup failures expose privacy-safe diagnostics instead of hanging", asyn
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
 });
 
+test("global and contextual help explain current workout features on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open GTrack help" }).click();
+  const guide = page.getByRole("dialog");
+  await expect(
+    guide.getByRole("heading", { name: "How to use GTrack" }),
+  ).toBeVisible();
+  await expect(guide).toContainText("weight + reps, reps only, time or distance");
+  await expect(guide).toContainText("Edit logged workout");
+  await expect(guide).toContainText("persistent bar");
+  await page.screenshot({
+    path: "test-results/help-mobile.png",
+    fullPage: true,
+  });
+  await guide.getByRole("button", { name: "Got it" }).click();
+
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "How the exercise library and search work",
+    })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText(
+    "select several exercises",
+  );
+  await page.getByRole("button", { name: "Got it" }).click();
+  await page
+    .getByRole("button", { name: "Create workout", exact: false })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "How exercise tracking types and units work",
+    })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("kilograms or pounds");
+  await expect(page.getByRole("dialog")).toContainText("seconds or minutes");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+});
+
 test("plans, custom library, editing, reordering and persistence", async ({
   page,
 }) => {

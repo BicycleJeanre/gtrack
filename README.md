@@ -61,8 +61,8 @@ All signed-in users can read and create library entries. Entries cannot be edite
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `exercises/{nameHash}`        | Shared with authenticated users; create-only.                                                                                           |
 | `users/{uid}/workouts/{id}`   | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
-| `users/{uid}/sessions/{uuid}` | Private, immutable completed sessions; snapshots preserve exercise names, descriptions and set values. Identical retries are permitted. |
-| `users/{uid}/programs/{uuid}` | Private versioned catalog enrollment; pause state uses last server write. Progress derives from immutable completed sessions. |
+| `users/{uid}/sessions/{uuid}` | Private completed sessions; owners may correct the name, counted sets and logged values while the session ID and start time stay fixed. |
+| `users/{uid}/programs/{uuid}` | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions. |
 | Active session                | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
 | Pending sync queue            | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
 
@@ -70,7 +70,7 @@ Every user edit is saved to IndexedDB before the UI reports success. Cloud mode 
 
 The service worker precaches static app files only; it does not cache Firebase authentication responses. Sync runs when the app is open and connected, at sign-in, after saves, on reconnection and when returning to the app. Errors remain visible with a retry action. There is no dependency on closed-app background sync. An active draft is always device-local, even if other records say Synced.
 
-One editor tab is allowed per origin using Web Locks where supported. This prevents two tabs from changing the same active session. IndexedDB transactions protect record writes independently. Workouts remain editable while a session exists, but those edits do not alter the already-started session. Across devices, plan edits are last-write-wins; completed history uses unique immutable session IDs to avoid overwrites.
+One editor tab is allowed per origin using Web Locks where supported. This prevents two tabs from changing the same active session. IndexedDB transactions protect record writes independently. Workouts remain editable while a session exists, but those edits do not alter the already-started session. Across devices, plan edits are last-write-wins; completed history keeps stable unique session IDs and owner edits sync to other devices.
 
 Use the app on trusted devices: locally cached account data remains in browser storage after sign-out and is not encrypted by GTrack. Signing out does not expose it in another account’s UI. Pending records or active sessions must be finished/synced before app sign-out. Browser storage can be cleared or evicted; synchronization is not a backup.
 
@@ -92,6 +92,8 @@ Before deploying:
 
 The app also supports other static HTTPS hosts. Set `BASE_PATH=/` for a root-domain deployment or the appropriate subdirectory. Never serve the repository root as a public production website; publish `dist/` only.
 
+The user-facing instructions are maintained in [docs/user-guide.md](docs/user-guide.md) and in the app’s **?** help dialogs. Update both when changing user-visible behavior.
+
 Updates wait for an explicit reload; an active session or open editor prevents applying an update. Every build has a distinct app cache. The prior version remains active until the new build is completely cached and activated.
 
 ## Verification
@@ -106,7 +108,7 @@ npm run test:rules
 npm run test:cloud
 ```
 
-Tests use synthetic fixtures and the `demo-gtrack` emulator project only. No production data is queried. Browser coverage includes exercise contributions and reuse, editing/reordering, durable session logs, offline restart with the actual origin stopped, history/progress, export/import and account/tab isolation. Emulator coverage checks library sharing, private records, immutable history, offline sync and a second device.
+Tests use synthetic fixtures and the `demo-gtrack` emulator project only. No production data is queried. Browser coverage includes exercise contributions and reuse, editing/reordering, durable session logs, offline restart with the actual origin stopped, contextual help, history/progress, export/import and account/tab isolation. Emulator coverage checks library sharing, private editable history, offline sync and a second device.
 
 Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, airplane-mode launch, log sets, close/reopen, reconnect and sync, install an update, and restore an exported backup. Desktop WebKit testing does not replace this device check. Real-project authentication and reconnection also need a smoke test after configuration.
 

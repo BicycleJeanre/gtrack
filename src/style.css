@@ -73,6 +73,35 @@ header {
   border: 1px solid #3a3a3a;
   font-size: 17px;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.help-icon {
+  display: inline-grid;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #4a4a4a;
+  border-radius: 50%;
+  background: #252525;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1;
+  vertical-align: middle;
+}
+.header-actions > .help-icon {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  font-size: 19px;
+}
 main {
   padding: 26px 16px calc(100px + env(safe-area-inset-bottom));
 }
@@ -171,6 +200,14 @@ p {
   margin-top: 3px;
   color: var(--accent);
 }
+.active-rest .help-icon {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  margin-left: 3px;
+  font-size: 12px;
+}
 .timer-small {
   min-height: 44px;
   min-width: 45px;
@@ -209,6 +246,34 @@ p {
 .section-title span {
   font-size: 11px;
   color: var(--muted);
+}
+.section-title h2 .help-icon,
+h2 > .help-icon {
+  margin-left: 6px;
+}
+.feature-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #151515;
+}
+.feature-help p {
+  margin: 0;
+  font-size: 12px;
+}
+.title-with-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.title-with-help h2 {
+  min-width: 0;
 }
 .primary,
 .secondary,
@@ -654,6 +719,58 @@ dialog::backdrop {
 }
 dialog h2 {
   margin-bottom: 12px;
+}
+.help-dialog .help-lead {
+  color: #e8e8e8;
+  font-size: 14px;
+}
+.help-dialog details {
+  border-top: 1px solid var(--border);
+}
+.help-dialog details:last-of-type {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.help-dialog details summary {
+  color: #e8e8e8;
+  font-weight: 650;
+}
+.help-dialog details p {
+  margin-top: 0;
+  padding: 0 4px 8px;
+}
+.help-steps {
+  padding-left: 22px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.help-steps li {
+  margin: 10px 0;
+}
+.help-steps strong,
+.help-dialog p strong {
+  color: #e8e8e8;
+}
+.help-definitions {
+  margin: 18px 0;
+}
+.help-definitions dt {
+  margin-top: 13px;
+  color: #e8e8e8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.help-definitions dd {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.help-note {
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: #121212;
 }
 #toast {
   position: fixed;
