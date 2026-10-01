@@ -582,6 +582,27 @@ details summary {
   padding: 16px 0;
   border-top: 1px solid var(--border);
 }
+.history-edit-exercise-head {
+  display: grid;
+  gap: 8px;
+}
+.history-edit-exercise-head label,
+.history-add-exercise label {
+  margin: 0;
+}
+.history-edit-exercise-head button,
+.history-add-exercise button {
+  justify-self: start;
+}
+.history-add-exercise {
+  display: grid;
+  gap: 10px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.history-add-exercise h3 {
+  margin: 0;
+}
 .history-edit-set {
   display: grid;
   grid-template-columns: 48px repeat(2, minmax(0, 1fr)) 72px;
