@@ -113,6 +113,7 @@ test("global and contextual help explain current workout features on mobile", as
   await expect(guide).toContainText(
     "weight + reps, machine setting + reps, reps only, time or distance",
   );
+  await expect(guide).toContainText("1.25 kg");
   await expect(guide).toContainText("Edit logged workout");
   await expect(guide).toContainText("persistent bar");
   await page.screenshot({
@@ -439,7 +440,7 @@ test("individual set targets survive editing and flow into training", async ({
   await page.getByLabel("Exercise 1 set 1 reps", { exact: true }).fill("12");
   await page
     .getByLabel("Exercise 1 set 1 weight (kg)", { exact: true })
-    .fill("20");
+    .fill("20.25");
   await page.getByLabel("Exercise 1 set 2 reps", { exact: true }).fill("8");
   await page
     .getByLabel("Exercise 1 set 2 weight (kg)", { exact: true })
@@ -451,14 +452,14 @@ test("individual set targets survive editing and flow into training", async ({
   await page.getByLabel("Exercise 1 set 3 reps", { exact: true }).fill("6");
   await page
     .getByLabel("Exercise 1 set 3 weight (kg)", { exact: true })
-    .fill("50");
+    .fill("50.75");
   await page
     .getByRole("button", { name: "Remove exercise 1 set 2", exact: true })
     .click();
   await expect(page.getByLabel("Sets", { exact: true })).toHaveValue("2");
   await expect(
     page.getByLabel("Exercise 1 set 2 weight (kg)", { exact: true }),
-  ).toHaveValue("50");
+  ).toHaveValue("50.75");
   await page.getByRole("button", { name: "Save workout", exact: true }).click();
   await expect(page.locator(".plan h2")).toHaveText("Upper body A");
   await page.reload();
@@ -475,13 +476,13 @@ test("individual set targets survive editing and flow into training", async ({
     .click();
   await expect(
     page.getByLabel("Barbell bench press set 1 weight", { exact: true }),
-  ).toHaveValue("20");
+  ).toHaveValue("20.25");
   await expect(
     page.getByLabel("Barbell bench press set 1 reps", { exact: true }),
   ).toHaveValue("12");
   await expect(
     page.getByLabel("Barbell bench press set 2 weight", { exact: true }),
-  ).toHaveValue("50");
+  ).toHaveValue("50.75");
   await expect(
     page.getByLabel("Barbell bench press set 2 reps", { exact: true }),
   ).toHaveValue("6");
@@ -498,6 +499,9 @@ test("rest timer persists and the next workout shows the previous result", async
   await expect(page.locator(".previous-performance")).toContainText(
     "No previous result yet",
   );
+  await page
+    .getByLabel("Barbell bench press set 1 weight", { exact: true })
+    .fill("41.25");
   await page
     .getByLabel("Barbell bench press set 1 reps", { exact: true })
     .fill("8");
@@ -516,7 +520,7 @@ test("rest timer persists and the next workout shows the previous result", async
   await expect(page.locator("#rest-time")).toHaveText("Ready");
   await page
     .getByLabel("Barbell bench press set 2 weight", { exact: true })
-    .fill("45");
+    .fill("45.75");
   await page
     .getByLabel("Barbell bench press set 2 reps", { exact: true })
     .fill("6");
@@ -537,14 +541,14 @@ test("rest timer persists and the next workout shows the previous result", async
   const previous = page.locator(".previous-performance");
   await expect(previous).toContainText("Last time");
   await expect(previous).toContainText("2 sets");
-  await expect(previous).toContainText("40 kg × 8 · 45 kg × 6");
+  await expect(previous).toContainText("41.25 kg × 8 · 45.75 kg × 6");
   await expect(previous).toContainText("Bench day");
   const priorSets = page.locator(".set-previous");
-  await expect(priorSets.nth(0)).toContainText("Previous: 40 kg × 8");
-  await expect(priorSets.nth(1)).toContainText("Previous: 45 kg × 6");
+  await expect(priorSets.nth(0)).toContainText("Previous: 41.25 kg × 8");
+  await expect(priorSets.nth(1)).toContainText("Previous: 45.75 kg × 6");
   await page
     .getByLabel("Barbell bench press set 1 weight", { exact: true })
-    .fill("50");
+    .fill("50.5");
   await page
     .getByRole("button", {
       name: "Complete Barbell bench press set 1",
@@ -553,8 +557,8 @@ test("rest timer persists and the next workout shows the previous result", async
     .click();
   const celebration = page.locator("#pr-celebration");
   await expect(celebration).toContainText("New personal record");
-  await expect(celebration).toContainText("50 kg × 10");
-  await expect(celebration).toContainText("previous best 45 kg");
+  await expect(celebration).toContainText("50.5 kg × 10");
+  await expect(celebration).toContainText("previous best 45.75 kg");
   await expect(celebration).toContainText("weight PR");
   const firstSet = page.locator(".session-set:not(.labels)").nth(0);
   await expect(firstSet).toHaveClass(/is-pr/);

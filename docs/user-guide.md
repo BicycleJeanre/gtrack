@@ -20,7 +20,7 @@ Each exercise in a workout or active session has a tracking type:
 | Time                   | Holds, carries and intervals            | seconds or minutes          |
 | Distance               | Cardio and carries                      | metres, kilometres or miles |
 
-Enter the result and tap the tick to complete the set. Tap the tick again to reopen it. GTrack saves every valid change to the device. **Last time** summarizes the most recent comparable workout, and each set shows the result from the matching previous set. For an unknown-weight cable stack, choose **Machine setting + reps** and record the numbered plate setting. It remains visible in history and previous results but does not contribute to weight volume.
+Enter the result and tap the tick to complete the set. Weight fields accept two decimal places, so smaller increments such as **1.25 kg** are preserved in plans, active workouts, history and progress. Tap the tick again to reopen it. GTrack saves every valid change to the device. **Last time** summarizes the most recent comparable workout, and each set shows the result from the matching previous set. For an unknown-weight cable stack, choose **Machine setting + reps** and record the numbered plate setting. It remains visible in history and previous results but does not contribute to weight volume.
 
 When a completed set beats a saved weight, machine-setting, reps, set-total, time or distance record, GTrack marks that row with a gold medal and shows a short congratulations banner with the new result and previous best. A first-ever result establishes the baseline. Live PRs compare completed workout history in the same tracking type and unit, so kilograms and pounds are never compared as if they were equal.
 

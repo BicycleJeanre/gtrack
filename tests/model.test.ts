@@ -273,6 +273,36 @@ test("machine settings preserve plate numbers and reps without weight volume", (
   );
 });
 
+test("decimal exercise weights retain precision in sessions and volume", () => {
+  const workout = {
+    id: "fractional-plates",
+    name: "Fractional plates",
+    rest: 90,
+    updatedAt: 1,
+    archived: false,
+    exercises: [
+      {
+        exerciseId: "bench",
+        name: "Bench press",
+        description: "Use fractional plates",
+        tracking: "weight_reps" as const,
+        unit: "kg" as const,
+        sets: 1,
+        reps: 8,
+        weight: 1.25,
+        setTargets: [{ reps: 8, weight: 1.25 }],
+      },
+    ],
+  };
+  assert.equal(validateRecord("workouts", workout), true);
+  const session = startSession(workout);
+  assert.equal(session.exercises[0].sets[0].weight, 1.25);
+  session.exercises[0].sets[0].done = true;
+  session.completedAt = Date.now();
+  assert.equal(validateRecord("sessions", session), true);
+  assert.equal(volume(session), 10);
+});
+
 test("bundled exercise catalogue includes equipment and muscle metadata", async () => {
   const exercises = await seedExercises();
   assert.ok(exercises.length >= 800);
