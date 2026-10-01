@@ -12,16 +12,17 @@ You can build the session while recording it. Add, remove or reorder exercises a
 
 Each exercise in a workout or active session has a tracking type:
 
-| Tracking type | Use it for                              | Units                       |
-| ------------- | --------------------------------------- | --------------------------- |
-| Weight + reps | Loaded strength exercises               | kg or lb                    |
-| Reps only     | Bodyweight or repetition-only movements | reps                        |
-| Time          | Holds, carries and intervals            | seconds or minutes          |
-| Distance      | Cardio and carries                      | metres, kilometres or miles |
+| Tracking type          | Use it for                              | Units                       |
+| ---------------------- | --------------------------------------- | --------------------------- |
+| Weight + reps          | Loaded strength exercises               | kg or lb                    |
+| Machine setting + reps | Cable stacks with unknown plate weights | numbered plates and reps    |
+| Reps only              | Bodyweight or repetition-only movements | reps                        |
+| Time                   | Holds, carries and intervals            | seconds or minutes          |
+| Distance               | Cardio and carries                      | metres, kilometres or miles |
 
-Enter the result and tap the tick to complete the set. Tap the tick again to reopen it. GTrack saves every valid change to the device. **Last time** summarizes the most recent comparable workout, and each set shows the result from the matching previous set.
+Enter the result and tap the tick to complete the set. Tap the tick again to reopen it. GTrack saves every valid change to the device. **Last time** summarizes the most recent comparable workout, and each set shows the result from the matching previous set. For an unknown-weight cable stack, choose **Machine setting + reps** and record the numbered plate setting. It remains visible in history and previous results but does not contribute to weight volume.
 
-When a completed set beats a saved weight, reps, set-total, time or distance record, GTrack marks that row with a gold medal and shows a short congratulations banner with the new result and previous best. A first-ever result establishes the baseline. Live PRs compare completed workout history in the same tracking type and unit, so kilograms and pounds are never compared as if they were equal.
+When a completed set beats a saved weight, machine-setting, reps, set-total, time or distance record, GTrack marks that row with a gold medal and shows a short congratulations banner with the new result and previous best. A first-ever result establishes the baseline. Live PRs compare completed workout history in the same tracking type and unit, so kilograms and pounds are never compared as if they were equal.
 
 Use the same unit for an exercise over time so previous results and personal records are easy to compare.
 
@@ -35,7 +36,7 @@ Choose **View form** to see available movement photos and technique cues. These 
 
 ## Use the rest timer
 
-Completing a set starts the rest timer automatically. The timer remains visible in the top bar when you move to another GTrack screen.
+Completing a set starts the rest timer automatically when timed rest is enabled. Choose **No automatic rest timer** while creating a workout or editing session details to pace rests yourself. A no-rest session shows **Rest timer: Off** and completing a set does not start a countdown, chime or notification.
 
 - **Start** restarts the timer using the session rest period.
 - **+30** adds 30 seconds, or starts a 30-second timer when idle.
@@ -60,7 +61,7 @@ Open **Progress** and select an exercise. PRs use completed sets in saved workou
 - **Best set total** is weight multiplied by reps for one set.
 - **Best workout total** combines all completed sets of that exercise in one workout.
 
-Reps-only, timed and distance exercises show the best set and best workout total in their own unit.
+Machine-setting exercises show the highest numbered setting and highest reps without treating the setting as weight. Reps-only, timed and distance exercises show the best set and best workout total in their own unit.
 
 The muscle workload map assigns completed sets from the last 30 days to each exercise's primary muscle. A stronger colour represents more completed sets. It reports training workload rather than fatigue, recovery or muscle growth.
 

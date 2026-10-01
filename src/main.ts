@@ -79,12 +79,14 @@ const date = (n: number) =>
   });
 const trackingLabel: Record<TrackingType, string> = {
   weight_reps: "Weight + reps",
+  machine_setting: "Machine setting + reps",
   reps: "Reps only",
   duration: "Time",
   distance: "Distance",
 };
 const unitChoices: Record<TrackingType, MeasureUnit[]> = {
   weight_reps: ["kg", "lb"],
+  machine_setting: ["plates"],
   reps: [],
   duration: ["sec", "min"],
   distance: ["m", "km", "mi"],
@@ -94,6 +96,8 @@ function setSummary(exercise: SessionExercise, set: LoggedSet) {
     unit = unitFor(exercise);
   if (tracking === "weight_reps")
     return `${fmt(set.weight)} ${unit} × ${set.reps}`;
+  if (tracking === "machine_setting")
+    return `${fmt(set.value || 0)} plates × ${set.reps} reps`;
   if (tracking === "reps") return `${set.reps} reps`;
   return `${fmt(set.value || 0)} ${unit}`;
 }
@@ -113,6 +117,24 @@ function unitOptions(tracking: TrackingType, selected: MeasureUnit) {
     )
     .join("");
 }
+function restFields(rest: number) {
+  const disabled = rest === 0;
+  return `<label class="checkbox"><input name="rest-off" type="checkbox" ${disabled ? "checked" : ""}>No automatic rest timer</label><label data-rest-seconds ${disabled ? "hidden" : ""}>Rest between sets (seconds)<input name="rest" required type="number" inputmode="numeric" min="1" max="600" step="1" value="${disabled ? 90 : rest}" ${disabled ? "disabled" : ""}></label><p class="hint">When disabled, completing a set will not start a countdown or rest alert.</p>`;
+}
+function bindRestFields(form: HTMLFormElement) {
+  const checkbox = form.querySelector<HTMLInputElement>("[name=rest-off]")!,
+    label = form.querySelector<HTMLElement>("[data-rest-seconds]")!,
+    input = form.querySelector<HTMLInputElement>("[name=rest]")!;
+  checkbox.addEventListener("change", () => {
+    label.hidden = checkbox.checked;
+    input.disabled = checkbox.checked;
+  });
+}
+function restValue(form: HTMLFormElement) {
+  return form.querySelector<HTMLInputElement>("[name=rest-off]")!.checked
+    ? 0
+    : form.querySelector<HTMLInputElement>("[name=rest]")!.valueAsNumber;
+}
 function helpButton(topic: string, label: string) {
   return `<button type="button" class="help-icon" data-help="${topic}" aria-label="${esc(label)}" title="${esc(label)}">?</button>`;
 }
@@ -123,12 +145,12 @@ const helpTopics: Record<
   timer: {
     eyebrow: "Rest timer",
     title: "Rest without watching the clock",
-    body: `<ol class="help-steps"><li>Completing a set starts the exercise’s rest time automatically.</li><li>Use <strong>Start</strong> to restart it, <strong>+30</strong> to extend it, or <strong>Skip</strong> to stop it.</li><li>The timer stays in the top bar on every screen. Tap the workout name there to return to your active session.</li><li>Tap <strong>Enable alerts</strong> once to allow a chime, vibration, popup and system notification when supported.</li></ol><p class="help-note">On iPhone, iOS may suspend an installed web app while another app is open. If that happens, GTrack alerts you as soon as it becomes active again. Keep sound enabled and grant notifications for the best result.</p>`,
+    body: `<ol class="help-steps"><li>Completing a set starts the exercise’s rest time automatically when timed rest is enabled.</li><li>Use <strong>Start</strong> to restart it, <strong>+30</strong> to extend it, or <strong>Skip</strong> to stop it.</li><li>The timer stays in the top bar on every screen. Tap the workout name there to return to your active session.</li><li>Choose <strong>No automatic rest timer</strong> in workout or session details when you want to pace rests yourself.</li><li>Tap <strong>Enable alerts</strong> once to allow a chime, vibration, popup and system notification when supported.</li></ol><p class="help-note">On iPhone, iOS may suspend an installed web app while another app is open. If that happens, GTrack alerts you as soon as it becomes active again. Keep sound enabled and grant notifications for the best result.</p>`,
   },
   tracking: {
     eyebrow: "Exercise measurements",
     title: "Choose what each exercise records",
-    body: `<dl class="help-definitions"><dt>Weight + reps</dt><dd>For loaded strength work. Choose kilograms or pounds and enter both values.</dd><dt>Reps only</dt><dd>For bodyweight movements where the repetition count is the result.</dd><dt>Time</dt><dd>For holds, carries or intervals. Choose seconds or minutes.</dd><dt>Distance</dt><dd>For cardio and carries. Choose metres, kilometres or miles.</dd></dl><p class="help-note">The unit is stored with the workout and copied into the training session. Use the same unit over time so previous results and PRs are easy to compare.</p>`,
+    body: `<dl class="help-definitions"><dt>Weight + reps</dt><dd>For loaded strength work. Choose kilograms or pounds and enter both values.</dd><dt>Machine setting + reps</dt><dd>For cable stacks or machines whose plate weight is unknown. Record the numbered plate setting and reps. It appears in previous results but never counts toward weight volume.</dd><dt>Reps only</dt><dd>For bodyweight movements where the repetition count is the result.</dd><dt>Time</dt><dd>For holds, carries or intervals. Choose seconds or minutes.</dd><dt>Distance</dt><dd>For cardio and carries. Choose metres, kilometres or miles.</dd></dl><p class="help-note">The unit is stored with the workout and copied into the training session. Use the same unit over time so previous results and PRs are easy to compare.</p>`,
   },
   exercises: {
     eyebrow: "Exercise library",
@@ -138,7 +160,7 @@ const helpTopics: Record<
   session: {
     eyebrow: "Active workout",
     title: "Build the workout while you train",
-    body: `<ol class="help-steps"><li>Edit weight, reps, time or distance before completing a set.</li><li>The previous result beneath each set shows the matching set from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. Your rest timer starts when a set is completed.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
+    body: `<ol class="help-steps"><li>Edit weight, machine setting, reps, time or distance before completing a set.</li><li>The previous result beneath each set shows the matching set from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. A rest timer starts only when timed rest is enabled.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
   },
   history: {
     eyebrow: "Workout history",
@@ -168,7 +190,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, reps only, time or distance. Available units are kg, lb, seconds, minutes, metres, kilometres and miles.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use the rest timer and alerts</summary><p>Completing a set starts the rest timer. It stays visible at the top while you browse the app. Enable alerts for a chime, vibration, popup and supported system notifications.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -343,13 +365,13 @@ function activeWorkoutBar() {
     alerts =
       typeof Notification !== "undefined" &&
       Notification.permission !== "granted";
-  return `<aside class="active-workout-bar" aria-label="Active workout and rest timer"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button><div class="active-rest"><span class="eyebrow">Rest ${helpButton("timer", "How the rest timer and alerts work")}</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}</aside>`;
+  return `<aside class="active-workout-bar${draft.rest ? "" : " rest-off"}" aria-label="Active workout${draft.rest ? " and rest timer" : ""}"><button class="active-workout-resume" id="resume-workout"><span class="eyebrow">Active workout · ${done}/${total} sets</span><strong>${esc(draft.workoutName)}</strong></button>${draft.rest ? `<div class="active-rest"><span class="eyebrow">Rest ${helpButton("timer", "How the rest timer and alerts work")}</span><strong id="global-rest-time" role="timer" aria-live="polite">Ready</strong></div><button class="timer-small" id="global-rest-start">Start</button><button class="timer-small" id="global-rest-add">+30</button>${alerts ? '<button class="timer-small alerts" id="enable-alerts">Enable alerts</button>' : ""}` : '<div class="active-rest rest-disabled"><span class="eyebrow">Rest timer</span><strong>Off</strong></div>'}</aside>`;
 }
 function bindActiveWorkoutBar() {
   const draft = store.state.draft;
   if (!draft) return;
   action("#resume-workout", () => navigate("today"));
-  action("#global-rest-start", () => startRest(draft.rest || 90));
+  action("#global-rest-start", () => startRest(draft.rest));
   action("#global-rest-add", () => {
     if (restUntil > Date.now()) {
       restUntil += 30_000;
@@ -1042,7 +1064,7 @@ function renderWorkouts() {
       workouts()
         .map(
           (w) =>
-            `<article class="card plan"><div class="eyebrow">${w.exercises.length} exercises · ${w.exercises.reduce((n, e) => n + e.sets, 0)} sets · ${w.rest}s rest</div><h2>${esc(w.name)}</h2><p>${w.exercises.map((e) => esc(e.name)).join(" · ")}</p><div class="actions"><button class="primary" data-start="${w.id}">Start workout</button><button class="secondary" data-edit="${w.id}" aria-label="Edit ${esc(w.name)}">Edit</button></div></article>`,
+            `<article class="card plan"><div class="eyebrow">${w.exercises.length} exercises · ${w.exercises.reduce((n, e) => n + e.sets, 0)} sets · ${w.rest ? `${w.rest}s rest` : "No timed rest"}</div><h2>${esc(w.name)}</h2><p>${w.exercises.map((e) => esc(e.name)).join(" · ")}</p><div class="actions"><button class="primary" data-start="${w.id}">Start workout</button><button class="secondary" data-edit="${w.id}" aria-label="Edit ${esc(w.name)}">Edit</button></div></article>`,
         )
         .join("") ||
       empty(
@@ -1074,7 +1096,8 @@ function openBuilder(id?: string) {
 function renderBuilder() {
   const w = editing ? store.state.workouts[editing] : null;
   $("#screen").innerHTML =
-    `<form id="workout-form"><div class="card pad"><label>Workout name<input name="name" required maxlength="60" value="${esc(w?.name || "")}" placeholder="e.g. Upper body A"></label><label>Rest between sets (seconds)<input name="rest" required type="number" inputmode="numeric" min="0" max="600" step="1" value="${w?.rest ?? 90}"></label></div><div class="section-title"><div class="title-with-help"><h2>Exercises</h2>${helpButton("tracking", "How exercise tracking types and units work")}</div><span>In training order</span></div><p class="hint">Search the library, choose how each exercise is measured, or contribute a new exercise.</p><div id="targets"></div><button class="secondary" type="button" id="add-target">＋ Add exercise</button><div class="save-area"><button class="primary" type="submit">Save workout</button>${w ? '<button class="danger" type="button" id="archive">Archive workout</button>' : ""}</div></form>`;
+    `<form id="workout-form"><div class="card pad"><label>Workout name<input name="name" required maxlength="60" value="${esc(w?.name || "")}" placeholder="e.g. Upper body A"></label>${restFields(w?.rest ?? 90)}</div><div class="section-title"><div class="title-with-help"><h2>Exercises</h2>${helpButton("tracking", "How exercise tracking types and units work")}</div><span>In training order</span></div><p class="hint">Search the library, choose how each exercise is measured, or contribute a new exercise.</p><div id="targets"></div><button class="secondary" type="button" id="add-target">＋ Add exercise</button><div class="save-area"><button class="primary" type="submit">Save workout</button>${w ? '<button class="danger" type="button" id="archive">Archive workout</button>' : ""}</div></form>`;
+  bindRestFields($<HTMLFormElement>("#workout-form"));
   if (!draftTargets.length)
     draftTargets.push({
       exerciseId: "",
@@ -1116,7 +1139,7 @@ function renderBuilder() {
       const record: Workout = {
         id: editing || uid(),
         name: String(f.get("name")).trim(),
-        rest: Number(f.get("rest")),
+        rest: restValue(event.currentTarget as HTMLFormElement),
         exercises: structuredClone(draftTargets),
         updatedAt: Date.now(),
         archived: false,
@@ -1201,9 +1224,11 @@ function captureSetTargets(card: HTMLElement) {
     while (values.length < count)
       values.push({
         ...(values.at(-1) || {
-          reps: tracking === "reps" ? 10 : 1,
+          reps: tracking === "reps" || tracking === "machine_setting" ? 10 : 1,
           weight: 0,
-          ...(["duration", "distance"].includes(tracking) ? { value: 0 } : {}),
+          ...(["duration", "distance", "machine_setting"].includes(tracking)
+            ? { value: 0 }
+            : {}),
         }),
       });
     values.length = count;
@@ -1224,7 +1249,7 @@ function targetRows(target: Target, exerciseIndex: number) {
   return sets
     .map(
       (set, index) =>
-        `<div class="planned-set"><span class="set-number">${index + 1}</span>${tracking === "weight_reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><input name="weight" required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} weight (${unit})">` : tracking === "reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><span class="unit-cell">reps</span>` : `<input name="value" required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} ${tracking}"><span class="unit-cell">${unit}</span>`}<button type="button" class="remove-set" data-exercise="${exerciseIndex}" data-set="${index}" ${sets.length === 1 ? "disabled" : ""} aria-label="Remove exercise ${exerciseIndex + 1} set ${index + 1}">×</button></div>`,
+        `<div class="planned-set"><span class="set-number">${index + 1}</span>${tracking === "weight_reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><input name="weight" required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} weight (${unit})">` : tracking === "machine_setting" ? `<input name="value" required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.value || 0}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} machine setting (plates)"><input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps">` : tracking === "reps" ? `<input name="reps" required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} reps"><span class="unit-cell">reps</span>` : `<input name="value" required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" aria-label="Exercise ${exerciseIndex + 1} set ${index + 1} ${tracking}"><span class="unit-cell">${unit}</span>`}<button type="button" class="remove-set" data-exercise="${exerciseIndex}" data-set="${index}" ${sets.length === 1 ? "disabled" : ""} aria-label="Remove exercise ${exerciseIndex + 1} set ${index + 1}">×</button></div>`,
     )
     .join("");
 }
@@ -1254,7 +1279,7 @@ function renderTargets() {
           )
           .join(
             "",
-          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
+          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "machine_setting" ? "Plates" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "machine_setting" ? "Reps" : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
     )
     .join("");
   action(".target-guide", (event) => {
@@ -1478,14 +1503,16 @@ function sessionDetails(isNew = false) {
   if (!isNew && !validSessionInputs()) return;
   const draft = store.state.draft;
   modal(
-    `<form id="session-details"><h2>${isNew ? "Start a session" : "Session details"}</h2><label>Session name<input name="name" required maxlength="60" value="${esc(isNew ? "Freestyle workout" : draft!.workoutName)}"></label><label>Rest between sets (seconds)<input name="rest" type="number" required min="0" max="600" step="1" value="${isNew ? 90 : draft!.rest}"></label><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button class="primary" type="submit">${isNew ? "Start session" : "Save details"}</button></div></form>`,
+    `<form id="session-details"><h2>${isNew ? "Start a session" : "Session details"}</h2><label>Session name<input name="name" required maxlength="60" value="${esc(isNew ? "Freestyle workout" : draft!.workoutName)}"></label>${restFields(isNew ? 90 : draft!.rest)}<div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button class="primary" type="submit">${isNew ? "Start session" : "Save details"}</button></div></form>`,
   );
-  $("#session-details").addEventListener("submit", async (event) => {
+  const detailsForm = $<HTMLFormElement>("#session-details");
+  bindRestFields(detailsForm);
+  detailsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const form = event.currentTarget as HTMLFormElement;
     const values = new FormData(form),
       name = String(values.get("name")).trim(),
-      rest = Number(values.get("rest"));
+      rest = restValue(form);
     if (!name) {
       form.querySelector<HTMLInputElement>("[name=name]")!.focus();
       return;
@@ -1506,11 +1533,13 @@ function sessionDetails(isNew = false) {
         close();
         view = "today";
         render();
-      } else
+      } else {
         await editSession((session) => {
           session.workoutName = name;
           session.rest = rest;
         });
+        if (!rest) stopRest();
+      }
     } catch (error) {
       fail(error);
     }
@@ -1535,9 +1564,10 @@ function sessionExerciseDialog() {
           ...(unit ? { unit } : {}),
           sets: [
             {
-              reps: tracking === "reps" ? 10 : 1,
+              reps:
+                tracking === "reps" || tracking === "machine_setting" ? 10 : 1,
               weight: 0,
-              ...(["duration", "distance"].includes(tracking)
+              ...(["duration", "distance", "machine_setting"].includes(tracking)
                 ? { value: 0 }
                 : {}),
               done: false,
@@ -1944,6 +1974,33 @@ function liveRecord(
       };
     return null;
   }
+  if (tracking === "machine_setting") {
+    const currentSetting = set.value || 0,
+      settingMetric = (item: LoggedSet) => item.value || 0,
+      savedSetting = Math.max(...savedSets.map(settingMetric)),
+      previousSetting = Math.max(...historicalSets.map(settingMetric));
+    if (
+      currentSetting > savedSetting &&
+      reachesSessionBest(currentSetting, settingMetric)
+    )
+      return {
+        label: "machine setting PR",
+        current: `${fmt(currentSetting)} plates × ${set.reps} reps`,
+        previous: `${fmt(previousSetting)} plates`,
+      };
+    const savedReps = Math.max(...savedSets.map((item) => item.reps)),
+      previousReps = Math.max(...historicalSets.map((item) => item.reps));
+    if (
+      set.reps > savedReps &&
+      reachesSessionBest(set.reps, (item) => item.reps)
+    )
+      return {
+        label: "rep PR",
+        current: `${set.reps} reps at plate ${fmt(currentSetting)}`,
+        previous: `${previousReps} reps`,
+      };
+    return null;
+  }
   const current = tracking === "reps" ? set.reps : set.value || 0;
   const metric = (item: LoggedSet) =>
     tracking === "reps" ? item.reps : item.value || 0;
@@ -1981,6 +2038,7 @@ function showRecordCelebration(exercise: SessionExercise, record: LiveRecord) {
 function sessionSetLabels(exercise: SessionExercise) {
   const tracking = trackingFor(exercise);
   if (tracking === "weight_reps") return [unitFor(exercise), "Reps"];
+  if (tracking === "machine_setting") return ["Plates", "Reps"];
   if (tracking === "reps") return ["Reps", ""];
   return [trackingLabel[tracking], unitFor(exercise)];
 }
@@ -1998,9 +2056,11 @@ function sessionSetRows(exercise: SessionExercise, exerciseIndex: number) {
       const fields =
         tracking === "weight_reps"
           ? `<input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.weight}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="weight" aria-label="${label} weight" ${set.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}>`
-          : tracking === "reps"
-            ? `<input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}><span class="unit-cell">reps</span>`
-            : `<input required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} ${tracking}" ${set.done ? "disabled" : ""}><span class="unit-cell">${unit}</span>`;
+          : tracking === "machine_setting"
+            ? `<input required type="number" inputmode="decimal" min="0" max="1000" step="0.5" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} machine setting in plates" ${set.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}>`
+            : tracking === "reps"
+              ? `<input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}><span class="unit-cell">reps</span>`
+              : `<input required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} ${tracking}" ${set.done ? "disabled" : ""}><span class="unit-cell">${unit}</span>`;
       return `<div class="set-grid session-set${record ? " is-pr" : ""}"><span class="set-position">${record ? '<span class="pr-medal" aria-label="Personal record">🏅</span>' : setIndex + 1}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${label}">×</button><small class="set-previous">Previous: ${previousSet ? esc(setSummary(previous!.exercise, previousSet)) : "—"}${record ? ` · ${esc(record.label)}` : ""}</small></div>`;
     })
     .join("");
@@ -2041,7 +2101,10 @@ function renderToday() {
   const restTimer = $("#rest-timer");
   restTimer.removeAttribute("role");
   restTimer.setAttribute("aria-label", "Rest timer");
-  restTimer.innerHTML = `<div><span class="eyebrow">Rest timer</span><strong id="rest-time" role="timer" aria-live="polite">Ready</strong></div><div class="rest-actions"><button class="secondary" id="rest-start">Start ${draft.rest || 90} sec</button><button class="secondary" id="rest-add">+30 sec</button><button class="text-button" id="rest-skip">Skip</button></div>`;
+  restTimer.classList.toggle("disabled", !draft.rest);
+  restTimer.innerHTML = draft.rest
+    ? `<div><span class="eyebrow">Rest timer</span><strong id="rest-time" role="timer" aria-live="polite">Ready</strong></div><div class="rest-actions"><button class="secondary" id="rest-start">Start ${draft.rest} sec</button><button class="secondary" id="rest-add">+30 sec</button><button class="text-button" id="rest-skip">Skip</button></div>`
+    : `<div><span class="eyebrow">Rest timer</span><strong>Off</strong><p class="hint">Complete sets without starting a countdown.</p></div>`;
   document
     .querySelectorAll(".logging-exercise")
     .forEach((card, index) =>
@@ -2053,7 +2116,7 @@ function renderToday() {
         ),
     );
   action("#edit-session-details", () => sessionDetails());
-  action("#rest-start", () => startRest(draft.rest || 90));
+  action("#rest-start", () => startRest(draft.rest));
   action("#rest-add", () => {
     if (restUntil > Date.now()) {
       restUntil += 30_000;
@@ -2147,8 +2210,9 @@ function renderToday() {
           input.value,
         );
       set.done = !set.done;
-      const rest =
-        state.draft.exercises[exerciseIndex].rest ?? state.draft.rest;
+      const rest = state.draft.rest
+        ? (state.draft.exercises[exerciseIndex].rest ?? state.draft.rest)
+        : 0;
       if (set.done && rest) startRest(rest, false);
     });
     const completedExercise = store.state.draft!.exercises[exerciseIndex],
@@ -2298,9 +2362,11 @@ function editCompletedSession(id: string) {
                 field =
                   tracking === "weight_reps"
                     ? `<label>${unitFor(exercise)}<input name="weight" type="number" min="0" max="1000" step="0.5" value="${set.weight}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
-                    : tracking === "reps"
-                      ? `<label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
-                      : `<label>${unitFor(exercise)}<input name="value" type="number" min="0" max="10000000" step="0.1" value="${set.value || 0}"></label>`;
+                    : tracking === "machine_setting"
+                      ? `<label>Plates<input name="value" type="number" min="0" max="1000" step="0.5" value="${set.value || 0}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                      : tracking === "reps"
+                        ? `<label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                        : `<label>${unitFor(exercise)}<input name="value" type="number" min="0" max="10000000" step="0.1" value="${set.value || 0}"></label>`;
               return `<div class="history-edit-set" data-edit-ex="${exerciseIndex}" data-edit-set="${setIndex}"><span>Set ${setIndex + 1}</span>${field}<label class="checkbox"><input name="done" type="checkbox" ${set.done ? "checked" : ""}>Count</label></div>`;
             })
             .join("")}</section>`,
@@ -2655,14 +2721,23 @@ function renderRecordProgress() {
               ["Best set total", bestSetVolume, `${unit} × reps`],
               ["Best workout total", bestSessionTotal, `${unit} × reps`],
             ]
-          : [
-              [
-                tracking === "reps" ? "Highest reps" : "Best set",
-                Math.max(...allSets.map(metric)),
-                metricUnit,
-              ],
-              ["Best workout total", bestSessionTotal, metricUnit],
-            ];
+          : tracking === "machine_setting"
+            ? [
+                [
+                  "Highest setting",
+                  Math.max(...allSets.map((set) => set.value || 0)),
+                  "plates",
+                ],
+                ["Highest reps", bestReps, "reps"],
+              ]
+            : [
+                [
+                  tracking === "reps" ? "Highest reps" : "Best set",
+                  Math.max(...allSets.map(metric)),
+                  metricUnit,
+                ],
+                ["Best workout total", bestSessionTotal, metricUnit],
+              ];
     $("#progress-results").innerHTML =
       `<div class="pr-grid">${cards.map(([label, value, suffix]) => `<div class="card pr-card"><span class="eyebrow">PR · ${label}</span><strong>${fmt(Number(value))}</strong><small>${suffix}</small></div>`).join("")}</div><div class="card pad"><div class="eyebrow">Best ${tracking === "weight_reps" ? "working weight" : trackingLabel[tracking].toLowerCase()} per workout</div><div class="big">${fmt(points.at(-1)!.value)} <small>${metricUnit} latest</small></div><p class="hint">PRs use completed sets in your saved workout history.</p><div class="chart" aria-hidden="true">${points.map((point) => `<div class="bar" style="height:${Math.max(3, (point.value / max) * 100)}%"><span>${fmt(point.value)}</span></div>`).join("")}</div><table><caption>Last ${points.length} sessions</caption><thead><tr><th>Date</th><th>Best result</th></tr></thead><tbody>${points.map((point) => `<tr><td>${date(point.date)}</td><td>${fmt(point.value)} ${metricUnit}</td></tr>`).join("")}</tbody></table></div>`;
   };

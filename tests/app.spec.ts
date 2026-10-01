@@ -111,7 +111,7 @@ test("global and contextual help explain current workout features on mobile", as
     guide.getByRole("heading", { name: "How to use GTrack" }),
   ).toBeVisible();
   await expect(guide).toContainText(
-    "weight + reps, reps only, time or distance",
+    "weight + reps, machine setting + reps, reps only, time or distance",
   );
   await expect(guide).toContainText("Edit logged workout");
   await expect(guide).toContainText("persistent bar");
@@ -702,6 +702,86 @@ test("multi-add supports timed units, active-workout resume, history edits and P
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await expect(page.locator(".pr-grid")).toContainText("2");
   await expect(page.locator(".pr-grid")).toContainText("min");
+});
+
+test("workouts support no timed rest and unknown-weight machine settings", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByLabel("No automatic rest timer").check();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await expect(page.locator(".active-workout-bar")).toContainText(
+    "Rest timerOff",
+  );
+  await page.getByRole("button", { name: "Discard this session" }).click();
+  await page.getByRole("button", { name: "Discard session" }).click();
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Create workout", exact: false })
+    .click();
+  await page.getByLabel("Workout name", { exact: true }).fill("Cable day");
+  await page.getByLabel("No automatic rest timer").check();
+  await expect(
+    page.getByLabel("Rest between sets (seconds)", { exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByLabel("Exercise from library")
+    .selectOption({ label: "Seated cable row" });
+  await page.getByLabel("Track by").selectOption("machine_setting");
+  await expect(page.locator('select[name="unit"]')).toHaveValue("plates");
+  await page
+    .getByLabel("Exercise 1 set 1 machine setting (plates)", { exact: true })
+    .fill("5");
+  await page.getByLabel("Exercise 1 set 1 reps", { exact: true }).fill("12");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await expect(page.locator(".plan")).toContainText("No timed rest");
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(page.locator(".active-workout-bar")).toContainText(
+    "Rest timerOff",
+  );
+  await expect(page.locator("#rest-timer")).toContainText("Off");
+  await expect(page.locator("#global-rest-start")).toHaveCount(0);
+  await page
+    .getByLabel("Seated cable row set 1 machine setting in plates", {
+      exact: true,
+    })
+    .fill("5");
+  await page
+    .getByLabel("Seated cable row set 1 reps", { exact: true })
+    .fill("12");
+  await page
+    .getByRole("button", {
+      name: "Complete Seated cable row set 1",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator("#rest-timer")).not.toHaveClass(/active/);
+  await page
+    .getByRole("button", { name: "Finish workout", exact: false })
+    .click();
+  await page.getByRole("button", { name: "Save session" }).click();
+  await expect(page.locator(".history")).toContainText("5 plates × 12 reps");
+  await expect(page.locator(".history")).not.toContainText("load volume");
+  await page.getByRole("button", { name: "Progress", exact: true }).click();
+  await expect(page.locator(".pr-grid")).toContainText("Highest setting");
+  await expect(page.locator(".pr-grid")).toContainText("5");
+  await expect(page.locator(".pr-grid")).toContainText("plates");
+  await page.getByRole("button", { name: "Workouts", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(page.locator(".set-previous").first()).toContainText(
+    "Previous: 5 plates × 12 reps",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("catalogue filters, muscle insights, body tracking and calculators work on mobile", async ({

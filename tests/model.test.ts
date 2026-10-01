@@ -230,6 +230,49 @@ test("timed and distance targets remain compatible with the session schema", () 
   );
 });
 
+test("machine settings preserve plate numbers and reps without weight volume", () => {
+  const workout = {
+    id: "cable-day",
+    name: "Cable day",
+    rest: 0,
+    updatedAt: 1,
+    archived: false,
+    exercises: [
+      {
+        exerciseId: "cable-row",
+        name: "Cable row",
+        description: "Use the numbered stack setting",
+        tracking: "machine_setting" as const,
+        unit: "plates" as const,
+        sets: 1,
+        reps: 12,
+        weight: 0,
+        setTargets: [{ reps: 12, weight: 0, value: 5 }],
+      },
+    ],
+  };
+  assert.equal(validateRecord("workouts", workout), true);
+  const session = startSession(workout);
+  assert.equal(session.rest, 0);
+  assert.deepEqual(session.exercises[0].sets[0], {
+    reps: 12,
+    weight: 0,
+    value: 5,
+    done: false,
+  });
+  session.exercises[0].sets[0].done = true;
+  session.completedAt = Date.now();
+  assert.equal(validateRecord("sessions", session), true);
+  assert.equal(volume(session), 0);
+  assert.equal(
+    validateRecord("workouts", {
+      ...workout,
+      exercises: [{ ...workout.exercises[0], unit: "kg" }],
+    }),
+    false,
+  );
+});
+
 test("bundled exercise catalogue includes equipment and muscle metadata", async () => {
   const exercises = await seedExercises();
   assert.ok(exercises.length >= 800);
