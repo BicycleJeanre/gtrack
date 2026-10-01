@@ -175,6 +175,9 @@ p {
 .active-workout-bar.active {
   border-color: #00d4ff88;
 }
+.active-workout-bar.rest-off {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
 .active-workout-resume {
   min-width: 0;
   padding: 5px 7px;
@@ -447,6 +450,19 @@ textarea {
 #rest-timer.active {
   border-color: #00d4ff66;
   background: #00d4ff0b;
+}
+#rest-timer.disabled {
+  border-color: #3a3a3a;
+  background: #161616;
+}
+#rest-timer.disabled strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 24px;
+}
+#rest-timer.disabled p {
+  margin: 5px 0 0;
 }
 #rest-time {
   display: block;

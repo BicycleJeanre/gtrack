@@ -20,8 +20,10 @@ export interface PlannedSet {
   weight: number;
   value?: number;
 }
-export type TrackingType = "weight_reps" | "reps" | "duration" | "distance";
-export type MeasureUnit = "kg" | "lb" | "sec" | "min" | "m" | "km" | "mi";
+export type TrackingType =
+  "weight_reps" | "machine_setting" | "reps" | "duration" | "distance";
+export type MeasureUnit =
+  "kg" | "lb" | "plates" | "sec" | "min" | "m" | "km" | "mi";
 export interface Target {
   exerciseId: string;
   name: string;
@@ -164,8 +166,14 @@ const count = (v: unknown, max: number) =>
   number(v, 1, max) && Number.isInteger(v);
 const validId = (v: unknown): v is string =>
   typeof v === "string" && /^[a-zA-Z0-9-]{1,128}$/.test(v);
-const trackingTypes = ["weight_reps", "reps", "duration", "distance"];
-const units = ["kg", "lb", "sec", "min", "m", "km", "mi"];
+const trackingTypes = [
+  "weight_reps",
+  "machine_setting",
+  "reps",
+  "duration",
+  "distance",
+];
+const units = ["kg", "lb", "plates", "sec", "min", "m", "km", "mi"];
 export const trackingFor = (value: { tracking?: TrackingType }) =>
   value.tracking || "weight_reps";
 export const unitFor = (value: {
@@ -173,11 +181,13 @@ export const unitFor = (value: {
   unit?: MeasureUnit;
 }): MeasureUnit =>
   value.unit ||
-  (trackingFor(value) === "duration"
-    ? "sec"
-    : trackingFor(value) === "distance"
-      ? "km"
-      : "kg");
+  (trackingFor(value) === "machine_setting"
+    ? "plates"
+    : trackingFor(value) === "duration"
+      ? "sec"
+      : trackingFor(value) === "distance"
+        ? "km"
+        : "kg");
 const validTracking = (value: any) => {
   const tracking = trackingFor(value),
     unit = unitFor(value);
@@ -185,6 +195,7 @@ const validTracking = (value: any) => {
     (value.tracking === undefined || trackingTypes.includes(value.tracking)) &&
     (value.unit === undefined || units.includes(value.unit)) &&
     ((tracking === "weight_reps" && ["kg", "lb"].includes(unit)) ||
+      (tracking === "machine_setting" && unit === "plates") ||
       (tracking === "reps" && value.unit === undefined) ||
       (tracking === "duration" && ["sec", "min"].includes(unit)) ||
       (tracking === "distance" && ["m", "km", "mi"].includes(unit)))
@@ -458,7 +469,8 @@ export function plannedSets(target: Target): PlannedSet[] {
         reps: target.reps,
         weight: target.weight,
         ...(trackingFor(target) === "duration" ||
-        trackingFor(target) === "distance"
+        trackingFor(target) === "distance" ||
+        trackingFor(target) === "machine_setting"
           ? { value: 0 }
           : {}),
       }));
