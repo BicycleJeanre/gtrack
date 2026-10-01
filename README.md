@@ -10,7 +10,7 @@ A personal gym training PWA for iPhone: plan workouts, log sets without receptio
 - Select from an offline catalogue of 876 exercises, searchable by name and filterable by equipment or primary muscle. Custom shared exercises include descriptions, equipment and muscle metadata. Existing GTrack movement images and videos remain available where configured; no fake workouts or history are created.
 - Start an empty session or use a saved plan. While recording, add library or new exercises, remove or reorder exercises, add or remove sets, and edit session name/rest. Completed work requires confirmation before removal. Changes save on the device and leave the original plan unchanged.
 - Log a session with automatic device saves, per-set previous results, live PR markers and congratulations banners, an optional rest countdown, restart recovery, and partial-session completion.
-- Review completed sessions, exercise PRs, estimated one-rep max, recent performance and a 30-day muscle workload heat map.
+- Review completed sessions, correct their logged values and exercise selection, and add or remove logged exercises. Track exercise PRs, estimated one-rep max, recent performance and a 30-day muscle workload heat map.
 - Privately track body weight, body-fat percentage and waist, chest, upper-arm and thigh measurements. Use built-in plate-loading and warm-up calculators.
 - Export/import JSON backups; imports add missing records and preserve existing IDs.
 - Installable PWA with a versioned offline app cache and safe update prompt.
@@ -58,15 +58,15 @@ All signed-in users can read and create library entries. Entries cannot be edite
 
 ## Data and offline behavior
 
-| Record                           | Storage and access                                                                                                                      |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `exercises/{nameHash}`           | Shared with authenticated users; create-only.                                                                                           |
-| `users/{uid}/workouts/{id}`      | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                  |
-| `users/{uid}/sessions/{uuid}`    | Private completed sessions; owners may correct the name, counted sets and logged values while the session ID and start time stay fixed. |
-| `users/{uid}/programs/{uuid}`    | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions.                     |
-| `users/{uid}/bodyEntries/{date}` | Private body measurements. Owners may add or correct their own records.                                                                 |
-| Active session                   | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                        |
-| Pending sync queue               | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                     |
+| Record                           | Storage and access                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `exercises/{nameHash}`           | Shared with authenticated users; create-only.                                                                                                      |
+| `users/{uid}/workouts/{id}`      | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                             |
+| `users/{uid}/sessions/{uuid}`    | Private completed sessions; owners may correct the name, exercises, counted sets and logged values while the session ID and start time stay fixed. |
+| `users/{uid}/programs/{uuid}`    | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions.                                |
+| `users/{uid}/bodyEntries/{date}` | Private body measurements. Owners may add or correct their own records.                                                                            |
+| Active session                   | IndexedDB on the current device, scoped to the current account. Does not move between devices while in progress.                                   |
+| Pending sync queue               | IndexedDB, alongside the records, scoped to each account. Removed only after cloud acknowledgement.                                                |
 
 Every user edit is saved to IndexedDB before the UI reports success. Cloud mode also explicitly enables Firestore’s persistent multi-tab cache. Listeners download the shared library and all plans/completed sessions for the signed-in account, then merge downloaded records around pending local edits. This full-history approach is appropriate for a few users; add pagination/retention before growing the app.
 

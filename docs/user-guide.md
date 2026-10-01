@@ -47,7 +47,7 @@ When the timer finishes, GTrack uses a chime, vibration, an on-screen popup and 
 
 ## Edit a completed workout
 
-Open **History** and choose **Edit logged workout**. You can rename the workout, correct recorded values, and choose which sets count. At least one valid completed set must remain.
+Open **History** and choose **Edit logged workout**. You can rename the workout, correct recorded values, change an exercise to another library movement, remove exercises, add missing exercises, and choose which sets count. A newly added exercise starts with one counted weight-and-reps set that you can correct before saving. At least one valid completed set must remain.
 
 The original workout date and program position do not change. Signed-in edits sync to other devices when GTrack is open and connected.
 

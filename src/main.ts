@@ -165,7 +165,7 @@ const helpTopics: Record<
   history: {
     eyebrow: "Workout history",
     title: "Correct a completed workout",
-    body: `<p>Open <strong>History</strong> and choose <strong>Edit logged workout</strong>. You can rename it, correct recorded values, and decide which sets count. Save at least one completed set.</p><p class="help-note">The original date and program position stay unchanged. Signed-in edits sync to your other devices.</p>`,
+    body: `<p>Open <strong>History</strong> and choose <strong>Edit logged workout</strong>. You can rename it, correct recorded values, replace or remove exercises, add a missing exercise from the library, and decide which sets count. Save at least one completed set.</p><p class="help-note">A newly added exercise starts with one counted weight-and-reps set. The original date and program position stay unchanged. Signed-in edits sync to your other devices.</p>`,
   },
   progress: {
     eyebrow: "Personal records",
@@ -190,7 +190,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results or counted sets.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -2352,34 +2352,8 @@ function renderHistory() {
 function editCompletedSession(id: string) {
   const session = store.state.sessions[id];
   if (!session) return;
-  modal(
-    `<form id="history-edit"><h2>Edit logged workout</h2><label>Workout name<input name="workoutName" required maxlength="60" value="${esc(session.workoutName)}"></label><p class="hint">Correct values or include and exclude sets. The original workout date and program position stay the same.</p>${session.exercises
-      .map(
-        (exercise, exerciseIndex) =>
-          `<section class="history-edit-exercise"><h3>${esc(exercise.name)}</h3><p class="hint">${trackingLabel[trackingFor(exercise)]}${trackingFor(exercise) === "reps" ? "" : ` · ${unitFor(exercise)}`}</p>${exercise.sets
-            .map((set, setIndex) => {
-              const tracking = trackingFor(exercise),
-                field =
-                  tracking === "weight_reps"
-                    ? `<label>${unitFor(exercise)}<input name="weight" type="number" min="0" max="1000" step="0.01" inputmode="decimal" value="${set.weight}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
-                    : tracking === "machine_setting"
-                      ? `<label>Plates<input name="value" type="number" min="0" max="1000" step="0.5" value="${set.value || 0}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
-                      : tracking === "reps"
-                        ? `<label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
-                        : `<label>${unitFor(exercise)}<input name="value" type="number" min="0" max="10000000" step="0.1" value="${set.value || 0}"></label>`;
-              return `<div class="history-edit-set" data-edit-ex="${exerciseIndex}" data-edit-set="${setIndex}"><span>Set ${setIndex + 1}</span>${field}<label class="checkbox"><input name="done" type="checkbox" ${set.done ? "checked" : ""}>Count</label></div>`;
-            })
-            .join("")}</section>`,
-      )
-      .join(
-        "",
-      )}<p id="history-edit-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Save changes</button></div></form>`,
-  );
-  $("#history-edit").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget as HTMLFormElement;
-    if (!form.reportValidity()) return;
-    const updated = structuredClone(session);
+  const updated = structuredClone(session);
+  const capture = (form: HTMLFormElement) => {
     updated.workoutName = String(new FormData(form).get("workoutName")).trim();
     form.querySelectorAll<HTMLElement>(".history-edit-set").forEach((row) => {
       const set =
@@ -2388,23 +2362,126 @@ function editCompletedSession(id: string) {
         ];
       row
         .querySelectorAll<HTMLInputElement>("input[type=number]")
-        .forEach(
-          (input) =>
-            (set[input.name as "weight" | "reps" | "value"] =
-              input.valueAsNumber),
-        );
+        .forEach((input) => {
+          if (Number.isFinite(input.valueAsNumber))
+            set[input.name as "weight" | "reps" | "value"] =
+              input.valueAsNumber;
+        });
       set.done = row.querySelector<HTMLInputElement>("[name=done]")!.checked;
     });
-    if (!validateRecord("sessions", updated)) {
-      $("#history-edit-error").textContent =
-        "Keep at least one valid completed set in this workout.";
-      return;
-    }
-    await store.updateSession(updated);
-    close();
-    await saved();
-    toast("Logged workout updated.");
-  });
+  };
+  const renderEditor = () => {
+    const library = exercises(),
+      libraryOptions = library
+        .map((item) => `<option value="${esc(item.name)}"></option>`)
+        .join("");
+    modal(
+      `<form id="history-edit"><h2>Edit logged workout</h2><label>Workout name<input name="workoutName" required maxlength="60" value="${esc(updated.workoutName)}"></label><p class="hint">Correct values, change or remove exercises, and choose which sets count. The original workout date and program position stay the same.</p>${updated.exercises
+        .map(
+          (exercise, exerciseIndex) =>
+            `<section class="history-edit-exercise"><div class="history-edit-exercise-head"><label>Exercise<input type="search" list="history-exercise-library" data-history-exercise="${exerciseIndex}" aria-label="Logged exercise ${exerciseIndex + 1}" value="${esc(exercise.name)}"></label><button type="button" class="text-button danger-link" data-history-exercise-remove="${exerciseIndex}" ${updated.exercises.length === 1 ? "disabled" : ""} aria-label="Remove ${esc(exercise.name)} from logged workout">Remove exercise</button></div><p class="hint">${trackingLabel[trackingFor(exercise)]}${trackingFor(exercise) === "reps" ? "" : ` · ${unitFor(exercise)}`}</p>${exercise.sets
+              .map((set, setIndex) => {
+                const tracking = trackingFor(exercise),
+                  field =
+                    tracking === "weight_reps"
+                      ? `<label>${unitFor(exercise)}<input name="weight" type="number" min="0" max="1000" step="0.01" inputmode="decimal" value="${set.weight}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                      : tracking === "machine_setting"
+                        ? `<label>Plates<input name="value" type="number" min="0" max="1000" step="0.5" value="${set.value || 0}"></label><label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                        : tracking === "reps"
+                          ? `<label>Reps<input name="reps" type="number" min="1" max="100" step="1" value="${set.reps}"></label>`
+                          : `<label>${unitFor(exercise)}<input name="value" type="number" min="0" max="10000000" step="0.1" value="${set.value || 0}"></label>`;
+                return `<div class="history-edit-set" data-edit-ex="${exerciseIndex}" data-edit-set="${setIndex}"><span>Set ${setIndex + 1}</span>${field}<label class="checkbox"><input name="done" type="checkbox" ${set.done ? "checked" : ""}>Count</label></div>`;
+              })
+              .join("")}</section>`,
+        )
+        .join(
+          "",
+        )}<datalist id="history-exercise-library">${libraryOptions}</datalist><section class="history-add-exercise"><h3>Add exercise</h3><label>Exercise from library<input id="history-add-exercise" type="search" list="history-exercise-library" placeholder="Search exercise name"></label><button type="button" class="secondary" id="history-add-exercise-button">＋ Add exercise to logged workout</button></section><p id="history-edit-error" class="error" role="alert"></p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Save changes</button></div></form>`,
+    );
+    const form = $<HTMLFormElement>("#history-edit");
+    form
+      .querySelectorAll<HTMLInputElement>("[data-history-exercise]")
+      .forEach((input) =>
+        input.addEventListener("change", () => {
+          capture(form);
+          const item = library.find(
+              (exercise) => normalize(exercise.name) === normalize(input.value),
+            ),
+            exercise = updated.exercises[Number(input.dataset.historyExercise)];
+          if (!item || !exercise) {
+            toast("Choose an exercise from the library.");
+            renderEditor();
+            return;
+          }
+          if (
+            updated.exercises.some(
+              (other) => other !== exercise && other.exerciseId === item.id,
+            )
+          ) {
+            toast("That exercise is already in this workout.");
+            renderEditor();
+            return;
+          }
+          exercise.exerciseId = item.id;
+          exercise.name = item.name;
+          exercise.description = item.description;
+          delete exercise.guidance;
+          renderEditor();
+        }),
+      );
+    action("[data-history-exercise-remove]", (event) => {
+      capture(form);
+      updated.exercises.splice(
+        Number(
+          (event.currentTarget as HTMLElement).dataset.historyExerciseRemove,
+        ),
+        1,
+      );
+      renderEditor();
+    });
+    action("#history-add-exercise-button", () => {
+      capture(form);
+      const item = library.find(
+        (exercise) =>
+          normalize(exercise.name) ===
+          normalize($<HTMLInputElement>("#history-add-exercise").value),
+      );
+      if (!item) {
+        toast("Choose an exercise from the library.");
+        return;
+      }
+      if (
+        updated.exercises.some((exercise) => exercise.exerciseId === item.id)
+      ) {
+        toast("That exercise is already in this workout.");
+        return;
+      }
+      updated.exercises.push({
+        exerciseId: item.id,
+        name: item.name,
+        description: item.description,
+        tracking: "weight_reps",
+        unit: "kg",
+        sets: [{ weight: 0, reps: 10, done: true }],
+      });
+      renderEditor();
+    });
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      capture(form);
+      if (!validateRecord("sessions", updated)) {
+        $("#history-edit-error").textContent =
+          "Keep at least one valid completed set in this workout.";
+        return;
+      }
+      await store.updateSession(updated);
+      close();
+      await saved();
+      toast("Logged workout updated.");
+    });
+  };
+  renderEditor();
 }
 
 function muscleHeatmap() {

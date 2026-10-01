@@ -115,6 +115,7 @@ test("global and contextual help explain current workout features on mobile", as
   );
   await expect(guide).toContainText("1.25 kg");
   await expect(guide).toContainText("Edit logged workout");
+  await expect(guide).toContainText("replace, remove or add exercises");
   await expect(guide).toContainText("persistent bar");
   await page.screenshot({
     path: "test-results/help-mobile.png",
@@ -706,6 +707,68 @@ test("multi-add supports timed units, active-workout resume, history edits and P
   await page.getByRole("button", { name: "Progress", exact: true }).click();
   await expect(page.locator(".pr-grid")).toContainText("2");
   await expect(page.locator(".pr-grid")).toContainText("min");
+});
+
+test("logged workouts allow changing, adding and removing exercises", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await createWorkout(page, "Editable history");
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Complete Barbell bench press set 1",
+      exact: true,
+    })
+    .click();
+  await page.getByRole("button", { name: "Finish workout" }).click();
+  await page.getByRole("button", { name: "Save session" }).click();
+
+  await page.getByRole("button", { name: "Edit logged workout" }).click();
+  const loggedExercise = page.getByLabel("Logged exercise 1", { exact: true });
+  await loggedExercise.fill("Goblet squat");
+  await loggedExercise.press("Tab");
+  await expect(
+    page.getByLabel("Logged exercise 1", { exact: true }),
+  ).toHaveValue("Goblet squat");
+  await expect(
+    page.getByRole("button", {
+      name: "Remove Goblet squat from logged workout",
+    }),
+  ).toBeDisabled();
+
+  await page
+    .getByLabel("Exercise from library", { exact: true })
+    .fill("Dumbbell bench press");
+  await page
+    .getByRole("button", { name: "Add exercise to logged workout" })
+    .click();
+  await expect(page.locator(".history-edit-exercise")).toHaveCount(2);
+  await page
+    .getByRole("button", {
+      name: "Remove Goblet squat from logged workout",
+    })
+    .click();
+  await expect(page.locator(".history-edit-exercise")).toHaveCount(1);
+  await expect(
+    page.getByLabel("Logged exercise 1", { exact: true }),
+  ).toHaveValue("Dumbbell bench press");
+  const exercise = page.locator(".history-edit-exercise");
+  await exercise.getByLabel("kg", { exact: true }).fill("12.5");
+  await exercise.getByLabel("Reps", { exact: true }).fill("12");
+  await page.getByRole("button", { name: "Save changes" }).click();
+
+  const history = page.locator(".history");
+  await expect(history).toContainText("Dumbbell bench press");
+  await expect(history).toContainText("12.5 kg × 12");
+  await expect(history).not.toContainText("Goblet squat");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("workouts support no timed rest and unknown-weight machine settings", async ({
