@@ -150,6 +150,60 @@ test("global and contextual help explain current workout features on mobile", as
   ).toBe(true);
 });
 
+test("mobile exercise filters rebuild native picker options and preserve selections", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await page.locator("#session-add").click();
+
+  const picker = page.locator("#session-exercise select[multiple]");
+  await page.locator("#session-equipment").selectOption("cable");
+  await page.locator("#session-muscle").selectOption("lats");
+  await expect(page.locator("#session-filter-count")).toContainText(
+    "matching exercises",
+  );
+  await expect(
+    picker.locator("option", { hasText: "V-Bar Pulldown" }),
+  ).toHaveCount(1);
+  await expect(
+    picker.locator("option", { hasText: "Barbell bench press" }),
+  ).toHaveCount(0);
+  await picker.selectOption({ label: "V-Bar Pulldown" });
+
+  await page.locator("#session-equipment").selectOption("dumbbell");
+  await page.locator("#session-muscle").selectOption("chest");
+  await expect(picker.locator("option:checked")).toContainText(
+    "V-Bar Pulldown",
+  );
+  await expect(
+    picker.locator("option", { hasText: /^Dumbbell bench press$/ }),
+  ).toHaveCount(1);
+  await expect(
+    picker.locator("option", { hasText: "Barbell bench press" }),
+  ).toHaveCount(0);
+
+  await page.getByLabel("Search exercises").fill("no-such-exercise-name");
+  await expect(page.locator("#session-filter-count")).toHaveText(
+    "0 matching exercises",
+  );
+  await expect(picker.locator("option")).toHaveCount(1);
+  await expect(picker.locator("option:checked")).toContainText(
+    "V-Bar Pulldown",
+  );
+  await page.getByRole("button", { name: "Add to session" }).click();
+  await expect(page.locator(".logging-exercise h2")).toHaveText(
+    "V-Bar Pulldown",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
 test("plans, custom library, editing, reordering and persistence", async ({
   page,
 }) => {

@@ -155,7 +155,7 @@ const helpTopics: Record<
   exercises: {
     eyebrow: "Exercise library",
     title: "Find or add exercises",
-    body: `<ol class="help-steps"><li>Search more than 800 bundled movements by name.</li><li>Use equipment and primary-muscle filters to shorten the list.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>.</li><li>If a movement is missing, add its name, description, equipment and primary muscle.</li><li>Use <strong>View form</strong> for your existing movement media and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names and metadata. Your workouts, programs, body measurements and training history remain private.</p>`,
+    body: `<ol class="help-steps"><li>Search more than 800 bundled movements by name.</li><li>Combine equipment and primary-muscle filters to shorten the phone picker. Only matching choices are shown.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment and primary muscle.</li><li>Use <strong>View form</strong> for your existing movement media and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
   },
   session: {
     eyebrow: "Active workout",
@@ -190,7 +190,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or filter by equipment and primary muscle. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or combine equipment and primary-muscle filters. The phone picker shows only matching choices and keeps selections when filters change. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -239,6 +239,45 @@ const exercises = () =>
   Object.values(store.state.exercises).sort((a, b) =>
     a.name.localeCompare(b.name),
   );
+function filteredExercises(query: string, equipment: string, muscle: string) {
+  const normalizedQuery = normalize(query);
+  return exercises().filter((exercise) => {
+    const metadata = exercise.primaryMuscles
+      ? exercise
+      : { ...exercise, ...catalogueMetadata(exercise.name) };
+    return (
+      normalize(
+        [
+          exercise.name,
+          exercise.description,
+          metadata.equipment,
+          ...(metadata.primaryMuscles || []),
+        ].join(" "),
+      ).includes(normalizedQuery) &&
+      (!equipment || metadata.equipment === equipment) &&
+      (!muscle || metadata.primaryMuscles?.includes(muscle))
+    );
+  });
+}
+function refreshExerciseSelect(
+  select: HTMLSelectElement,
+  matches: Exercise[],
+  selectedIds: Set<string>,
+) {
+  const matchIds = new Set(matches.map((exercise) => exercise.id)),
+    preserved = [...selectedIds]
+      .map((id) => store.state.exercises[id])
+      .filter((exercise): exercise is Exercise => Boolean(exercise))
+      .filter((exercise) => !matchIds.has(exercise.id)),
+    shown = [...preserved, ...matches];
+  select.innerHTML = `${select.multiple ? "" : `<option value="">${matches.length ? "Choose an exercise…" : "No matching exercises"}</option>`}${shown
+    .map(
+      (exercise) =>
+        `<option value="${exercise.id}" ${selectedIds.has(exercise.id) ? "selected" : ""}>${esc(exercise.name)}${preserved.includes(exercise) ? " · selected" : ""}</option>`,
+    )
+    .join("")}`;
+  select.disabled = shown.length === 0;
+}
 function toast(message: string) {
   $("#toast").textContent = message;
   $("#toast").classList.add("show");
@@ -286,8 +325,13 @@ function changed() {
   if (!userReady) return;
   const label = document.querySelector("#sync");
   if (label) label.textContent = syncLabel();
+  document
+    .querySelectorAll<HTMLElement>("[data-exercise-filter-root]")
+    .forEach((root) =>
+      root.dispatchEvent(new Event("gtrack:exercise-library-changed")),
+    );
   if (
-    (!["builder", "today", "program-builder"].includes(view) ||
+    (!["builder", "today", "program-builder", "guide"].includes(view) ||
       (view === "today" && !store.state.draft)) &&
     !$<HTMLDialogElement>("#dialog").open &&
     !["INPUT", "TEXTAREA", "SELECT"].includes(
@@ -1016,23 +1060,7 @@ function renderGuide() {
     const query = normalize($<HTMLInputElement>("#guide-search").value),
       equipment = $<HTMLSelectElement>("#guide-equipment").value,
       muscle = $<HTMLSelectElement>("#guide-muscle").value;
-    const matches = exercises().filter((e) => {
-      const metadata = e.primaryMuscles
-        ? e
-        : { ...e, ...catalogueMetadata(e.name) };
-      return (
-        normalize(
-          [
-            e.name,
-            e.description,
-            metadata.equipment,
-            ...(metadata.primaryMuscles || []),
-          ].join(" "),
-        ).includes(query) &&
-        (!equipment || metadata.equipment === equipment) &&
-        (!muscle || metadata.primaryMuscles?.includes(muscle))
-      );
-    });
+    const matches = filteredExercises(query, equipment, muscle);
     const visible = matches.slice(0, 80);
     $("#guide-count").textContent =
       matches.length > visible.length
@@ -1052,6 +1080,8 @@ function renderGuide() {
     bindGuideButtons();
   };
   show();
+  $("#screen").setAttribute("data-exercise-filter-root", "");
+  $("#screen").addEventListener("gtrack:exercise-library-changed", show);
   $("#guide-search").addEventListener("input", show);
   $("#guide-equipment").addEventListener("change", show);
   $("#guide-muscle").addEventListener("change", show);
@@ -1272,14 +1302,7 @@ function renderTargets() {
   $("#targets").innerHTML = draftTargets
     .map(
       (t, i) =>
-        `<div class="card pad target"><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select class="target-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select class="target-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Exercise from library<select required data-index="${i}"><option value="">Choose an exercise…</option>${exercises()
-          .map(
-            (e) =>
-              `<option value="${e.id}" ${e.id === t.exerciseId ? "selected" : ""}>${esc(e.name)}</option>`,
-          )
-          .join(
-            "",
-          )}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "machine_setting" ? "Plates" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "machine_setting" ? "Reps" : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
+        `<div class="card pad target" data-exercise-filter-root><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select class="target-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select class="target-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p class="hint target-filter-count" role="status"></p><label>Exercise from library<select required data-index="${i}">${t.exerciseId ? `<option value="${t.exerciseId}" selected>${esc(t.name)}</option>` : '<option value="">Choose an exercise…</option>'}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "machine_setting" ? "Plates" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "machine_setting" ? "Reps" : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
     )
     .join("");
   action(".target-guide", (event) => {
@@ -1292,35 +1315,23 @@ function renderTargets() {
   });
   document.querySelectorAll<HTMLElement>("#targets .target").forEach((card) => {
     const filter = () => {
-      const query = normalize(
+      const query =
           card.querySelector<HTMLInputElement>(".target-search")!.value,
-        ),
         equipment =
           card.querySelector<HTMLSelectElement>(".target-equipment")!.value,
         muscle = card.querySelector<HTMLSelectElement>(".target-muscle")!.value,
-        select = card.querySelector<HTMLSelectElement>("select[data-index]")!;
-      for (const option of select.options) {
-        if (!option.value) continue;
-        const exercise = store.state.exercises[option.value],
-          metadata = exercise.primaryMuscles
-            ? exercise
-            : { ...exercise, ...catalogueMetadata(exercise.name) };
-        option.hidden = !(
-          normalize(
-            [
-              exercise.name,
-              metadata.equipment,
-              ...(metadata.primaryMuscles || []),
-            ].join(" "),
-          ).includes(query) &&
-          (!equipment || metadata.equipment === equipment) &&
-          (!muscle || metadata.primaryMuscles?.includes(muscle))
-        );
-      }
+        select = card.querySelector<HTMLSelectElement>("select[data-index]")!,
+        selected = new Set(select.value ? [select.value] : []),
+        matches = filteredExercises(query, equipment, muscle);
+      refreshExerciseSelect(select, matches, selected);
+      card.querySelector<HTMLElement>(".target-filter-count")!.textContent =
+        `${matches.length} matching exercise${matches.length === 1 ? "" : "s"}`;
     };
+    filter();
     card.querySelector(".target-search")!.addEventListener("input", filter);
     card.querySelector(".target-equipment")!.addEventListener("change", filter);
     card.querySelector(".target-muscle")!.addEventListener("change", filter);
+    card.addEventListener("gtrack:exercise-library-changed", filter);
   });
   document
     .querySelectorAll<HTMLInputElement>("#targets [name=sets]")
@@ -1578,11 +1589,7 @@ function sessionExerciseDialog() {
     if (keepOpen) sessionExerciseDialog();
   };
   modal(
-    `<form id="session-exercise"><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="session-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Exercise from library<select required multiple size="8">${exercises()
-      .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`)
-      .join(
-        "",
-      )}</select></label><p class="hint">Select one or several exercises.</p><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
+    `<form id="session-exercise" data-exercise-filter-root><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="session-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="session-filter-count" class="hint" role="status"></p><label>Exercise from library<select required multiple size="8"></select></label><p class="hint">Select one or several exercises.</p><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
   );
   const select = $<HTMLSelectElement>("#session-exercise select[multiple]"),
     trackingSelect = $<HTMLSelectElement>("#session-tracking"),
@@ -1594,35 +1601,29 @@ function sessionExerciseDialog() {
         : `${select.selectedOptions.length} exercises selected`;
   });
   const filterSessionExercises = () => {
-    const query = normalize(
-        $<HTMLInputElement>("#session-exercise-search").value,
-      ),
+    const query = $<HTMLInputElement>("#session-exercise-search").value,
       equipment = $<HTMLSelectElement>("#session-equipment").value,
-      muscle = $<HTMLSelectElement>("#session-muscle").value;
-    for (const option of select.options) {
-      const exercise = store.state.exercises[option.value],
-        metadata = exercise.primaryMuscles
-          ? exercise
-          : { ...exercise, ...catalogueMetadata(exercise.name) };
-      option.hidden = !(
-        normalize(
-          [
-            exercise.name,
-            metadata.equipment,
-            ...(metadata.primaryMuscles || []),
-          ].join(" "),
-        ).includes(query) &&
-        (!equipment || metadata.equipment === equipment) &&
-        (!muscle || metadata.primaryMuscles?.includes(muscle))
-      );
-    }
+      muscle = $<HTMLSelectElement>("#session-muscle").value,
+      selected = new Set(
+        [...select.selectedOptions].map((option) => option.value),
+      ),
+      matches = filteredExercises(query, equipment, muscle);
+    refreshExerciseSelect(select, matches, selected);
+    $("#session-filter-count").textContent =
+      `${matches.length} matching exercise${matches.length === 1 ? "" : "s"}`;
+    select.dispatchEvent(new Event("change"));
   };
+  filterSessionExercises();
   $("#session-exercise-search").addEventListener(
     "input",
     filterSessionExercises,
   );
   $("#session-equipment").addEventListener("change", filterSessionExercises);
   $("#session-muscle").addEventListener("change", filterSessionExercises);
+  $("#session-exercise").addEventListener(
+    "gtrack:exercise-library-changed",
+    filterSessionExercises,
+  );
   trackingSelect.addEventListener("change", () => {
     const tracking = trackingSelect.value as TrackingType,
       label = $("#session-unit-label");

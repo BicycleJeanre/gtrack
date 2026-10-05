@@ -28,7 +28,7 @@ Use the same unit for an exercise over time so previous results and personal rec
 
 ## Find and add exercises
 
-GTrack includes 876 exercises that remain available offline. Use the search box in the exercise guide, workout builder or active-session picker. Filter by equipment and primary muscle when the name is unknown or the list is too broad. While recording, you can select several exercises before choosing **Add to session**.
+GTrack includes 876 exercises that remain available offline. Use the search box in the exercise guide, workout builder or active-session picker. Combine equipment and primary-muscle filters when the name is unknown or the list is too broad. On a phone, the picker contains only matching exercises. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. While recording, you can select several exercises before choosing **Add to session**.
 
 If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle. Custom exercise names and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
 
