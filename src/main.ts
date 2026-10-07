@@ -1882,22 +1882,21 @@ function sessionExerciseDialog() {
     for (const exercise of selected)
       await add(exercise, tracking, unit, false, guided, setRest, exerciseRest);
   });
-  action("#session-new-exercise", () =>
+  action("#session-new-exercise", () => {
+    const tracking = trackingSelect.value as TrackingType,
+      unit =
+        tracking === "reps" ? undefined : (unitSelect.value as MeasureUnit),
+      guided =
+        tracking === "duration" &&
+        $<HTMLInputElement>("#session-guided").checked,
+      setRest = $<HTMLInputElement>("#session-set-rest").valueAsNumber,
+      exerciseRest = $<HTMLInputElement>(
+        "#session-exercise-rest",
+      ).valueAsNumber;
     exerciseDialog(0, (exercise) =>
-      add(
-        exercise,
-        trackingSelect.value as TrackingType,
-        trackingSelect.value === "reps"
-          ? undefined
-          : (unitSelect.value as MeasureUnit),
-        false,
-        trackingSelect.value === "duration" &&
-          $<HTMLInputElement>("#session-guided").checked,
-        $<HTMLInputElement>("#session-set-rest").valueAsNumber,
-        $<HTMLInputElement>("#session-exercise-rest").valueAsNumber,
-      ),
-    ),
-  );
+      add(exercise, tracking, unit, false, guided, setRest, exerciseRest),
+    );
+  });
 }
 function removeSessionItem(exerciseIndex: number, setIndex?: number) {
   if (!validSessionInputs()) return;
