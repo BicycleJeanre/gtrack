@@ -28,9 +28,13 @@ Use the same unit for an exercise over time so previous results and personal rec
 
 ## Find and add exercises
 
-GTrack includes 876 exercises that remain available offline. Use the search box in the exercise guide, workout builder or active-session picker. Combine equipment and primary-muscle filters when the name is unknown or the list is too broad. On a phone, the picker contains only matching exercises. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. While recording, you can select several exercises before choosing **Add to session**.
+GTrack includes 917 bundled and curated exercise names that remain available offline. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Search by name, machine, equipment or body area, and combine equipment and primary-muscle filters when the list is too broad. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. You can select several picture cards before choosing **Add to session**.
 
-If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle. Custom exercise names and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
+If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle, then take or choose a photo that clearly shows the movement or machine. GTrack compresses the photo before saving it. Custom exercise names, photos and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
+
+## Add exercise notes
+
+Every exercise in an active workout has an optional **Workout note**. Use it for a machine seat number, cable attachment, stance, technique reminder or discomfort you want to remember. The note saves on the phone when you leave the field, syncs with the completed workout and appears in History. The most recent comparable workout note also appears with the previous result next time you perform that exercise.
 
 Choose **View form** to see available movement photos and technique cues. These are general form reminders and do not replace individual coaching.
 

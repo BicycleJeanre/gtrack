@@ -2,7 +2,7 @@
 
 Workouts → Exercise guide searches the shared exercise library by name or body area. View form opens the same guide from the workout editor, program preview and live session without rebuilding the underlying form or modifying records.
 
-The exercise catalogue now contains 876 bundled records and supports equipment and primary-muscle filters. Catalogue metadata and movement media are deliberately separate: adding a catalogue exercise does not assign an unrelated image or video. The existing GTrack guides and media continue to match by normalized exercise name.
+The exercise catalogue contains 876 source records plus 41 curated GTrack names and supports equipment and primary-muscle filters. The visual picker resolves all 917 names to an exact movement thumbnail. Ten compact WebP sprite sheets keep these thumbnails available offline without creating hundreds of network requests. Larger guides remain separate and continue to match by normalized exercise name.
 
 64 built-in exercises have original GTrack movement cues and common mistakes. 62 have two demonstration photographs. Dumbbell Romanian deadlift and hanging knee raise have text-only guides because an exact image match was unavailable. Custom exercises show their saved description with an explicit missing-guide message; names are normalized but never fuzzy-matched to a different movement.
 
@@ -14,4 +14,6 @@ The photo pairs show two positions, not a continuous animation. High-pulley fly 
 
 Further learning: [ACE exercise library](https://www.acefitness.org/resources/everyone/exercise-library/). Hip-hinge cues were cross-checked against [NASM’s barbell Romanian deadlift guide](https://www.nasm.org/resource-center/exercise-library/romanian-deadlift-barbell).
 
-Images are imported through Vite and included in the service worker’s versioned precache. The initial download adds approximately 8.3 MB; subsequent viewing requires no external image host or connection. External learning/source links require internet. Existing accounts, backups and Firestore schema are unchanged.
+Images are imported through Vite and included in the service worker’s versioned precache. The larger form-guide download adds approximately 8.3 MB; subsequent viewing requires no external image host or connection. External learning/source links require internet. Existing accounts and backups remain compatible; shared custom exercises may now include one bounded photo.
+
+The compact visual-picker assets and their rebuild process are documented separately in [exercise thumbnails](exercise-thumbnails.md).

@@ -34,10 +34,50 @@ test("completed history is independent from workout plans", () => {
   workout.exercises[0].weight = 100;
   assert.equal(session.exercises[0].sets[0].weight, 20);
   session.exercises[0].sets[0].done = true;
+  session.exercises[0].note = "Seat 4 and use the narrow handle.";
   assert.equal(volume(session), 160);
   session.completedAt = Date.now();
   assert.equal(validateRecord("sessions", session), true);
   session.exercises[0].sets[0].reps = -1;
+  assert.equal(validateRecord("sessions", session), false);
+});
+
+test("shared exercise photos and session notes are bounded", async () => {
+  const exercise = {
+    id: await exerciseId("Photo press"),
+    name: "Photo press",
+    description: "Fixture",
+    createdAt: 1,
+    image: "data:image/webp;base64,AAAA",
+  };
+  assert.equal(validateRecord("exercises", exercise), true);
+  assert.equal(
+    validateRecord("exercises", {
+      ...exercise,
+      image: "https://example.com/a.jpg",
+    }),
+    false,
+  );
+  const session = startSession({
+    id: "photo-plan",
+    name: "Photo plan",
+    rest: 0,
+    updatedAt: 1,
+    archived: false,
+    exercises: [
+      {
+        exerciseId: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        sets: 1,
+        reps: 8,
+        weight: 20,
+      },
+    ],
+  });
+  session.exercises[0].sets[0].done = true;
+  session.exercises[0].note = "x".repeat(501);
+  session.completedAt = Date.now();
   assert.equal(validateRecord("sessions", session), false);
 });
 test("backup validation rejects a renamed exercise identity and invalid numeric values", async () => {

@@ -14,6 +14,7 @@ export interface Exercise {
   primaryMuscles?: string[];
   secondaryMuscles?: string[];
   category?: string;
+  image?: string;
 }
 export interface PlannedSet {
   reps: number;
@@ -88,6 +89,7 @@ export interface ProgramSession {
 }
 export interface SessionExercise {
   guidance?: string;
+  note?: string;
   rest?: number;
   exerciseId: string;
   name: string;
@@ -160,6 +162,10 @@ export async function exerciseId(name: string) {
 }
 const text = (v: unknown, max: number): v is string =>
   typeof v === "string" && v.trim().length > 0 && v.length <= max;
+const exerciseImage = (value: unknown) =>
+  typeof value === "string" &&
+  value.length <= 100_000 &&
+  /^data:image\/(webp|jpeg|png);base64,[a-zA-Z0-9+/=]+$/.test(value);
 const number = (v: unknown, min: number, max: number) =>
   typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
 const count = (v: unknown, max: number) =>
@@ -313,6 +319,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "primaryMuscles",
           "secondaryMuscles",
           "category",
+          "image",
         ]
       : kind === "workouts"
         ? ["id", "name", "rest", "exercises", "updatedAt", "archived"]
@@ -331,6 +338,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
       text(value.name, 80) &&
       text(value.description, 600) &&
       number(value.createdAt, 1, 9e15) &&
+      (value.image === undefined || exerciseImage(value.image)) &&
       (value.equipment === undefined ||
         equipmentTypes.includes(value.equipment)) &&
       (value.category === undefined ||
@@ -443,6 +451,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
         text(e.description, 600) &&
         validTracking(e) &&
         (e.guidance === undefined || text(e.guidance, 500)) &&
+        (e.note === undefined || text(e.note, 500)) &&
         (e.rest === undefined || number(e.rest, 0, 600)) &&
         Array.isArray(e.sets) &&
         e.sets.length > 0 &&
