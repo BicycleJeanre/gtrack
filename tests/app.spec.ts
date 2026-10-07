@@ -183,6 +183,18 @@ test("mobile visual exercise filters preserve selections and show movement image
     .filter({ has: page.getByText("V-Bar Pulldown", { exact: true }) });
   await expect(vBar).toHaveCount(1);
   await expect(vBar.locator(".exercise-thumbnail")).toBeVisible();
+  await vBar.locator(".exercise-thumbnail").click();
+  const imagePreview = page.locator("#exercise-image-preview-dialog");
+  await expect(imagePreview).toBeVisible();
+  await expect(imagePreview).toContainText("V-Bar Pulldown");
+  expect(
+    await imagePreview
+      .locator(".exercise-thumbnail-large")
+      .evaluate((element) => Math.round(element.getBoundingClientRect().width)),
+  ).toBeGreaterThan(200);
+  await expect(vBar.getByRole("checkbox")).not.toBeChecked();
+  await imagePreview.getByRole("button", { name: "Close image" }).click();
+  await expect(imagePreview).not.toBeVisible();
   await expect(
     page.getByText("Barbell bench press", { exact: true }),
   ).toHaveCount(0);

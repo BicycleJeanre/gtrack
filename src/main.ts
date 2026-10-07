@@ -78,12 +78,19 @@ const date = (n: number) =>
     day: "numeric",
     year: "numeric",
   });
-function exerciseThumbnail(exercise: Exercise, className = "") {
+function exerciseThumbnail(
+  exercise: Exercise,
+  className = "",
+  interactive = true,
+) {
+  const preview = interactive
+    ? ` role="button" tabindex="0" data-exercise-preview="${esc(exercise.id)}" data-exercise-name="${esc(exercise.name)}" aria-label="Enlarge image for ${esc(exercise.name)}"`
+    : "";
   if (exercise.image)
-    return `<img class="exercise-thumbnail ${className}" src="${esc(exercise.image)}" alt="${esc(exercise.name)} demonstration">`;
+    return `<img class="exercise-thumbnail ${className}" src="${esc(exercise.image)}" alt="${esc(exercise.name)} demonstration"${preview}>`;
   const thumbnail = bundledThumbnail(exercise.name);
   if (thumbnail)
-    return `<span class="exercise-thumbnail ${className}" role="img" aria-label="${esc(exercise.name)} demonstration" style="background-image:url('${thumbnail.url}');background-position:${thumbnail.x}% ${thumbnail.y}%"></span>`;
+    return `<span class="exercise-thumbnail ${className}" ${preview || `role="img" aria-label="${esc(exercise.name)} demonstration"`} style="background-image:url('${thumbnail.url}');background-position:${thumbnail.x}% ${thumbnail.y}%"></span>`;
   return `<span class="exercise-thumbnail exercise-thumbnail-missing ${className}" role="img" aria-label="No image for ${esc(exercise.name)}">📷</span>`;
 }
 async function compactExerciseImage(file: File) {
@@ -199,7 +206,7 @@ const helpTopics: Record<
   exercises: {
     eyebrow: "Exercise library",
     title: "Find or add exercises",
-    body: `<ol class="help-steps"><li>Browse movement pictures when you do not know an exercise or machine name.</li><li>Search by name, equipment or body area, then combine equipment and primary-muscle filters to shorten the list.</li><li>While recording, select several picture cards before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment, primary muscle and a clear photo.</li><li>Use <strong>View form</strong> for larger movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names, photos and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
+    body: `<ol class="help-steps"><li>Browse movement pictures when you do not know an exercise or machine name. Tap any picture to open a larger preview without selecting it.</li><li>Search by name, equipment or body area, then combine equipment and primary-muscle filters to shorten the list.</li><li>While recording, select several picture cards before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment, primary muscle and a clear photo.</li><li>Use <strong>View form</strong> for larger movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names, photos and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
   },
   session: {
     eyebrow: "Active workout",
@@ -356,6 +363,52 @@ function modal(content: string) {
 function close() {
   $<HTMLDialogElement>("#dialog").close();
 }
+function showExerciseImage(id: string, name: string) {
+  const exercise = store?.state.exercises[id] || {
+      id,
+      name,
+      description: "",
+      createdAt: 1,
+    },
+    existing = document.querySelector<HTMLDialogElement>(
+      "#exercise-image-preview-dialog",
+    ),
+    preview = existing || document.createElement("dialog");
+  preview.id = "exercise-image-preview-dialog";
+  preview.setAttribute("aria-labelledby", "exercise-image-preview-title");
+  preview.innerHTML = `<div class="eyebrow">Movement preview</div><h2 id="exercise-image-preview-title">${esc(exercise.name)}</h2>${exerciseThumbnail(exercise, "exercise-thumbnail-large", false)}<p class="hint">Close this preview to return to the exercise list.</p><button type="button" class="primary">Close image</button>`;
+  if (!existing) document.body.append(preview);
+  preview.querySelector<HTMLButtonElement>("button")!.onclick = () =>
+    preview.close();
+  preview.onclick = (event) => {
+    if (event.target === preview) preview.close();
+  };
+  preview.showModal();
+}
+document.addEventListener("click", (event) => {
+  const target = (event.target as Element).closest<HTMLElement>(
+    "[data-exercise-preview]",
+  );
+  if (!target) return;
+  event.preventDefault();
+  event.stopPropagation();
+  showExerciseImage(
+    target.dataset.exercisePreview!,
+    target.dataset.exerciseName!,
+  );
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const target = (event.target as Element).closest<HTMLElement>(
+    "[data-exercise-preview]",
+  );
+  if (!target) return;
+  event.preventDefault();
+  showExerciseImage(
+    target.dataset.exercisePreview!,
+    target.dataset.exerciseName!,
+  );
+});
 function syncLabel() {
   if (!configured || store.account === "local")
     return "Saved on phone · local only";
