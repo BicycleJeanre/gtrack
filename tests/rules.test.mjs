@@ -78,6 +78,31 @@ test("signed-in users share the create-only exercise library", async () => {
       description: "Replaced",
     }),
   );
+  await assertSucceeds(
+    setDoc(doc(alice, "exercises", exercise.id), {
+      ...exercise,
+      image: "data:image/webp;base64,AAAA",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(bob, "exercises", exercise.id), {
+      ...exercise,
+      description: "Replaced",
+      image: "data:image/webp;base64,BBBB",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(alice, "exercises", exercise.id), {
+      ...exercise,
+      image: "data:text/html;base64,AAAA",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(alice, "exercises", exercise.id), {
+      ...exercise,
+      image: "data:image/webp;base64,BBBB",
+    }),
+  );
   await assertFails(deleteDoc(doc(alice, "exercises", exercise.id)));
   await assertFails(
     setDoc(doc(guest, "exercises", "b".repeat(64)), {

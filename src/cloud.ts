@@ -21,7 +21,7 @@ import {
   connectFirestoreEmulator,
   type Unsubscribe,
 } from "firebase/firestore";
-import { type Kind, validateRecord } from "./model";
+import { type Exercise, type Kind, validateRecord } from "./model";
 import { type Store } from "./store";
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -131,9 +131,17 @@ export class Cloud {
             : doc(db, "users", this.store.account, pending.kind, pending.id);
         if (pending.kind === "exercises") {
           // Stable name hashes + create-only library entries avoid duplicates across users.
+          const exerciseRecord = record as Exercise;
           const remote = await runTransaction(db, async (transaction) => {
             const existing = await transaction.get(ref);
-            if (existing.exists()) return existing.data();
+            if (existing.exists()) {
+              const data = existing.data();
+              if (exerciseRecord.image && !data.image) {
+                transaction.update(ref, { image: exerciseRecord.image });
+                return { ...data, image: exerciseRecord.image };
+              }
+              return data;
+            }
             transaction.set(ref, record);
             return record;
           });

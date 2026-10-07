@@ -1,6 +1,6 @@
 # Exercise catalogue
 
-GTrack bundles 876 exercises so search and filters continue to work offline. Each record includes a name, description, equipment, category, primary muscles and secondary muscles. The catalogue does not replace or alter GTrack's own images and videos.
+GTrack bundles 876 source exercises and 41 curated GTrack names so search, pictures and filters continue to work offline. Each source record includes a name, description, equipment, category, primary muscles and secondary muscles. The visual library provides an exact thumbnail for all 917 names without replacing GTrack's larger images and videos.
 
 The data is derived from [Free Exercise DB at commit `a859101`](https://github.com/yuhonas/free-exercise-db/tree/a859101d633a01c4a1a920d6a8ce41dabba0705f), which is released into the public domain under The Unlicense. The source snapshot can be transformed with:
 

@@ -37,6 +37,10 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
     .getByLabel("Description", { exact: true })
     .fill("Synthetic description shared across test accounts.");
   await page
+    .getByLabel("Exercise photo", { exact: true })
+    .setInputFiles("public/icon-192.png");
+  await expect(page.locator("#exercise-image-preview img")).toBeVisible();
+  await page
     .getByRole("button", { name: "Add to library", exact: true })
     .click();
   await expect(page.locator("#dialog")).not.toBeVisible();

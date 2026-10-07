@@ -1,4 +1,5 @@
 import { guideFor, photoFor } from "./exercise-guides";
+import { bundledThumbnail } from "./exercise-thumbnails";
 import {
   catalogueMetadata,
   displayLabel,
@@ -77,6 +78,49 @@ const date = (n: number) =>
     day: "numeric",
     year: "numeric",
   });
+function exerciseThumbnail(exercise: Exercise, className = "") {
+  if (exercise.image)
+    return `<img class="exercise-thumbnail ${className}" src="${esc(exercise.image)}" alt="${esc(exercise.name)} demonstration">`;
+  const thumbnail = bundledThumbnail(exercise.name);
+  if (thumbnail)
+    return `<span class="exercise-thumbnail ${className}" role="img" aria-label="${esc(exercise.name)} demonstration" style="background-image:url('${thumbnail.url}');background-position:${thumbnail.x}% ${thumbnail.y}%"></span>`;
+  return `<span class="exercise-thumbnail exercise-thumbnail-missing ${className}" role="img" aria-label="No image for ${esc(exercise.name)}">📷</span>`;
+}
+async function compactExerciseImage(file: File) {
+  if (!file.type.startsWith("image/"))
+    throw new Error("Choose an image file for the exercise.");
+  const source = new Image(),
+    objectUrl = URL.createObjectURL(file);
+  try {
+    source.src = objectUrl;
+    await source.decode();
+    const canvas = document.createElement("canvas"),
+      context = canvas.getContext("2d")!,
+      size = 192,
+      scale = Math.min(size / source.naturalWidth, size / source.naturalHeight),
+      width = source.naturalWidth * scale,
+      height = source.naturalHeight * scale;
+    canvas.width = size;
+    canvas.height = size;
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, size, size);
+    context.drawImage(
+      source,
+      (size - width) / 2,
+      (size - height) / 2,
+      width,
+      height,
+    );
+    const image = canvas.toDataURL("image/webp", 0.72);
+    if (image.length > 100_000)
+      throw new Error(
+        "That image is too detailed. Try a simpler or smaller photo.",
+      );
+    return image;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 const trackingLabel: Record<TrackingType, string> = {
   weight_reps: "Weight + reps",
   machine_setting: "Machine setting + reps",
@@ -155,12 +199,12 @@ const helpTopics: Record<
   exercises: {
     eyebrow: "Exercise library",
     title: "Find or add exercises",
-    body: `<ol class="help-steps"><li>Search more than 800 bundled movements by name.</li><li>Combine equipment and primary-muscle filters to shorten the phone picker. Only matching choices are shown.</li><li>While recording, select several exercises before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment and primary muscle.</li><li>Use <strong>View form</strong> for your existing movement media and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
+    body: `<ol class="help-steps"><li>Browse movement pictures when you do not know an exercise or machine name.</li><li>Search by name, equipment or body area, then combine equipment and primary-muscle filters to shorten the list.</li><li>While recording, select several picture cards before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment, primary muscle and a clear photo.</li><li>Use <strong>View form</strong> for larger movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names, photos and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
   },
   session: {
     eyebrow: "Active workout",
     title: "Build the workout while you train",
-    body: `<ol class="help-steps"><li>Edit weight, machine setting, reps, time or distance before completing a set.</li><li>The previous result beneath each set shows the matching set from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. A rest timer starts only when timed rest is enabled.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
+    body: `<ol class="help-steps"><li>Edit weight, machine setting, reps, time or distance before completing a set.</li><li>Add an exercise note for machine setup, attachments, technique or anything you want to remember. It is saved with this workout and appears in history.</li><li>The previous result and note beneath each exercise come from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. A rest timer starts only when timed rest is enabled.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
   },
   history: {
     eyebrow: "Workout history",
@@ -190,7 +234,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The offline catalogue contains more than 800 movements. Search by name or combine equipment and primary-muscle filters. The phone picker shows only matching choices and keeps selections when filters change. Existing GTrack images and videos are used where available.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises while training</summary><p>Tap <strong>Add exercise</strong>, filter the library and select one or several movements. You can also create a missing exercise with a name, description, equipment and primary muscle.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The visual library contains more than 900 movements. Use each movement picture to identify unfamiliar names, then search by name or combine equipment and primary-muscle filters. The picker keeps selected movements when filters change.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Add exercises and notes while training</summary><p>Tap <strong>Add exercise</strong>, filter the visual library and select one or several movements. You can also create a missing exercise with its own photo, name, description, equipment and primary muscle. Add an optional <strong>Workout note</strong> under any exercise to remember a machine setup, technique cue or how the movement felt; the note appears in History and beside the previous result next time.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection, notes or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -1073,7 +1117,7 @@ function renderGuide() {
             const metadata = e.primaryMuscles
               ? e
               : { ...e, ...catalogueMetadata(e.name) };
-            return `<article class="card pad guide-result"><div><div class="eyebrow">${esc(displayLabel(metadata.equipment || "other"))} · ${esc(displayLabel(metadata.primaryMuscles?.[0] || "general"))}</div><h2>${esc(e.name)}</h2><p class="hint">${guide ? (guide.images.length ? "Photos · movement · form cues" : "Movement · form cues") : "Instructions and tracking"}</p></div>${guideButton(e.name)}</article>`;
+            return `<article class="card pad guide-result">${exerciseThumbnail(e)}<div><div class="eyebrow">${esc(displayLabel(metadata.equipment || "other"))} · ${esc(displayLabel(metadata.primaryMuscles?.[0] || "general"))}</div><h2>${esc(e.name)}</h2><p class="hint">${guide ? (guide.images.length ? "Photos · movement · form cues" : "Movement · form cues") : "Instructions and tracking"}</p></div>${guideButton(e.name)}</article>`;
           })
           .join("")
       : '<p class="card pad">No exercises match. Try another name or body area.</p>';
@@ -1413,8 +1457,24 @@ function exerciseDialog(
   onSelected?: (exercise: Exercise) => Promise<void>,
 ) {
   modal(
-    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "Names, descriptions and exercise metadata are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><div class="library-filters"><label>Equipment<select name="equipment">${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select name="primaryMuscle">${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
+    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "The name, description, photo and exercise metadata are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><div class="library-filters"><label>Equipment<select name="equipment">${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select name="primaryMuscle">${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><label>Exercise photo<input id="exercise-image" name="image" type="file" accept="image/*" capture="environment"></label><p class="hint">Use a clear side or front view of the movement or machine. GTrack compresses it before sharing.</p><div id="exercise-image-preview"></div><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
   );
+  const imageInput = $<HTMLInputElement>("#exercise-image");
+  imageInput.addEventListener("change", async () => {
+    const file = imageInput.files?.[0];
+    if (!file) return;
+    try {
+      const image = await compactExerciseImage(file);
+      $("#exercise-image-preview").innerHTML =
+        `<img src="${image}" alt="New exercise preview">`;
+      $("#exercise-error").textContent = "";
+    } catch (error) {
+      imageInput.value = "";
+      $("#exercise-image-preview").innerHTML = "";
+      $("#exercise-error").textContent =
+        error instanceof Error ? error.message : "Could not read that image.";
+    }
+  });
   $("#exercise-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = $<HTMLButtonElement>("#exercise-form button[type=submit]");
@@ -1427,24 +1487,36 @@ function exerciseDialog(
           .replace(/\s+/g, " "),
         description = String(f.get("description")).trim(),
         equipment = String(f.get("equipment")),
-        primaryMuscle = String(f.get("primaryMuscle"));
+        primaryMuscle = String(f.get("primaryMuscle")),
+        imageFile = imageInput.files?.[0],
+        image = imageFile ? await compactExerciseImage(imageFile) : undefined;
       if (!name || !description)
         throw new Error("Enter a name and description.");
       const id = await exerciseId(name);
       const existing =
         store.state.exercises[id] ||
         exercises().find((e) => normalize(e.name) === normalize(name));
-      const exercise: Exercise = existing || {
-        id,
-        name,
-        description,
-        createdAt: Date.now(),
-        equipment,
-        primaryMuscles: [primaryMuscle],
-        secondaryMuscles: [],
-        category: "strength",
-      };
-      if (!existing) await store.put("exercises", exercise);
+      if (!existing && !image)
+        throw new Error(
+          "Add a photo so other users can identify the exercise.",
+        );
+      const exercise: Exercise = existing
+        ? image && !existing.image
+          ? { ...existing, image }
+          : existing
+        : {
+            id,
+            name,
+            description,
+            createdAt: Date.now(),
+            equipment,
+            primaryMuscles: [primaryMuscle],
+            secondaryMuscles: [],
+            category: "strength",
+            image: image!,
+          };
+      if (!existing || exercise !== existing)
+        await store.put("exercises", exercise);
       if (onSelected) {
         await onSelected(exercise);
       } else {
@@ -1459,9 +1531,11 @@ function exerciseDialog(
       }
       void cloud?.flush();
       toast(
-        existing
+        existing && exercise === existing
           ? "Already in the library — selected the existing exercise."
-          : "Exercise added to the library.",
+          : existing
+            ? "Photo added to the shared exercise."
+            : "Exercise added to the library.",
       );
     } catch (e) {
       $("#exercise-error").textContent =
@@ -1589,29 +1663,58 @@ function sessionExerciseDialog() {
     if (keepOpen) sessionExerciseDialog();
   };
   modal(
-    `<form id="session-exercise" data-exercise-filter-root><h2>Add exercises to session</h2><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search by name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="session-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="session-filter-count" class="hint" role="status"></p><label>Exercise from library<select required multiple size="8"></select></label><p class="hint">Select one or several exercises.</p><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><p id="session-description" class="description"></p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Add to session</button></div></form>`,
+    `<form id="session-exercise" data-exercise-filter-root><h2>Add exercises to session</h2><p class="hint">Choose by picture, name, equipment or muscle. Select several movements before adding them.</p><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search name, machine or body area"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle<select id="session-muscle"><option value="">All muscles</option>${muscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="session-filter-count" class="hint" role="status"></p><div id="session-exercise-results" class="visual-exercise-list" aria-label="Exercise library"></div><button type="button" class="text-button" id="session-show-more" hidden>Show more exercises</button><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><p id="session-description" class="description">No exercises selected</p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary" id="session-add-selected" disabled>Add to session</button></div></form>`,
   );
-  const select = $<HTMLSelectElement>("#session-exercise select[multiple]"),
-    trackingSelect = $<HTMLSelectElement>("#session-tracking"),
-    unitSelect = $<HTMLSelectElement>("#session-unit");
-  select.addEventListener("change", () => {
-    $("#session-description").textContent =
-      select.selectedOptions.length === 1
-        ? store.state.exercises[select.value]?.description || ""
-        : `${select.selectedOptions.length} exercises selected`;
-  });
+  const trackingSelect = $<HTMLSelectElement>("#session-tracking"),
+    unitSelect = $<HTMLSelectElement>("#session-unit"),
+    selectedIds = new Set<string>();
+  let visibleLimit = 40;
+  const updateSelectedSummary = () => {
+    $("#session-description").textContent = selectedIds.size
+      ? `${selectedIds.size} exercise${selectedIds.size === 1 ? "" : "s"} selected`
+      : "No exercises selected";
+    $<HTMLButtonElement>("#session-add-selected").disabled =
+      selectedIds.size === 0;
+  };
   const filterSessionExercises = () => {
     const query = $<HTMLInputElement>("#session-exercise-search").value,
       equipment = $<HTMLSelectElement>("#session-equipment").value,
       muscle = $<HTMLSelectElement>("#session-muscle").value,
-      selected = new Set(
-        [...select.selectedOptions].map((option) => option.value),
-      ),
-      matches = filteredExercises(query, equipment, muscle);
-    refreshExerciseSelect(select, matches, selected);
+      matches = filteredExercises(query, equipment, muscle),
+      matchIds = new Set(matches.map((exercise) => exercise.id)),
+      preserved = [...selectedIds]
+        .map((id) => store.state.exercises[id])
+        .filter((exercise): exercise is Exercise => Boolean(exercise))
+        .filter((exercise) => !matchIds.has(exercise.id)),
+      visible = [...preserved, ...matches.slice(0, visibleLimit)];
+    $("#session-exercise-results").innerHTML = visible.length
+      ? visible
+          .map((exercise) => {
+            const metadata = exercise.primaryMuscles
+              ? exercise
+              : { ...exercise, ...catalogueMetadata(exercise.name) };
+            return `<label class="exercise-choice${selectedIds.has(exercise.id) ? " selected" : ""}"><input type="checkbox" value="${exercise.id}" ${selectedIds.has(exercise.id) ? "checked" : ""}>${exerciseThumbnail(exercise)}<span class="exercise-choice-copy"><strong>${esc(exercise.name)}</strong><small>${esc(displayLabel(metadata.equipment || "other"))} · ${esc(displayLabel(metadata.primaryMuscles?.[0] || "general"))}</small><span>${esc(exercise.description)}</span></span><span class="exercise-choice-check" aria-hidden="true">✓</span></label>`;
+          })
+          .join("")
+      : '<p class="empty-filter">No exercises match those filters.</p>';
     $("#session-filter-count").textContent =
-      `${matches.length} matching exercise${matches.length === 1 ? "" : "s"}`;
-    select.dispatchEvent(new Event("change"));
+      `${matches.length} matching exercise${matches.length === 1 ? "" : "s"}${preserved.length ? ` · ${preserved.length} selected outside filters` : ""}`;
+    const showMore = $<HTMLButtonElement>("#session-show-more");
+    showMore.hidden = matches.length <= visibleLimit;
+    showMore.textContent = `Show more exercises · ${matches.length - visibleLimit} remaining`;
+    document
+      .querySelectorAll<HTMLInputElement>("#session-exercise-results input")
+      .forEach((input) =>
+        input.addEventListener("change", () => {
+          if (input.checked) selectedIds.add(input.value);
+          else selectedIds.delete(input.value);
+          input
+            .closest(".exercise-choice")
+            ?.classList.toggle("selected", input.checked);
+          updateSelectedSummary();
+        }),
+      );
+    updateSelectedSummary();
   };
   filterSessionExercises();
   $("#session-exercise-search").addEventListener(
@@ -1624,6 +1727,10 @@ function sessionExerciseDialog() {
     "gtrack:exercise-library-changed",
     filterSessionExercises,
   );
+  action("#session-show-more", () => {
+    visibleLimit += 40;
+    filterSessionExercises();
+  });
   trackingSelect.addEventListener("change", () => {
     const tracking = trackingSelect.value as TrackingType,
       label = $("#session-unit-label");
@@ -1635,10 +1742,10 @@ function sessionExerciseDialog() {
   });
   $("#session-exercise").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const selected = [...select.selectedOptions]
-      .map((option) => store.state.exercises[option.value])
+    const selected = [...selectedIds]
+      .map((id) => store.state.exercises[id])
       .filter(Boolean);
-    if (!selected.length) return select.reportValidity();
+    if (!selected.length) return;
     const tracking = trackingSelect.value as TrackingType,
       unit =
         tracking === "reps" ? undefined : (unitSelect.value as MeasureUnit);
@@ -1901,7 +2008,7 @@ function previousPerformanceHtml(exercise: SessionExercise) {
   const result = previous.sets
     .map((set) => setSummary(previous.exercise, set))
     .join(" · ");
-  return `<div class="previous-performance"><div class="eyebrow">Last time · ${date(previous.session.completedAt)}</div><strong>${previous.sets.length} ${previous.sets.length === 1 ? "set" : "sets"}</strong><p>${esc(result)}<br><span>${esc(previous.session.workoutName)}</span></p></div>`;
+  return `<div class="previous-performance"><div class="eyebrow">Last time · ${date(previous.session.completedAt)}</div><strong>${previous.sets.length} ${previous.sets.length === 1 ? "set" : "sets"}</strong><p>${esc(result)}<br><span>${esc(previous.session.workoutName)}</span></p>${previous.exercise.note ? `<p class="previous-note"><strong>Previous note</strong><br>${esc(previous.exercise.note)}</p>` : ""}</div>`;
 }
 type LiveRecord = {
   label: string;
@@ -2094,7 +2201,7 @@ function renderToday() {
     `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><div class="title-with-help"><h2>${esc(draft.workoutName)}</h2>${helpButton("session", "How to record and change an active workout")}</div>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div><div id="logging">${draft.exercises
       .map((e, i) => {
         const labels = sessionSetLabels(e);
-        return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><h2>${esc(e.name)}</h2>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`;
+        return `<section class="card pad logging-exercise"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}</div><div class="logging-exercise-title">${exerciseThumbnail(store.state.exercises[e.exerciseId] || { id: e.exerciseId, name: e.name, description: e.description, createdAt: 1 })}<h2>${esc(e.name)}</h2></div>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<label class="session-note">Workout note<textarea data-session-note="${i}" maxlength="500" placeholder="e.g. seat 4, narrow handle, left shoulder felt tight">${esc(e.note || "")}</textarea></label><div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`;
       })
       .join(
         "",
@@ -2186,6 +2293,29 @@ function renderToday() {
           const status = document.querySelector("#draft-status");
           if (status) status.textContent = "Not saved — check device storage";
           fail(e);
+        }
+      }),
+    );
+  document
+    .querySelectorAll<HTMLTextAreaElement>("#logging [data-session-note]")
+    .forEach((textarea) =>
+      textarea.addEventListener("change", async () => {
+        $("#draft-status").textContent = "Saving note…";
+        const note = textarea.value.trim();
+        try {
+          await store.mutate((state) => {
+            const exercise =
+              state.draft?.exercises[Number(textarea.dataset.sessionNote)];
+            if (!exercise) return;
+            if (note) exercise.note = note;
+            else delete exercise.note;
+          });
+          const status = document.querySelector("#draft-status");
+          if (status) status.textContent = "Saved on phone";
+        } catch (error) {
+          const status = document.querySelector("#draft-status");
+          if (status) status.textContent = "Note not saved — check storage";
+          fail(error);
         }
       }),
     );
@@ -2335,7 +2465,7 @@ function renderHistory() {
                     .filter((x) => x.done)
                     .map((x) => setSummary(e, x))
                     .join(" · ") || "No completed sets"
-                }</p></div>`,
+                }</p>${e.note ? `<p class="history-note"><strong>Note:</strong> ${esc(e.note)}</p>` : ""}</div>`,
             )
             .join("")}</details></article>`,
       )
@@ -2356,6 +2486,15 @@ function editCompletedSession(id: string) {
   const updated = structuredClone(session);
   const capture = (form: HTMLFormElement) => {
     updated.workoutName = String(new FormData(form).get("workoutName")).trim();
+    form
+      .querySelectorAll<HTMLTextAreaElement>("[data-history-note]")
+      .forEach((textarea) => {
+        const exercise =
+          updated.exercises[Number(textarea.dataset.historyNote)];
+        const note = textarea.value.trim();
+        if (note) exercise.note = note;
+        else delete exercise.note;
+      });
     form.querySelectorAll<HTMLElement>(".history-edit-set").forEach((row) => {
       const set =
         updated.exercises[Number(row.dataset.editEx)].sets[
@@ -2380,7 +2519,7 @@ function editCompletedSession(id: string) {
       `<form id="history-edit"><h2>Edit logged workout</h2><label>Workout name<input name="workoutName" required maxlength="60" value="${esc(updated.workoutName)}"></label><p class="hint">Correct values, change or remove exercises, and choose which sets count. The original workout date and program position stay the same.</p>${updated.exercises
         .map(
           (exercise, exerciseIndex) =>
-            `<section class="history-edit-exercise"><div class="history-edit-exercise-head"><label>Exercise<input type="search" list="history-exercise-library" data-history-exercise="${exerciseIndex}" aria-label="Logged exercise ${exerciseIndex + 1}" value="${esc(exercise.name)}"></label><button type="button" class="text-button danger-link" data-history-exercise-remove="${exerciseIndex}" ${updated.exercises.length === 1 ? "disabled" : ""} aria-label="Remove ${esc(exercise.name)} from logged workout">Remove exercise</button></div><p class="hint">${trackingLabel[trackingFor(exercise)]}${trackingFor(exercise) === "reps" ? "" : ` · ${unitFor(exercise)}`}</p>${exercise.sets
+            `<section class="history-edit-exercise"><div class="history-edit-exercise-head"><label>Exercise<input type="search" list="history-exercise-library" data-history-exercise="${exerciseIndex}" aria-label="Logged exercise ${exerciseIndex + 1}" value="${esc(exercise.name)}"></label><button type="button" class="text-button danger-link" data-history-exercise-remove="${exerciseIndex}" ${updated.exercises.length === 1 ? "disabled" : ""} aria-label="Remove ${esc(exercise.name)} from logged workout">Remove exercise</button></div><p class="hint">${trackingLabel[trackingFor(exercise)]}${trackingFor(exercise) === "reps" ? "" : ` · ${unitFor(exercise)}`}</p><label>Exercise note<textarea data-history-note="${exerciseIndex}" maxlength="500" placeholder="Optional setup or form note">${esc(exercise.note || "")}</textarea></label>${exercise.sets
               .map((set, setIndex) => {
                 const tracking = trackingFor(exercise),
                   field =

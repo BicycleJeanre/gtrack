@@ -575,6 +575,12 @@ details summary {
 .history-exercise p {
   margin-bottom: 0;
 }
+.history-note,
+.previous-note {
+  padding: 9px 11px;
+  border-left: 2px solid var(--accent);
+  background: #111;
+}
 .edit-history {
   margin-bottom: 6px;
 }
@@ -838,6 +844,112 @@ dialog h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.visual-exercise-list {
+  display: grid;
+  gap: 8px;
+  max-height: 44dvh;
+  margin: 8px 0 4px;
+  padding-right: 3px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.exercise-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) 24px;
+  gap: 10px;
+  align-items: center;
+  min-height: 86px;
+  margin: 0;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid #343434;
+  border-radius: 9px;
+  background: #121212;
+  color: #e8e8e8;
+  cursor: pointer;
+}
+.exercise-choice.selected {
+  border-color: #00d4ffaa;
+  background: #102126;
+}
+.exercise-choice > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+}
+.exercise-thumbnail {
+  display: block;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 78px;
+  border-radius: 7px;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-size: 1000% 1000%;
+  object-fit: contain;
+}
+.exercise-thumbnail-missing {
+  display: grid;
+  place-items: center;
+  background: #242424;
+  color: var(--muted);
+  font-size: 24px;
+}
+.exercise-choice-copy {
+  min-width: 0;
+}
+.exercise-choice-copy strong,
+.exercise-choice-copy small,
+.exercise-choice-copy > span {
+  display: block;
+}
+.exercise-choice-copy strong {
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+.exercise-choice-copy small {
+  margin-bottom: 5px;
+  color: var(--accent);
+  font-size: 10px;
+}
+.exercise-choice-copy > span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.exercise-choice-check {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #4a4a4a;
+  border-radius: 50%;
+  color: transparent;
+}
+.exercise-choice.selected .exercise-choice-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #06171c;
+}
+.empty-filter {
+  padding: 20px;
+  text-align: center;
+}
+#exercise-image-preview img {
+  display: block;
+  width: 128px;
+  height: 128px;
+  margin: 0 0 16px;
+  border-radius: 9px;
+  background: #fff;
+  object-fit: contain;
 }
 .exercise-tags {
   display: flex;
@@ -1264,6 +1376,19 @@ dialog h2 {
   color: var(--accent);
   font-size: 12px;
 }
+.logging-exercise-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logging-exercise-title .exercise-thumbnail {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+}
+.session-note textarea {
+  min-height: 72px;
+}
 .program-guidance a {
   color: var(--accent);
 }
@@ -1426,6 +1551,12 @@ dialog h2 {
 .guide-result h2 {
   font-size: 18px;
   margin: 7px 0;
+}
+.guide-result {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
 }
 .guide-result .hint {
   margin-bottom: 0;
