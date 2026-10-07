@@ -1,6 +1,6 @@
 # Exercise catalogue
 
-GTrack bundles 876 source exercises and 41 curated GTrack names so search, pictures and filters continue to work offline. Each source record includes a name, description, equipment, category, primary muscles and secondary muscles. The visual library provides an exact thumbnail for all 917 names without replacing GTrack's larger images and videos.
+GTrack bundles 876 source exercises and 93 curated GTrack names so search, pictures and filters continue to work offline. The 52 additional mobility entries cover every movement in the beginner prenatal stretching routine plus familiar yoga poses and common stretches. Each record includes a name, description, equipment, category, primary muscles and secondary muscles. The visual library provides a thumbnail for all 969 names without replacing GTrack's larger images and videos.
 
 The picker derives a broad primary muscle group—Arms, Back, Chest, Core, Legs, Shoulders or Full body—from the detailed catalogue metadata. Custom shared exercises store the selected broad group and retain a representative detailed muscle so existing workload heat maps continue to work.
 

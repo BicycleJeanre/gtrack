@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
+import { stretchingExercises } from "../src/stretching-exercises";
 async function addExercisePhoto(page: Page) {
   await page
     .getByLabel("Exercise photo", { exact: true })
@@ -223,6 +224,37 @@ test("mobile visual exercise filters preserve selections and show movement image
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("prenatal, stretching and yoga exercises are searchable with images", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await page.locator("#session-add").click();
+  const search = page.getByLabel("Search exercises");
+  for (const exercise of stretchingExercises) {
+    await search.fill(exercise.name);
+    const choice = page
+      .locator(".exercise-choice")
+      .filter({ has: page.getByText(exercise.name, { exact: true }) });
+    await expect(choice).toHaveCount(1);
+    const thumbnail = choice.locator(".exercise-thumbnail");
+    await expect(thumbnail).not.toHaveClass(/exercise-thumbnail-missing/);
+    expect(
+      await thumbnail.evaluate(
+        (element) => getComputedStyle(element).backgroundImage !== "none",
+      ),
+      `${exercise.name} should have a movement image`,
+    ).toBe(true);
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
 });
