@@ -203,6 +203,18 @@ p {
   margin-top: 3px;
   color: var(--accent);
 }
+.active-rest small {
+  display: block;
+  max-width: 110px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.active-workout-bar.interval-active {
+  border-color: #f4c34f88;
+}
 .active-rest .help-icon {
   width: 22px;
   min-width: 22px;
@@ -474,6 +486,48 @@ textarea {
 }
 #rest-timer.active #rest-time {
   color: var(--accent);
+}
+.guided-interval-settings {
+  margin: 14px 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #151515;
+}
+.guided-interval-settings .hint {
+  margin-bottom: 0;
+}
+.guided-interval {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 18px;
+  border-color: #f4c34f55;
+}
+.guided-interval h3,
+.guided-interval p {
+  margin: 4px 0;
+}
+.guided-interval #interval-time {
+  display: block;
+  margin-top: 10px;
+  color: #f4c34f;
+  font-size: 38px;
+  font-variant-numeric: tabular-nums;
+}
+.guided-interval.active {
+  background: #f4c34f0b;
+}
+.interval-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 120px;
+}
+.logging-exercise.interval-current {
+  border-color: #f4c34f88;
+  box-shadow: 0 0 0 1px #f4c34f22;
 }
 .rest-actions {
   display: grid;
@@ -1117,7 +1171,8 @@ dialog h2 {
 #toast.show {
   opacity: 1;
 }
-#rest-complete-popup {
+#rest-complete-popup,
+#guided-complete-popup {
   position: fixed;
   z-index: 20;
   top: calc(16px + env(safe-area-inset-top));
@@ -1135,16 +1190,19 @@ dialog h2 {
   background: #15282cf7;
   box-shadow: 0 12px 40px #000b;
 }
-#rest-complete-popup strong {
+#rest-complete-popup strong,
+#guided-complete-popup strong {
   display: block;
   margin-top: 5px;
   color: var(--accent);
   font-size: 20px;
 }
-#rest-complete-popup p {
+#rest-complete-popup p,
+#guided-complete-popup p {
   margin: 4px 0 0;
 }
-#rest-complete-popup button {
+#rest-complete-popup button,
+#guided-complete-popup button {
   min-width: 44px;
   min-height: 44px;
   border: 0;

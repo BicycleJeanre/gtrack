@@ -119,9 +119,18 @@ test("signed-in users share the create-only exercise library", async () => {
       id: "c".repeat(64),
       name: "Metadata press",
       equipment: "barbell",
+      primaryMuscleGroup: "chest",
       primaryMuscles: ["chest"],
       secondaryMuscles: ["triceps"],
       category: "strength",
+    }),
+  );
+  await assertFails(
+    setDoc(doc(alice, "exercises", "d".repeat(64)), {
+      ...exercise,
+      id: "d".repeat(64),
+      name: "Invalid group press",
+      primaryMuscleGroup: "upper torso",
     }),
   );
 });

@@ -3,6 +3,7 @@ import {
   equipmentTypes,
   exerciseCatalogue,
   muscleGroups,
+  primaryMuscleGroups,
 } from "./exercise-catalog.ts";
 
 export interface Exercise {
@@ -11,6 +12,7 @@ export interface Exercise {
   description: string;
   createdAt: number;
   equipment?: string;
+  primaryMuscleGroup?: string;
   primaryMuscles?: string[];
   secondaryMuscles?: string[];
   category?: string;
@@ -36,6 +38,9 @@ export interface Target {
   unit?: MeasureUnit;
   // Optional for compatibility with plans and backups made before per-set targets.
   setTargets?: PlannedSet[];
+  guided?: boolean;
+  setRest?: number;
+  exerciseRest?: number;
 }
 export interface Workout {
   id: string;
@@ -91,6 +96,9 @@ export interface SessionExercise {
   guidance?: string;
   note?: string;
   rest?: number;
+  guided?: boolean;
+  setRest?: number;
+  exerciseRest?: number;
   exerciseId: string;
   name: string;
   description: string;
@@ -316,6 +324,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "description",
           "createdAt",
           "equipment",
+          "primaryMuscleGroup",
           "primaryMuscles",
           "secondaryMuscles",
           "category",
@@ -341,6 +350,8 @@ export function validateRecord(kind: Kind, value: any): boolean {
       (value.image === undefined || exerciseImage(value.image)) &&
       (value.equipment === undefined ||
         equipmentTypes.includes(value.equipment)) &&
+      (value.primaryMuscleGroup === undefined ||
+        primaryMuscleGroups.includes(value.primaryMuscleGroup)) &&
       (value.category === undefined ||
         [
           "strength",
@@ -381,6 +392,15 @@ export function validateRecord(kind: Kind, value: any): boolean {
           count(e.reps, 100) &&
           number(e.weight, 0, 1000) &&
           validTracking(e) &&
+          (e.guided === undefined || typeof e.guided === "boolean") &&
+          (e.setRest === undefined || number(e.setRest, 0, 600)) &&
+          (e.exerciseRest === undefined || number(e.exerciseRest, 0, 600)) &&
+          (!e.guided ||
+            (trackingFor(e) === "duration" &&
+              e.setRest !== undefined &&
+              e.exerciseRest !== undefined &&
+              Array.isArray(e.setTargets) &&
+              e.setTargets.every((set: any) => number(set.value, 1, 1e7)))) &&
           (e.setTargets === undefined ||
             (Array.isArray(e.setTargets) &&
               e.setTargets.length === e.sets &&
@@ -453,6 +473,15 @@ export function validateRecord(kind: Kind, value: any): boolean {
         (e.guidance === undefined || text(e.guidance, 500)) &&
         (e.note === undefined || text(e.note, 500)) &&
         (e.rest === undefined || number(e.rest, 0, 600)) &&
+        (e.guided === undefined || typeof e.guided === "boolean") &&
+        (e.setRest === undefined || number(e.setRest, 0, 600)) &&
+        (e.exerciseRest === undefined || number(e.exerciseRest, 0, 600)) &&
+        (!e.guided ||
+          (trackingFor(e) === "duration" &&
+            e.setRest !== undefined &&
+            e.exerciseRest !== undefined &&
+            Array.isArray(e.sets) &&
+            e.sets.every((set: any) => number(set.value, 1, 1e7)))) &&
         Array.isArray(e.sets) &&
         e.sets.length > 0 &&
         e.sets.length <= 12 &&
@@ -497,6 +526,9 @@ export function startSession(workout: Workout): Session {
       description: e.description,
       ...(e.tracking ? { tracking: e.tracking } : {}),
       ...(e.unit ? { unit: e.unit } : {}),
+      ...(e.guided ? { guided: true } : {}),
+      ...(e.setRest !== undefined ? { setRest: e.setRest } : {}),
+      ...(e.exerciseRest !== undefined ? { exerciseRest: e.exerciseRest } : {}),
       sets: plannedSets(e).map((set) => ({ ...set, done: false })),
     })),
   };

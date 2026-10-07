@@ -2,7 +2,7 @@
 
 Workouts → Exercise guide searches the shared exercise library by name or body area. View form opens the same guide from the workout editor, program preview and live session without rebuilding the underlying form or modifying records.
 
-The exercise catalogue contains 876 source records plus 41 curated GTrack names and supports equipment and primary-muscle filters. The visual picker resolves all 917 names to an exact movement thumbnail. Ten compact WebP sprite sheets keep these thumbnails available offline without creating hundreds of network requests. Larger guides remain separate and continue to match by normalized exercise name.
+The exercise catalogue contains 876 source records plus 41 curated GTrack names and supports equipment and broad primary muscle-group filters. Detailed primary and secondary muscle metadata remains attached to each movement for form guidance and the progress heat map. The visual picker resolves all 917 names to an exact movement thumbnail. Ten compact WebP sprite sheets keep these thumbnails available offline without creating hundreds of network requests. Larger guides remain separate and continue to match by normalized exercise name.
 
 64 built-in exercises have original GTrack movement cues and common mistakes. 62 have two demonstration photographs. Dumbbell Romanian deadlift and hanging knee raise have text-only guides because an exact image match was unavailable. Custom exercises show their saved description with an explicit missing-guide message; names are normalized but never fuzzy-matched to a different movement.
 

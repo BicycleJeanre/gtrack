@@ -174,7 +174,7 @@ test("mobile visual exercise filters preserve selections and show movement image
   await page.locator("#session-add").click();
 
   await page.locator("#session-equipment").selectOption("cable");
-  await page.locator("#session-muscle").selectOption("lats");
+  await page.locator("#session-muscle").selectOption("back");
   await expect(page.locator("#session-filter-count")).toContainText(
     "matching exercises",
   );
@@ -942,6 +942,66 @@ test("workouts support no timed rest and unknown-weight machine settings", async
   ).toBe(true);
 });
 
+test("guided timed exercises advance through set and exercise rests on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Create workout", exact: false })
+    .click();
+  await page.getByLabel("Workout name", { exact: true }).fill("Mobility flow");
+  await page
+    .getByLabel("Exercise from library")
+    .selectOption({ label: "Plank" });
+  await page.getByLabel("Track by").selectOption("duration");
+  await page.getByLabel("Run as a guided interval").check();
+  await page.getByLabel("Rest between timed sets (seconds)").fill("1");
+  await page.getByLabel("Rest after exercise (seconds)").fill("2");
+  await page.getByLabel("Sets", { exact: true }).fill("2");
+  await page.getByLabel("Exercise 1 set 1 duration").fill("1");
+  await page.getByLabel("Exercise 1 set 2 duration").fill("1");
+  await page.getByRole("button", { name: "Save workout" }).click();
+  await page.getByRole("button", { name: "Start workout" }).click();
+
+  await page.locator("#session-add").click();
+  await page.getByLabel("Search exercises").fill("Child's Pose");
+  await selectVisualExercise(page, "Child's Pose");
+  await page.locator("#session-tracking").selectOption("duration");
+  await page.getByLabel("Run as guided intervals").check();
+  await page.locator("#session-set-rest").fill("1");
+  await page.locator("#session-exercise-rest").fill("1");
+  await page.getByRole("button", { name: "Add to session" }).click();
+  await page.getByLabel("Child's Pose set 1 duration").fill("1");
+
+  await expect(page.locator("#guided-interval")).toContainText(
+    "2 timed exercises",
+  );
+  await page.getByRole("button", { name: "Start intervals" }).click();
+  await expect(page.locator("#guided-interval")).toContainText("Work");
+  await expect(page.locator(".active-workout-bar")).toContainText("Plank");
+  await expect(page.locator("#guided-interval")).toContainText("Set rest", {
+    timeout: 3_000,
+  });
+  await page.getByRole("button", { name: "Skip rest" }).click();
+  await expect(page.locator("#guided-interval")).toContainText("Set 2 of 2");
+  await page.getByRole("button", { name: "Complete now" }).click();
+  await expect(page.locator("#guided-interval")).toContainText("Exercise rest");
+  await expect(page.locator("#guided-interval")).toContainText("Child's Pose");
+  await page.getByRole("button", { name: "Skip rest" }).click();
+  await expect(page.locator("#guided-interval")).toContainText("Work");
+  await page.getByRole("button", { name: "Complete now" }).click();
+  await expect(page.locator("#guided-complete-popup")).toContainText(
+    "Intervals complete",
+  );
+  await expect(page.locator("#finish")).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
 test("catalogue filters, muscle insights, body tracking and calculators work on mobile", async ({
   page,
 }) => {
@@ -966,7 +1026,7 @@ test("catalogue filters, muscle insights, body tracking and calculators work on 
     .getByRole("button", { name: "Exercise guide", exact: false })
     .click();
   await page.getByLabel("Equipment").selectOption("dumbbell");
-  await page.getByLabel("Primary muscle").selectOption("chest");
+  await page.getByLabel("Primary muscle group").selectOption("chest");
   await expect(page.locator("#guide-count")).toContainText("exercises");
   await expect(page.locator(".guide-result").first()).toContainText("Dumbbell");
 
