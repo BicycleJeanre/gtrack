@@ -9,6 +9,7 @@ import {
   seedExercises,
 } from "../src/model.ts";
 import { muscleGroupFor } from "../src/exercise-catalog.ts";
+import { stretchingExercises } from "../src/stretching-exercises.ts";
 test("exercise identities normalize spaces, Unicode and case", async () => {
   assert.equal(await exerciseId(" Cable  fly "), await exerciseId("cable fly"));
   assert.equal(await exerciseId("Ｃable fly"), await exerciseId("cable fly"));
@@ -421,6 +422,36 @@ test("bundled exercise catalogue includes equipment and muscle metadata", async 
     new Set(exercises.map((exercise) => exercise.id)).size,
     exercises.length,
   );
+});
+
+test("prenatal, common stretching and yoga movements are bundled", async () => {
+  const exercises = await seedExercises(),
+    byName = new Map(exercises.map((exercise) => [exercise.name, exercise]));
+  assert.equal(stretchingExercises.length, 52);
+  assert.equal(
+    new Set(stretchingExercises.map((exercise) => exercise.name)).size,
+    stretchingExercises.length,
+  );
+  for (const name of [
+    "Gentle Walking",
+    "Shoulder Rolls",
+    "Neck Mobility",
+    "Diaphragmatic Breathing",
+    "Cat-Cow Stretch",
+    "Wide-Knee Child's Pose",
+    "Seated Butterfly Stretch",
+    "Pelvic Tilts",
+    "Standing Side Stretch",
+    "Downward-Facing Dog",
+    "Warrior II",
+    "Corpse Pose (Savasana)",
+    "Open Book Thoracic Rotation",
+  ]) {
+    const exercise = byName.get(name);
+    assert.ok(exercise, `${name} should be available`);
+    assert.equal(exercise.category, "stretching");
+    assert.equal(validateRecord("exercises", exercise), true);
+  }
 });
 
 test("private body measurements validate and round-trip through backups", async () => {

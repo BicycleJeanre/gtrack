@@ -5,6 +5,7 @@ import {
   muscleGroups,
   primaryMuscleGroups,
 } from "./exercise-catalog.ts";
+import { stretchingExercises } from "./stretching-exercises.ts";
 
 export interface Exercise {
   id: string;
@@ -844,9 +845,13 @@ export async function seedExercises(): Promise<Exercise[]> {
       { name, description },
     ]),
   );
+  const curatedStretching = new Map(
+    stretchingExercises.map((exercise) => [normalize(exercise.name), exercise]),
+  );
   const combined = exerciseCatalogue.map((exercise) => ({
     ...exercise,
     ...(preferred.get(normalize(exercise.name)) || {}),
+    ...(curatedStretching.get(normalize(exercise.name)) || {}),
   }));
   for (const seed of preferred.values()) {
     if (
@@ -855,6 +860,14 @@ export async function seedExercises(): Promise<Exercise[]> {
       )
     )
       combined.push({ ...seed, ...catalogueMetadata(seed.name) });
+  }
+  for (const exercise of curatedStretching.values()) {
+    if (
+      !combined.some(
+        (existing) => normalize(existing.name) === normalize(exercise.name),
+      )
+    )
+      combined.push(exercise);
   }
   return Promise.all(
     combined.map(async ({ name, description, ...metadata }) => ({

@@ -92,7 +92,7 @@ function exerciseThumbnail(
     return `<img class="exercise-thumbnail ${className}" src="${esc(exercise.image)}" alt="${esc(exercise.name)} demonstration"${preview}>`;
   const thumbnail = bundledThumbnail(exercise.name);
   if (thumbnail)
-    return `<span class="exercise-thumbnail ${className}" ${preview || `role="img" aria-label="${esc(exercise.name)} demonstration"`} style="background-image:url('${thumbnail.url}');background-position:${thumbnail.x}% ${thumbnail.y}%"></span>`;
+    return `<span class="exercise-thumbnail ${className}" ${preview || `role="img" aria-label="${esc(exercise.name)} demonstration"`} style="background-image:url('${thumbnail.url}');background-size:${thumbnail.size || 1000}% ${thumbnail.size || 1000}%;background-position:${thumbnail.x}% ${thumbnail.y}%"></span>`;
   return `<span class="exercise-thumbnail exercise-thumbnail-missing ${className}" role="img" aria-label="No image for ${esc(exercise.name)}">📷</span>`;
 }
 async function compactExerciseImage(file: File) {
