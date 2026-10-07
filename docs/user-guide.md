@@ -28,7 +28,7 @@ Use the same unit for an exercise over time so previous results and personal rec
 
 ## Find and add exercises
 
-GTrack includes 917 bundled and curated exercise names that remain available offline. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Search by name, machine, equipment or body area, and combine equipment and primary-muscle filters when the list is too broad. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. You can select several picture cards before choosing **Add to session**.
+GTrack includes 917 bundled and curated exercise names that remain available offline. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Tap any exercise picture to open a larger preview; closing it returns you to the same list without selecting the exercise. Search by name, machine, equipment or body area, and combine equipment and primary-muscle filters when the list is too broad. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. You can select several picture cards before choosing **Add to session**.
 
 If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle, then take or choose a photo that clearly shows the movement or machine. GTrack compresses the photo before saving it. Custom exercise names, photos and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
 
