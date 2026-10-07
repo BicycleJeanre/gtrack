@@ -22,6 +22,55 @@ export const muscleGroups = [
   "triceps",
 ] as const;
 
+export const primaryMuscleGroups = [
+  "arms",
+  "back",
+  "chest",
+  "core",
+  "legs",
+  "shoulders",
+  "full body",
+] as const;
+export type PrimaryMuscleGroup = (typeof primaryMuscleGroups)[number];
+
+const broadGroupByMuscle: Record<string, PrimaryMuscleGroup> = {
+  abdominals: "core",
+  abductors: "legs",
+  adductors: "legs",
+  biceps: "arms",
+  calves: "legs",
+  chest: "chest",
+  forearms: "arms",
+  glutes: "legs",
+  hamstrings: "legs",
+  lats: "back",
+  "lower back": "back",
+  "middle back": "back",
+  neck: "back",
+  quadriceps: "legs",
+  shoulders: "shoulders",
+  traps: "back",
+  triceps: "arms",
+};
+
+export const muscleGroupFor = (value: {
+  primaryMuscleGroup?: string;
+  primaryMuscles?: string[];
+}): PrimaryMuscleGroup =>
+  primaryMuscleGroups.includes(value.primaryMuscleGroup as PrimaryMuscleGroup)
+    ? (value.primaryMuscleGroup as PrimaryMuscleGroup)
+    : broadGroupByMuscle[value.primaryMuscles?.[0] || ""] || "full body";
+
+export const representativeMuscle: Record<PrimaryMuscleGroup, string> = {
+  arms: "biceps",
+  back: "lats",
+  chest: "chest",
+  core: "abdominals",
+  legs: "quadriceps",
+  shoulders: "shoulders",
+  "full body": "",
+};
+
 export const equipmentTypes = [
   "bands",
   "barbell",

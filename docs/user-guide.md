@@ -28,9 +28,9 @@ Use the same unit for an exercise over time so previous results and personal rec
 
 ## Find and add exercises
 
-GTrack includes 917 bundled and curated exercise names that remain available offline. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Tap any exercise picture to open a larger preview; closing it returns you to the same list without selecting the exercise. Search by name, machine, equipment or body area, and combine equipment and primary-muscle filters when the list is too broad. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. You can select several picture cards before choosing **Add to session**.
+GTrack includes 917 bundled and curated exercise names that remain available offline. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Tap any exercise picture to open a larger preview; closing it returns you to the same list without selecting the exercise. Search by name, machine, equipment or body area, and combine equipment with broad primary muscle-group filters such as **Back**, **Legs** or **Arms** when the list is too broad. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs. You can select several picture cards before choosing **Add to session**.
 
-If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle, then take or choose a photo that clearly shows the movement or machine. GTrack compresses the photo before saving it. Custom exercise names, photos and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
+If a movement is missing, choose **New exercise for the library** and enter a clear name, description, equipment and primary muscle group, then take or choose a photo that clearly shows the movement or machine. GTrack compresses the photo before saving it. Custom exercise names, photos and metadata are shared between signed-in users; workouts, programs, body measurements and training history remain private.
 
 ## Add exercise notes
 
@@ -48,6 +48,12 @@ Completing a set starts the rest timer automatically when timed rest is enabled.
 - **Enable alerts** requests notification permission.
 
 When the timer finishes, GTrack uses a chime, vibration, an on-screen popup and a system notification where supported. On iPhone, iOS may suspend an installed web app while another app is open. If that happens, GTrack alerts you when it becomes active again. Keep sound enabled and grant notifications for the best result.
+
+## Run guided intervals
+
+For yoga, Pilates, stretching, mobility work or timed circuits, choose **Time** as the exercise tracking type and enable **Run as a guided interval**. Enter the duration of every timed set, the rest between sets and the rest after that exercise. These timers are optional and can be left off for any timed exercise.
+
+When the workout starts, choose **Start intervals** on Today. GTrack counts down the work period, completes that set, counts down its set rest, and advances to the next set. After the last set it uses the exercise rest and then starts the next guided exercise. Every transition uses the same chime, vibration, popup and system notification support as the normal rest timer. **Complete now**, **Skip rest** and **Stop timer** remain available, and the current countdown stays in the persistent top bar while you browse the app. The interval state is saved on the device so returning to the installed app resumes the sequence.
 
 ## Edit a completed workout
 

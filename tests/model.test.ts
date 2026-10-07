@@ -8,6 +8,7 @@ import {
   validateRecord,
   seedExercises,
 } from "../src/model.ts";
+import { muscleGroupFor } from "../src/exercise-catalog.ts";
 test("exercise identities normalize spaces, Unicode and case", async () => {
   assert.equal(await exerciseId(" Cable  fly "), await exerciseId("cable fly"));
   assert.equal(await exerciseId("Ｃable fly"), await exerciseId("cable fly"));
@@ -341,6 +342,69 @@ test("decimal exercise weights retain precision in sessions and volume", () => {
   session.completedAt = Date.now();
   assert.equal(validateRecord("sessions", session), true);
   assert.equal(volume(session), 10);
+});
+
+test("guided interval settings copy into sessions and validate", () => {
+  const workout = {
+    id: "guided-flow",
+    name: "Guided flow",
+    rest: 0,
+    updatedAt: 1,
+    archived: false,
+    exercises: [
+      {
+        exerciseId: "plank",
+        name: "Plank",
+        description: "Hold a stable position",
+        tracking: "duration" as const,
+        unit: "sec" as const,
+        guided: true,
+        setRest: 15,
+        exerciseRest: 30,
+        sets: 2,
+        reps: 1,
+        weight: 0,
+        setTargets: [
+          { reps: 1, weight: 0, value: 30 },
+          { reps: 1, weight: 0, value: 45 },
+        ],
+      },
+    ],
+  };
+  assert.equal(validateRecord("workouts", workout), true);
+  const session = startSession(workout);
+  assert.equal(session.exercises[0].guided, true);
+  assert.equal(session.exercises[0].setRest, 15);
+  assert.equal(session.exercises[0].exerciseRest, 30);
+  assert.deepEqual(
+    session.exercises[0].sets.map((set) => set.value),
+    [30, 45],
+  );
+  assert.equal(
+    validateRecord("workouts", {
+      ...workout,
+      exercises: [{ ...workout.exercises[0], setRest: 601 }],
+    }),
+    false,
+  );
+  assert.equal(
+    validateRecord("workouts", {
+      ...workout,
+      exercises: [
+        { ...workout.exercises[0], tracking: "reps", unit: undefined },
+      ],
+    }),
+    false,
+  );
+});
+
+test("detailed catalogue muscles map to broad primary muscle groups", () => {
+  assert.equal(muscleGroupFor({ primaryMuscles: ["lats"] }), "back");
+  assert.equal(muscleGroupFor({ primaryMuscles: ["quadriceps"] }), "legs");
+  assert.equal(
+    muscleGroupFor({ primaryMuscleGroup: "arms", primaryMuscles: ["chest"] }),
+    "arms",
+  );
 });
 
 test("bundled exercise catalogue includes equipment and muscle metadata", async () => {
