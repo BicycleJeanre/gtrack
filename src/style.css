@@ -1542,9 +1542,23 @@ dialog h2 {
     top: 0;
     left: 0;
     width: 240px;
-    height: 72px;
-    padding: 0 20px;
+    height: 132px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 12px;
     border-right: 1px solid var(--border);
+  }
+  header .header-actions {
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+  header .profile-switch {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
   }
   main {
     width: calc(100% - 240px);
@@ -1556,7 +1570,7 @@ dialog h2 {
     font-size: 36px;
   }
   nav {
-    top: 72px;
+    top: 132px;
     bottom: 0;
     left: 0;
     width: 240px;
