@@ -289,6 +289,9 @@ test("a custom exercise can be created with only its name", async ({
   await page
     .getByRole("button", { name: "New exercise for the library" })
     .click();
+  await expect(
+    page.getByLabel("Exercise photo", { exact: true }),
+  ).toHaveCount(1);
   await page.getByLabel("Exercise name", { exact: true }).fill("Partner carry");
   await page.getByRole("button", { name: "Add to library" }).click();
   await expect(page.locator(".logging-exercise h2")).toHaveText(
