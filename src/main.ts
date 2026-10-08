@@ -4,6 +4,7 @@ import {
   catalogueMetadata,
   displayLabel,
   equipmentTypes,
+  muscleGroups,
   muscleGroupFor,
   primaryMuscleGroups,
   representativeMuscle,
@@ -43,6 +44,7 @@ import {
   unitFor,
   validateRecord,
   validateBackup,
+  exerciseTypes,
   type Workout,
   type Target,
   type Session,
@@ -55,6 +57,8 @@ import {
   type TrackingType,
   type MeasureUnit,
   type BodyEntry,
+  type TrainingProfile,
+  type ExerciseType,
 } from "./model";
 const startup = (phase: string, detail = "") =>
   (window as any).__gtrackStartup?.mark(phase, detail);
@@ -146,13 +150,14 @@ const unitChoices: Record<TrackingType, MeasureUnit[]> = {
 };
 function setSummary(exercise: SessionExercise, set: LoggedSet) {
   const tracking = trackingFor(exercise),
-    unit = unitFor(exercise);
+    unit = unitFor(exercise),
+    side = set.side ? `${displayLabel(set.side)}: ` : "";
   if (tracking === "weight_reps")
-    return `${fmt(set.weight)} ${unit} × ${set.reps}`;
+    return `${side}${fmt(set.weight)} ${unit} × ${set.reps}`;
   if (tracking === "machine_setting")
-    return `${fmt(set.value || 0)} plates × ${set.reps} reps`;
-  if (tracking === "reps") return `${set.reps} reps`;
-  return `${fmt(set.value || 0)} ${unit}`;
+    return `${side}${fmt(set.value || 0)} plates × ${set.reps} reps`;
+  if (tracking === "reps") return `${side}${set.reps} reps`;
+  return `${side}${fmt(set.value || 0)} ${unit}`;
 }
 function trackingOptions(selected: TrackingType) {
   return (Object.keys(trackingLabel) as TrackingType[])
@@ -208,12 +213,12 @@ const helpTopics: Record<
   exercises: {
     eyebrow: "Exercise library",
     title: "Find or add exercises",
-    body: `<ol class="help-steps"><li>Browse movement pictures when you do not know an exercise or machine name. Tap any picture to open a larger preview without selecting it.</li><li>Search by name, equipment or body area, then combine equipment and broad primary muscle-group filters such as Back, Legs or Arms.</li><li>While recording, select several picture cards before tapping <strong>Add to session</strong>. Selected exercises stay selected if you refine the filters.</li><li>If a movement is missing, add its name, description, equipment, primary muscle group and a clear photo.</li><li>Use <strong>View form</strong> for larger movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names, photos and metadata. An open picker refreshes when that shared library syncs. Your workouts, programs, body measurements and training history remain private.</p>`,
+    body: `<ol class="help-steps"><li>Browse movement pictures when you do not know an exercise or machine name. Tap any picture to open a larger preview without selecting it.</li><li>Filter by exercise type, equipment and broad primary muscle group. Choosing a muscle group reveals a detailed muscle filter.</li><li>You can select several picture cards before tapping <strong>Add to session</strong>. Each becomes a separate exercise, and the filters remain for the next addition in this session.</li><li>If a movement is missing, only its name is required. Description, equipment, muscles and a photo are optional.</li><li>Use <strong>View form</strong> for larger movement photos and technique cues where available.</li></ol><p class="help-note">Signed-in users share custom exercise names, photos and metadata. Your profiles, workouts, programs, body measurements and training history remain private.</p>`,
   },
   session: {
     eyebrow: "Active workout",
     title: "Build the workout while you train",
-    body: `<ol class="help-steps"><li>Edit weight, machine setting, reps, time or distance before completing a set.</li><li>Add an exercise note for machine setup, attachments, technique or anything you want to remember. It is saved with this workout and appears in history.</li><li>The previous result and note beneath each exercise come from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. A rest timer starts only when timed rest is enabled.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
+    body: `<ol class="help-steps"><li>Edit weight, machine setting, reps, time or distance before completing a set.</li><li>Choose <strong>Log left and right sides separately</strong> for a unilateral movement. Every set gets a left and right row, with previous results and PRs compared on the same side.</li><li>Add an exercise note for machine setup, attachments, technique or anything you want to remember. It is saved with this workout and appears in history.</li><li>The previous result and note beneath each exercise come from your most recent comparable workout.</li><li>Tap the tick to complete or reopen a set. A rest timer starts only when timed rest is enabled.</li><li>When a completed set beats a saved personal record, it receives a gold PR marker and a congratulations banner explains the result.</li><li>Add, remove or reorder exercises and sets at any time. Removal happens immediately.</li><li>Your draft is saved on this device after every valid change.</li><li>If you leave this screen, use the persistent top bar to resume the workout.</li></ol><p class="help-note">Finish saves only completed sets. Discard removes the entire active draft. A first-ever result establishes the baseline; PRs compare against completed workout history in the same unit.</p>`,
   },
   history: {
     eyebrow: "Workout history",
@@ -228,7 +233,7 @@ const helpTopics: Record<
   body: {
     eyebrow: "Body tracking",
     title: "Record body changes privately",
-    body: `<p>Add any combination of body weight, body-fat percentage, waist, chest, upper-arm and thigh measurements. You do not need to fill every field.</p><p class="help-note">Body records stay in your private workspace. Signed-in records sync between your devices and are included in backups.</p>`,
+    body: `<p>Add any combination of body weight, body-fat percentage, waist, chest, upper-arm and thigh measurements. You do not need to fill every field.</p><p class="help-note">Body records belong to the selected training profile. Signed-in records sync between your devices and are included in backups.</p>`,
   },
   calculators: {
     eyebrow: "Training calculators",
@@ -292,19 +297,64 @@ let userReady = false,
   pageError = "",
   deferredUpdate: ServiceWorker | null = null;
 let progressSection: "records" | "body" | "calculators" = "records";
+const activeProfile = () =>
+  store.state.profiles[store.state.activeProfileId] ||
+  Object.values(store.state.profiles)[0];
+const belongsToActiveProfile = (record: { profileId?: string }) =>
+  record.profileId
+    ? record.profileId === store.state.activeProfileId
+    : store.state.activeProfileId === "primary";
 const workouts = () =>
   Object.values(store.state.workouts)
-    .filter((w) => !w.archived)
+    .filter((w) => !w.archived && belongsToActiveProfile(w))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 const history = () =>
-  Object.values(store.state.sessions).sort(
-    (a, b) => b.completedAt - a.completedAt,
-  );
+  Object.values(store.state.sessions)
+    .filter(belongsToActiveProfile)
+    .sort((a, b) => b.completedAt - a.completedAt);
 const exercises = () =>
   Object.values(store.state.exercises).sort((a, b) =>
     a.name.localeCompare(b.name),
   );
-function filteredExercises(query: string, equipment: string, muscle: string) {
+function exerciseTypeFor(exercise: Exercise): ExerciseType {
+  if (exercise.exerciseType) return exercise.exerciseType;
+  const category =
+    exercise.category || catalogueMetadata(exercise.name).category;
+  if (category === "cardio") return "cardio";
+  if (category === "stretching")
+    return /pose|warrior|savasana|downward|upward|yoga/i.test(exercise.name)
+      ? "yoga"
+      : /breath/i.test(exercise.name)
+        ? "breathing"
+        : "stretch";
+  return "strength";
+}
+function detailedMusclesFor(group: string) {
+  return muscleGroups.filter(
+    (muscle) => muscleGroupFor({ primaryMuscles: [muscle] }) === group,
+  );
+}
+const exerciseTypeOptions = (selected = "") =>
+  exerciseTypes
+    .map(
+      (type) =>
+        `<option value="${type}" ${type === selected ? "selected" : ""}>${displayLabel(type)}</option>`,
+    )
+    .join("");
+const detailedMuscleOptions = (group: string, selected = "") =>
+  detailedMusclesFor(group)
+    .map(
+      (muscle) =>
+        `<option value="${muscle}" ${muscle === selected ? "selected" : ""}>${displayLabel(muscle)}</option>`,
+    )
+    .join("");
+function filteredExercises(
+  query: string,
+  equipment: string,
+  muscle: string,
+  detail = "",
+  type = "",
+) {
   const normalizedQuery = normalize(query);
   return exercises().filter((exercise) => {
     const metadata = exercise.primaryMuscles
@@ -321,7 +371,9 @@ function filteredExercises(query: string, equipment: string, muscle: string) {
         ].join(" "),
       ).includes(normalizedQuery) &&
       (!equipment || metadata.equipment === equipment) &&
-      (!muscle || muscleGroupFor(metadata) === muscle)
+      (!muscle || muscleGroupFor(metadata) === muscle) &&
+      (!detail || metadata.primaryMuscles?.includes(detail)) &&
+      (!type || exerciseTypeFor(exercise) === type)
     );
   });
 }
@@ -431,7 +483,7 @@ function syncLabel() {
   if (store.state.pending.length)
     return `Saved on phone · ${store.state.pending.length} sync pending`;
   if (!navigator.onLine) return "Saved on phone · offline";
-  return cloud?.ready.size === 5 ? "Synced" : "Saved on phone · connecting";
+  return cloud?.ready.size === 6 ? "Synced" : "Saved on phone · connecting";
 }
 function changed() {
   if (!userReady) return;
@@ -477,11 +529,12 @@ function render() {
   if (!store) return;
   const h = headings[view];
   $("#app").innerHTML =
-    `<header><div class="brand">${icon}GTrack</div><div class="header-actions">${helpButton("user-guide", "Open GTrack help")}<button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></div></header><main>${activeWorkoutBar()}<div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
+    `<header><div class="brand">${icon}GTrack</div><div class="header-actions"><button class="profile-switch" id="profile-switch" aria-label="Switch training profile">${esc(activeProfile()?.name || "Me")} ▾</button>${helpButton("user-guide", "Open GTrack help")}<button class="profile" id="account" aria-label="Account and data settings">${email ? esc(email[0].toUpperCase()) : "⚙"}</button></div></header><main>${activeWorkoutBar()}<div class="eyebrow">${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</div><h1>${h[0]}</h1><p class="subtitle">${h[1]}</p><button class="sync" id="sync">${esc(syncLabel())}</button>${deferredUpdate ? '<button class="secondary update" id="update-app">App update ready · reload safely</button>' : ""}<div id="screen"></div></main><nav aria-label="Main navigation">${["today", "programs", "workouts", "history", "progress"].map((n, i) => `<button data-view="${n}" ${view === n || (view === "program-builder" && n === "programs") || (["builder", "guide"].includes(view) && n === "workouts") ? 'aria-current="page"' : ""}><span aria-hidden="true">${["◷", "▦", "▤", "↺", "↗"][i]}</span>${n[0].toUpperCase() + n.slice(1)}</button>`).join("")}</nav>`;
   action("[data-view]", (e) =>
     navigate((e.currentTarget as HTMLElement).dataset.view!),
   );
   action("#account", () => navigate("account"));
+  action("#profile-switch", profileDialog);
   action("#sync", () => navigate("account"));
   action("#update-app", async () => {
     if (store.state.draft || view === "builder") {
@@ -567,7 +620,7 @@ function empty(title: string, description: string, button = "") {
 let previewProgram: string | null = null;
 function activePrograms() {
   return Object.values(store.state.programs)
-    .filter((p) => !p.archived && !p.deleted)
+    .filter((p) => !p.archived && !p.deleted && belongsToActiveProfile(p))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 function currentProgram() {
@@ -610,6 +663,7 @@ async function startNextProgramSession(id: string) {
       exercises(),
       weights,
     );
+  draft.profileId = store.state.activeProfileId;
   await store.saveDraft(draft);
   view = "today";
   render();
@@ -745,7 +799,7 @@ function bindPrograms() {
     await saved();
   });
 }
-const programGuidance = `<details class="card pad program-guidance"><summary>How to choose weights and progress</summary><p>RIR (reps in reserve) means how many more clean reps you could perform. Keep technique consistent and stop if it deteriorates.</p><p>Warm up with light, non-fatiguing sets before your working sets. Log working sets against the program targets. Rest 3–5 minutes for main lifts, 2–3 for supporting exercises and 1–2 for accessories; take longer when needed.</p><p>When all targets are met at the intended effort, increase by the smallest practical amount next time. Repeat or reduce the weight after missed reps. At a new phase, select the load again for its new sets, reps and effort.</p><p>After two poor sessions or accumulating fatigue, use roughly half the sets and lighter weights with four or more reps in reserve. Missed a day? Continue the sequence without doubling up.</p><p>These are original GTrack examples informed by Sebastian Oreb’s public principles, not official or endorsed Strength System programs. <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-2/" target="_blank" rel="noopener">Load selection</a> · <a href="https://strengthsystem.com/all-articles/your-program-sucks-part-3/" target="_blank" rel="noopener">Progression</a></p></details>`;
+const programGuidance = `<details class="card pad program-guidance"><summary>How to choose weights and progress</summary><p>RIR (reps in reserve) means how many more clean reps you could perform. Keep technique consistent and stop if it deteriorates.</p><p>Warm up with light, non-fatiguing sets before your working sets. Log working sets against the program targets. Rest 3–5 minutes for main lifts, 2–3 for supporting exercises and 1–2 for accessories; take longer when needed.</p><p>When all targets are met at the intended effort, increase by the smallest practical amount next time. Repeat or reduce the weight after missed reps. At a new phase, select the load again for its new sets, reps and effort.</p><p>After two poor sessions or accumulating fatigue, use roughly half the sets and lighter weights with four or more reps in reserve. Missed a day? Continue the sequence without doubling up.</p></details>`;
 let editingProgram: string | null = null;
 let programDraft: CustomProgramDefinition;
 function blankProgramDay(number: number): CustomProgramDay {
@@ -953,6 +1007,7 @@ function renderProgramBuilder() {
           updatedAt: now,
           archived: false,
           custom: structuredClone(programDraft),
+          profileId: store.state.activeProfileId,
         };
       if (!validateRecord("programs", record))
         throw Error(
@@ -960,7 +1015,7 @@ function renderProgramBuilder() {
         );
       await store.mutate((state) => {
         Object.values(state.programs).forEach((program) => {
-          if (!program.archived) {
+          if (belongsToActiveProfile(program) && !program.archived) {
             program.archived = true;
             program.updatedAt = now;
             if (store.account !== "local")
@@ -992,7 +1047,9 @@ function renderProgramBuilder() {
 }
 function renderPrograms() {
   const enrollments = Object.values(store.state.programs)
-    .filter((enrollment) => !enrollment.deleted)
+    .filter(
+      (enrollment) => !enrollment.deleted && belongsToActiveProfile(enrollment),
+    )
     .sort((a, b) => b.startedAt - a.startedAt);
   if (previewProgram) {
     const p = templateFor(previewProgram);
@@ -1028,22 +1085,26 @@ function renderPrograms() {
           existing = Object.values(state.programs)
             .filter(
               (enrollment) =>
-                enrollment.templateId === p.id && !enrollment.deleted,
+                enrollment.templateId === p.id &&
+                !enrollment.deleted &&
+                belongsToActiveProfile(enrollment),
             )
             .sort((a, b) => b.updatedAt - a.updatedAt)[0],
           selectedId = existing?.id || uid();
-        Object.values(state.programs).forEach((enrollment) => {
-          const archived = enrollment.id !== selectedId;
-          if (enrollment.archived === archived) return;
-          enrollment.archived = archived;
-          enrollment.updatedAt = now;
-          if (store.account !== "local")
-            state.pending.push({
-              kind: "programs",
-              id: enrollment.id,
-              token: uid(),
-            });
-        });
+        Object.values(state.programs)
+          .filter(belongsToActiveProfile)
+          .forEach((enrollment) => {
+            const archived = enrollment.id !== selectedId;
+            if (enrollment.archived === archived) return;
+            enrollment.archived = archived;
+            enrollment.updatedAt = now;
+            if (store.account !== "local")
+              state.pending.push({
+                kind: "programs",
+                id: enrollment.id,
+                token: uid(),
+              });
+          });
         state.programs[selectedId] = existing
           ? { ...existing, archived: false, updatedAt: now }
           : {
@@ -1053,6 +1114,7 @@ function renderPrograms() {
               startedAt: now,
               updatedAt: now,
               archived: false,
+              profileId: state.activeProfileId,
             };
         if (store.account !== "local")
           state.pending.push({
@@ -1123,6 +1185,7 @@ function prepareProgramSession(id: string) {
         exercises(),
         weights,
       );
+      draft.profileId = store.state.activeProfileId;
       await store.mutate((state) => {
         if (state.draft) throw Error("A session is already in progress.");
         state.draft = draft;
@@ -1166,17 +1229,19 @@ function showExerciseGuide(name: string, description: string) {
         : "<p>No form guide has been added for this exercise yet.</p>"
     }
     ${description ? `<h3>Library description</h3><p>${esc(description)}</p>` : ""}
-    <details class="guide-sources"><summary>Demonstrations & further learning</summary>${guide?.sourceId ? `<p>Photos: <a href="https://github.com/yuhonas/free-exercise-db/tree/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/${encodeURIComponent(guide.sourceId)}" target="_blank" rel="noopener">free-exercise-db</a> · public domain (Unlicense).</p>` : ""}<p><a href="https://www.acefitness.org/resources/everyone/exercise-library/" target="_blank" rel="noopener">Explore ACE’s exercise library</a> (online).</p><p>GTrack form cues are general guidance, not individual coaching or official Sebastian Oreb instruction.</p></details></div>`);
+    <details class="guide-sources"><summary>Demonstrations & further learning</summary>${guide?.sourceId ? `<p>Photos: <a href="https://github.com/yuhonas/free-exercise-db/tree/a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/${encodeURIComponent(guide.sourceId)}" target="_blank" rel="noopener">free-exercise-db</a> · public domain (Unlicense).</p>` : ""}<p><a href="https://www.acefitness.org/resources/everyone/exercise-library/" target="_blank" rel="noopener">Explore ACE’s exercise library</a> (online).</p><p>GTrack form cues are general guidance and not individual coaching.</p></details></div>`);
   $("#dialog").setAttribute("aria-labelledby", "guide-title");
 }
 function renderGuide() {
   $("#screen").innerHTML =
-    `<button class="text-button" id="guide-back">← Workouts</button><p>Browse more than 800 movements by name, equipment or muscle. Your existing photos and videos remain attached where available.</p><label>Find an exercise<input id="guide-search" type="search" placeholder="Try squat, chest, or dumbbell"></label><div class="library-filters"><label>Equipment<select id="guide-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select id="guide-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="guide-count" class="hint" role="status"></p><div id="guide-results"></div>`;
+    `<button class="text-button" id="guide-back">← Workouts</button><p>Browse more than 800 movements by name, equipment, type or muscle. Your existing photos and videos remain attached where available.</p><label>Find an exercise<input id="guide-search" type="search" placeholder="Try squat, chest, or dumbbell"></label><div class="library-filters"><label>Exercise type<select id="guide-type"><option value="">All types</option>${exerciseTypeOptions()}</select></label><label>Equipment<select id="guide-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select id="guide-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label id="guide-detail-label" hidden>Detailed muscle<select id="guide-detail"><option value="">All detailed muscles</option></select></label></div><p id="guide-count" class="hint" role="status"></p><div id="guide-results"></div>`;
   const show = () => {
     const query = normalize($<HTMLInputElement>("#guide-search").value),
       equipment = $<HTMLSelectElement>("#guide-equipment").value,
-      muscle = $<HTMLSelectElement>("#guide-muscle").value;
-    const matches = filteredExercises(query, equipment, muscle);
+      muscle = $<HTMLSelectElement>("#guide-muscle").value,
+      detail = $<HTMLSelectElement>("#guide-detail").value,
+      type = $<HTMLSelectElement>("#guide-type").value;
+    const matches = filteredExercises(query, equipment, muscle, detail, type);
     const visible = matches.slice(0, 80);
     $("#guide-count").textContent =
       matches.length > visible.length
@@ -1200,7 +1265,15 @@ function renderGuide() {
   $("#screen").addEventListener("gtrack:exercise-library-changed", show);
   $("#guide-search").addEventListener("input", show);
   $("#guide-equipment").addEventListener("change", show);
-  $("#guide-muscle").addEventListener("change", show);
+  $("#guide-type").addEventListener("change", show);
+  $("#guide-detail").addEventListener("change", show);
+  $("#guide-muscle").addEventListener("change", () => {
+    const group = $<HTMLSelectElement>("#guide-muscle").value,
+      detail = $<HTMLSelectElement>("#guide-detail");
+    $("#guide-detail-label").hidden = !group;
+    detail.innerHTML = `<option value="">All detailed muscles</option>${detailedMuscleOptions(group)}`;
+    show();
+  });
   action("#guide-back", () => navigate("workouts"));
 }
 
@@ -1289,6 +1362,7 @@ function renderBuilder() {
         exercises: structuredClone(draftTargets),
         updatedAt: Date.now(),
         archived: false,
+        profileId: store.state.activeProfileId,
       };
       if (!validateRecord("workouts", record))
         throw new Error(
@@ -1392,6 +1466,9 @@ function captureSetTargets(card: HTMLElement) {
     weight: values[0]?.weight ?? 0,
     tracking,
     ...(unit ? { unit } : {}),
+    ...(card.querySelector<HTMLInputElement>("[name=sides]")?.checked
+      ? { sides: true }
+      : {}),
     setTargets: values,
     ...(guided
       ? {
@@ -1440,7 +1517,7 @@ function renderTargets() {
   $("#targets").innerHTML = draftTargets
     .map(
       (t, i) =>
-        `<div class="card pad target" data-exercise-filter-root><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Name, equipment or muscle"></label><div class="library-filters"><label>Equipment<select class="target-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select class="target-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p class="hint target-filter-count" role="status"></p><label>Exercise from library<select required data-index="${i}">${t.exerciseId ? `<option value="${t.exerciseId}" selected>${esc(t.name)}</option>` : '<option value="">Choose an exercise…</option>'}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div>${guidedIntervalFields(t)}<div class="set-controls"><label>Sets<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "machine_setting" ? "Plates" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "machine_setting" ? "Reps" : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
+        `<div class="card pad target" data-exercise-filter-root><div class="target-head"><h3>Exercise ${i + 1}</h3><div><button type="button" class="text-button move" data-index="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move exercise ${i + 1} up">↑</button><button type="button" class="text-button remove" data-index="${i}" aria-label="Remove exercise ${i + 1}">Remove</button></div></div><label>Search exercise<input type="search" class="target-search" placeholder="Name, equipment or muscle"></label><div class="library-filters"><label>Exercise type<select class="target-type"><option value="">All types</option>${exerciseTypeOptions()}</select></label><label>Equipment<select class="target-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select class="target-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label class="target-detail-label" hidden>Detailed muscle<select class="target-detail"><option value="">All detailed muscles</option></select></label></div><p class="hint target-filter-count" role="status"></p><label>Exercise from library<select required data-index="${i}">${t.exerciseId ? `<option value="${t.exerciseId}" selected>${esc(t.name)}</option>` : '<option value="">Choose an exercise…</option>'}</select></label><button type="button" class="text-button target-guide">View form</button><p class="description">${esc(t.description || "Select an exercise to see its description.")}</p><button type="button" class="text-button new-exercise" data-index="${i}">＋ New exercise for the library</button><div class="tracking-controls"><label>Track by<select name="tracking">${trackingOptions(trackingFor(t))}</select></label>${trackingFor(t) === "reps" ? "" : `<label>Unit<select name="unit">${unitOptions(trackingFor(t), unitFor(t))}</select></label>`}</div><label class="checkbox"><input type="checkbox" name="sides" ${t.sides ? "checked" : ""}>Log left and right sides separately</label>${guidedIntervalFields(t)}<div class="set-controls"><label>${t.sides ? "Sets per side" : "Sets"}<input name="sets" required type="number" inputmode="numeric" min="1" max="12" step="1" value="${t.sets}" data-exercise="${i}"></label><p class="hint">Set the target for each set${t.sides ? " on both sides" : ""}.</p></div><div class="planned-set labels"><span>Set</span><span>${trackingFor(t) === "weight_reps" ? "Reps" : trackingFor(t) === "machine_setting" ? "Plates" : trackingFor(t) === "reps" ? "Reps" : trackingLabel[trackingFor(t)]}</span><span>${trackingFor(t) === "weight_reps" ? unitFor(t) : trackingFor(t) === "machine_setting" ? "Reps" : trackingFor(t) === "reps" ? "" : "Unit"}</span><span></span></div><div class="set-rows">${targetRows(t, i)}</div><button type="button" class="text-button add-set" data-exercise="${i}" ${t.sets >= 12 ? "disabled" : ""}>＋ Add set</button></div>`,
     )
     .join("");
   action(".target-guide", (event) => {
@@ -1458,9 +1535,11 @@ function renderTargets() {
         equipment =
           card.querySelector<HTMLSelectElement>(".target-equipment")!.value,
         muscle = card.querySelector<HTMLSelectElement>(".target-muscle")!.value,
+        detail = card.querySelector<HTMLSelectElement>(".target-detail")!.value,
+        type = card.querySelector<HTMLSelectElement>(".target-type")!.value,
         select = card.querySelector<HTMLSelectElement>("select[data-index]")!,
         selected = new Set(select.value ? [select.value] : []),
-        matches = filteredExercises(query, equipment, muscle);
+        matches = filteredExercises(query, equipment, muscle, detail, type);
       refreshExerciseSelect(select, matches, selected);
       card.querySelector<HTMLElement>(".target-filter-count")!.textContent =
         `${matches.length} matching exercise${matches.length === 1 ? "" : "s"}`;
@@ -1468,7 +1547,16 @@ function renderTargets() {
     filter();
     card.querySelector(".target-search")!.addEventListener("input", filter);
     card.querySelector(".target-equipment")!.addEventListener("change", filter);
-    card.querySelector(".target-muscle")!.addEventListener("change", filter);
+    card.querySelector(".target-type")!.addEventListener("change", filter);
+    card.querySelector(".target-detail")!.addEventListener("change", filter);
+    card.querySelector(".target-muscle")!.addEventListener("change", () => {
+      const group =
+          card.querySelector<HTMLSelectElement>(".target-muscle")!.value,
+        detail = card.querySelector<HTMLSelectElement>(".target-detail")!;
+      card.querySelector<HTMLElement>(".target-detail-label")!.hidden = !group;
+      detail.innerHTML = `<option value="">All detailed muscles</option>${detailedMuscleOptions(group)}`;
+      filter();
+    });
     card.addEventListener("gtrack:exercise-library-changed", filter);
   });
   document
@@ -1525,6 +1613,14 @@ function renderTargets() {
       }),
     );
   document
+    .querySelectorAll<HTMLInputElement>("#targets [name=sides]")
+    .forEach((input) =>
+      input.addEventListener("change", () => {
+        captureTargets();
+        renderTargets();
+      }),
+    );
+  document
     .querySelectorAll<HTMLInputElement>("#targets [name=guided]")
     .forEach((input) =>
       input.addEventListener("change", () => {
@@ -1559,8 +1655,18 @@ function exerciseDialog(
   onSelected?: (exercise: Exercise) => Promise<void>,
 ) {
   modal(
-    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>${store.account === "local" ? "Saved on this device. Export/import to bring it to a cloud account." : "The name, description, photo and exercise metadata are shared with all signed-in users."}</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><div class="library-filters"><label>Equipment<select name="equipment">${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select name="primaryMuscle">${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><label>Description<textarea name="description" required maxlength="600" placeholder="Describe the movement, equipment and how to record weight."></textarea></label><label>Exercise photo<input id="exercise-image" name="image" type="file" accept="image/*" capture="environment"></label><p class="hint">Use a clear side or front view of the movement or machine. GTrack compresses it before sharing.</p><div id="exercise-image-preview"></div><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
+    `<form id="exercise-form"><div class="eyebrow">${store.account === "local" ? "Device" : "Shared"} exercise library</div><h2>Add an exercise</h2><p>Only the exercise name is required. Add the optional details when they help people find or identify it.</p><label>Exercise name<input name="name" required maxlength="80" placeholder="e.g. Incline dumbbell press"></label><div class="library-filters"><label>Exercise type<select name="exerciseType">${exerciseTypeOptions("strength")}</select></label><label>Equipment<select name="equipment"><option value="">Not specified</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select name="primaryMuscle"><option value="">Not specified</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label id="exercise-detail-label" hidden>Detailed muscle<select name="detailedMuscle"><option value="">Not specified</option></select></label></div><label>Description <span class="hint" aria-hidden="true">optional</span><textarea aria-label="Description" name="description" maxlength="600" placeholder="Movement, setup or naming details"></textarea></label><label>Exercise photo <span class="hint" aria-hidden="true">optional</span><input id="exercise-image" aria-label="Exercise photo" name="image" type="file" accept="image/*" capture="environment"></label><p class="hint">A clear side or front view can make an unfamiliar movement or machine easier to recognise.</p><div id="exercise-image-preview"></div><p id="exercise-error" class="error" role="alert"></p><div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Add to library</button></div></form>`,
   );
+  const primarySelect = $<HTMLSelectElement>(
+      "#exercise-form [name=primaryMuscle]",
+    ),
+    detailedSelect = $<HTMLSelectElement>(
+      "#exercise-form [name=detailedMuscle]",
+    );
+  primarySelect.addEventListener("change", () => {
+    $("#exercise-detail-label").hidden = !primarySelect.value;
+    detailedSelect.innerHTML = `<option value="">Not specified</option>${detailedMuscleOptions(primarySelect.value)}`;
+  });
   const imageInput = $<HTMLInputElement>("#exercise-image");
   imageInput.addEventListener("change", async () => {
     const file = imageInput.files?.[0];
@@ -1589,21 +1695,16 @@ function exerciseDialog(
           .replace(/\s+/g, " "),
         description = String(f.get("description")).trim(),
         equipment = String(f.get("equipment")),
-        primaryMuscleGroup = String(
-          f.get("primaryMuscle"),
-        ) as keyof typeof representativeMuscle,
+        primaryMuscleGroup = String(f.get("primaryMuscle")),
+        detailedMuscle = String(f.get("detailedMuscle")),
+        exerciseType = String(f.get("exerciseType")) as ExerciseType,
         imageFile = imageInput.files?.[0],
         image = imageFile ? await compactExerciseImage(imageFile) : undefined;
-      if (!name || !description)
-        throw new Error("Enter a name and description.");
+      if (!name) throw new Error("Enter an exercise name.");
       const id = await exerciseId(name);
       const existing =
         store.state.exercises[id] ||
         exercises().find((e) => normalize(e.name) === normalize(name));
-      if (!existing && !image)
-        throw new Error(
-          "Add a photo so other users can identify the exercise.",
-        );
       const exercise: Exercise = existing
         ? image && !existing.image
           ? { ...existing, image }
@@ -1613,14 +1714,30 @@ function exerciseDialog(
             name,
             description,
             createdAt: Date.now(),
-            equipment,
-            primaryMuscleGroup,
-            primaryMuscles: representativeMuscle[primaryMuscleGroup]
-              ? [representativeMuscle[primaryMuscleGroup]]
-              : [],
+            ...(equipment ? { equipment } : {}),
+            ...(primaryMuscleGroup ? { primaryMuscleGroup } : {}),
+            primaryMuscles: detailedMuscle
+              ? [detailedMuscle]
+              : representativeMuscle[
+                    primaryMuscleGroup as keyof typeof representativeMuscle
+                  ]
+                ? [
+                    representativeMuscle[
+                      primaryMuscleGroup as keyof typeof representativeMuscle
+                    ],
+                  ]
+                : [],
             secondaryMuscles: [],
-            category: "strength",
-            image: image!,
+            category:
+              exerciseType === "cardio"
+                ? "cardio"
+                : ["stretch", "yoga", "mobility", "breathing"].includes(
+                      exerciseType,
+                    )
+                  ? "stretching"
+                  : "strength",
+            exerciseType,
+            ...(image ? { image } : {}),
           };
       if (!existing || exercise !== existing)
         await store.put("exercises", exercise);
@@ -1671,6 +1788,14 @@ function bindStart() {
 }
 // Structural edits use the latest stored draft, after any pending input saves.
 let sessionEditing = false;
+let sessionPickerSessionId = "";
+let sessionPickerFilters = {
+  query: "",
+  equipment: "",
+  muscle: "",
+  detail: "",
+  type: "",
+};
 function validSessionInputs() {
   for (const input of document.querySelectorAll<HTMLInputElement>(
     "#logging input",
@@ -1720,6 +1845,7 @@ function sessionDetails(isNew = false) {
               startedAt: Date.now(),
               completedAt: 0,
               exercises: [],
+              profileId: state.activeProfileId,
             };
         });
         close();
@@ -1740,41 +1866,54 @@ function sessionDetails(isNew = false) {
 function sessionExerciseDialog() {
   if (!validSessionInputs()) return;
   if (!store.state.draft || store.state.draft.exercises.length >= 30) return;
-  const add = async (
+  if (sessionPickerSessionId !== store.state.draft.id) {
+    sessionPickerSessionId = store.state.draft.id;
+    sessionPickerFilters = {
+      query: "",
+      equipment: "",
+      muscle: "",
+      detail: "",
+      type: "",
+    };
+  }
+  const appendExercise = (
+    session: Session,
     exercise: Exercise,
     tracking: TrackingType = "weight_reps",
     unit?: MeasureUnit,
-    keepOpen = false,
     guided = false,
     setRest = 15,
     exerciseRest = 30,
+    sides = false,
   ) => {
-    await editSession((session) => {
-      if (session.exercises.length < 30)
-        session.exercises.push({
-          exerciseId: exercise.id,
-          name: exercise.name,
-          description: exercise.description,
-          tracking,
-          ...(unit ? { unit } : {}),
-          ...(guided ? { guided: true, setRest, exerciseRest } : {}),
-          sets: [
-            {
-              reps:
-                tracking === "reps" || tracking === "machine_setting" ? 10 : 1,
-              weight: 0,
-              ...(["duration", "distance", "machine_setting"].includes(tracking)
-                ? { value: guided && tracking === "duration" ? 30 : 0 }
-                : {}),
-              done: false,
-            },
-          ],
-        });
-    });
-    if (keepOpen) sessionExerciseDialog();
+    if (session.exercises.length < 30) {
+      const baseSet: LoggedSet = {
+        reps: tracking === "reps" || tracking === "machine_setting" ? 10 : 1,
+        weight: 0,
+        ...(["duration", "distance", "machine_setting"].includes(tracking)
+          ? { value: guided && tracking === "duration" ? 30 : 0 }
+          : {}),
+        done: false,
+      };
+      session.exercises.push({
+        exerciseId: exercise.id,
+        name: exercise.name,
+        description: exercise.description,
+        tracking,
+        ...(unit ? { unit } : {}),
+        ...(guided ? { guided: true, setRest, exerciseRest } : {}),
+        ...(sides ? { sides: true } : {}),
+        sets: sides
+          ? [
+              { ...baseSet, side: "left" },
+              { ...baseSet, side: "right" },
+            ]
+          : [baseSet],
+      });
+    }
   };
   modal(
-    `<form id="session-exercise" data-exercise-filter-root><h2>Add exercises to session</h2><p class="hint">Choose by picture, name, equipment or muscle. Select several movements before adding them.</p><label>Search exercises<input id="session-exercise-search" type="search" placeholder="Search name, machine or body area"></label><div class="library-filters"><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select id="session-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}">${displayLabel(item)}</option>`).join("")}</select></label></div><p id="session-filter-count" class="hint" role="status"></p><div id="session-exercise-results" class="visual-exercise-list" aria-label="Exercise library"></div><button type="button" class="text-button" id="session-show-more" hidden>Show more exercises</button><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><div id="session-guided-wrap" class="guided-interval-settings" hidden><label class="checkbox"><input id="session-guided" type="checkbox">Run as guided intervals</label><div id="session-guided-settings" class="tracking-controls" hidden><label>Rest between timed sets (seconds)<input id="session-set-rest" type="number" inputmode="numeric" min="0" max="600" step="1" value="15"></label><label>Rest after exercise (seconds)<input id="session-exercise-rest" type="number" inputmode="numeric" min="0" max="600" step="1" value="30"></label></div></div><p id="session-description" class="description">No exercises selected</p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary" id="session-add-selected" disabled>Add to session</button></div></form>`,
+    `<form id="session-exercise" data-exercise-filter-root><h2>Add exercises to session</h2><p class="hint">Choose by picture, name, equipment, type or muscle. Every selected movement is added as its own exercise.</p><label>Search exercises<input id="session-exercise-search" type="search" value="${esc(sessionPickerFilters.query)}" placeholder="Search name, machine or body area"></label><div class="library-filters"><label>Exercise type<select id="session-type"><option value="">All types</option>${exerciseTypeOptions(sessionPickerFilters.type)}</select></label><label>Equipment<select id="session-equipment"><option value="">All equipment</option>${equipmentTypes.map((item) => `<option value="${item}" ${item === sessionPickerFilters.equipment ? "selected" : ""}>${displayLabel(item)}</option>`).join("")}</select></label><label>Primary muscle group<select id="session-muscle"><option value="">All muscle groups</option>${primaryMuscleGroups.map((item) => `<option value="${item}" ${item === sessionPickerFilters.muscle ? "selected" : ""}>${displayLabel(item)}</option>`).join("")}</select></label><label id="session-detail-label" ${sessionPickerFilters.muscle ? "" : "hidden"}>Detailed muscle<select id="session-detail"><option value="">All detailed muscles</option>${detailedMuscleOptions(sessionPickerFilters.muscle, sessionPickerFilters.detail)}</select></label></div><p id="session-filter-count" class="hint" role="status"></p><div id="session-exercise-results" class="visual-exercise-list" aria-label="Exercise library"></div><button type="button" class="text-button" id="session-show-more" hidden>Show more exercises</button><div class="tracking-controls"><label>Track by<select id="session-tracking">${trackingOptions("weight_reps")}</select></label><label id="session-unit-label">Unit<select id="session-unit">${unitOptions("weight_reps", "kg")}</select></label></div><label class="checkbox"><input id="session-sides" type="checkbox">Log left and right sides separately</label><div id="session-guided-wrap" class="guided-interval-settings" hidden><label class="checkbox"><input id="session-guided" type="checkbox">Run as guided intervals</label><div id="session-guided-settings" class="tracking-controls" hidden><label>Rest between timed sets (seconds)<input id="session-set-rest" type="number" inputmode="numeric" min="0" max="600" step="1" value="15"></label><label>Rest after exercise (seconds)<input id="session-exercise-rest" type="number" inputmode="numeric" min="0" max="600" step="1" value="30"></label></div></div><p id="session-description" class="description">No exercises selected</p><button type="button" class="text-button" id="session-new-exercise">＋ New exercise for the library</button><p class="hint">Each exercise starts with one set, or one left/right pair. You can add or remove sets while recording.</p><div class="actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary" id="session-add-selected" disabled>Add to session</button></div></form>`,
   );
   const trackingSelect = $<HTMLSelectElement>("#session-tracking"),
     unitSelect = $<HTMLSelectElement>("#session-unit"),
@@ -1791,7 +1930,9 @@ function sessionExerciseDialog() {
     const query = $<HTMLInputElement>("#session-exercise-search").value,
       equipment = $<HTMLSelectElement>("#session-equipment").value,
       muscle = $<HTMLSelectElement>("#session-muscle").value,
-      matches = filteredExercises(query, equipment, muscle),
+      detail = $<HTMLSelectElement>("#session-detail").value,
+      type = $<HTMLSelectElement>("#session-type").value,
+      matches = filteredExercises(query, equipment, muscle, detail, type),
       matchIds = new Set(matches.map((exercise) => exercise.id)),
       preserved = [...selectedIds]
         .map((id) => store.state.exercises[id])
@@ -1833,7 +1974,28 @@ function sessionExerciseDialog() {
     filterSessionExercises,
   );
   $("#session-equipment").addEventListener("change", filterSessionExercises);
-  $("#session-muscle").addEventListener("change", filterSessionExercises);
+  $("#session-type").addEventListener("change", filterSessionExercises);
+  $("#session-detail").addEventListener("change", filterSessionExercises);
+  $("#session-muscle").addEventListener("change", () => {
+    const group = $<HTMLSelectElement>("#session-muscle").value,
+      detail = $<HTMLSelectElement>("#session-detail");
+    $("#session-detail-label").hidden = !group;
+    detail.innerHTML = `<option value="">All detailed muscles</option>${detailedMuscleOptions(group)}`;
+    filterSessionExercises();
+  });
+  for (const [selector, key, event] of [
+    ["#session-exercise-search", "query", "input"],
+    ["#session-equipment", "equipment", "change"],
+    ["#session-muscle", "muscle", "change"],
+    ["#session-detail", "detail", "change"],
+    ["#session-type", "type", "change"],
+  ] as const)
+    $(selector).addEventListener(event, () => {
+      sessionPickerFilters[key] = (
+        $(selector) as HTMLInputElement | HTMLSelectElement
+      ).value;
+      if (key === "muscle") sessionPickerFilters.detail = "";
+    });
   $("#session-exercise").addEventListener(
     "gtrack:exercise-library-changed",
     filterSessionExercises,
@@ -1877,10 +2039,22 @@ function sessionExerciseDialog() {
       setRest = $<HTMLInputElement>("#session-set-rest").valueAsNumber,
       exerciseRest = $<HTMLInputElement>(
         "#session-exercise-rest",
-      ).valueAsNumber;
+      ).valueAsNumber,
+      sides = $<HTMLInputElement>("#session-sides").checked;
     close();
-    for (const exercise of selected)
-      await add(exercise, tracking, unit, false, guided, setRest, exerciseRest);
+    await editSession((session) => {
+      for (const exercise of selected)
+        appendExercise(
+          session,
+          exercise,
+          tracking,
+          unit,
+          guided,
+          setRest,
+          exerciseRest,
+          sides,
+        );
+    });
   });
   action("#session-new-exercise", () => {
     const tracking = trackingSelect.value as TrackingType,
@@ -1892,9 +2066,21 @@ function sessionExerciseDialog() {
       setRest = $<HTMLInputElement>("#session-set-rest").valueAsNumber,
       exerciseRest = $<HTMLInputElement>(
         "#session-exercise-rest",
-      ).valueAsNumber;
+      ).valueAsNumber,
+      sides = $<HTMLInputElement>("#session-sides").checked;
     exerciseDialog(0, (exercise) =>
-      add(exercise, tracking, unit, false, guided, setRest, exerciseRest),
+      editSession((session) =>
+        appendExercise(
+          session,
+          exercise,
+          tracking,
+          unit,
+          guided,
+          setRest,
+          exerciseRest,
+          sides,
+        ),
+      ),
     );
   });
 }
@@ -1905,10 +2091,18 @@ function removeSessionItem(exerciseIndex: number, setIndex?: number) {
     toast("Guided timer stopped while the session changed.");
   }
   const exercise = store.state.draft?.exercises[exerciseIndex];
-  if (!exercise || (setIndex !== undefined && exercise.sets.length <= 1))
+  if (
+    !exercise ||
+    (setIndex !== undefined && exercise.sets.length <= (exercise.sides ? 2 : 1))
+  )
     return;
   const change = (session: Session) => {
     if (setIndex === undefined) session.exercises.splice(exerciseIndex, 1);
+    else if (exercise.sides)
+      session.exercises[exerciseIndex].sets.splice(
+        Math.floor(setIndex / 2) * 2,
+        2,
+      );
     else session.exercises[exerciseIndex].sets.splice(setIndex, 1);
   };
   return editSession(change);
@@ -2411,11 +2605,15 @@ function liveRecord(
   const savedSets = history().flatMap((session) =>
     session.exercises
       .filter((item) => comparableExercise(item, exercise))
-      .flatMap((item) => item.sets.filter((itemSet) => itemSet.done)),
+      .flatMap((item) =>
+        item.sets.filter(
+          (itemSet) => itemSet.done && itemSet.side === set.side,
+        ),
+      ),
   );
   if (!savedSets.length) return null;
   const currentSets = exercise.sets.filter(
-    (itemSet) => itemSet !== set && itemSet.done,
+    (itemSet) => itemSet !== set && itemSet.done && itemSet.side === set.side,
   );
   const historicalSets = [...savedSets, ...currentSets];
   const reachesSessionBest = (
@@ -2544,11 +2742,20 @@ function sessionSetRows(exercise: SessionExercise, exerciseIndex: number) {
     previous = previousPerformance(exercise);
   return exercise.sets
     .map((set, setIndex) => {
-      const label = `${esc(exercise.name)} set ${setIndex + 1}`;
+      const sideIndex = set.side
+          ? exercise.sets
+              .slice(0, setIndex + 1)
+              .filter((item) => item.side === set.side).length
+          : setIndex + 1,
+        label = `${esc(exercise.name)} ${set.side ? `${set.side} side ` : ""}set ${sideIndex}`;
       const record = set.done ? liveRecord(exercise, set) : null;
-      const previousSet = previous?.exercise.sets[setIndex]?.done
-        ? previous.exercise.sets[setIndex]
-        : undefined;
+      const previousSet = set.side
+        ? previous?.exercise.sets.filter(
+            (item) => item.done && item.side === set.side,
+          )[sideIndex - 1]
+        : previous?.exercise.sets[setIndex]?.done
+          ? previous.exercise.sets[setIndex]
+          : undefined;
       const fields =
         tracking === "weight_reps"
           ? `<input required type="number" inputmode="decimal" min="0" max="1000" step="0.01" value="${set.weight}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="weight" aria-label="${label} weight" ${set.done ? "disabled" : ""}><input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}>`
@@ -2557,7 +2764,7 @@ function sessionSetRows(exercise: SessionExercise, exerciseIndex: number) {
             : tracking === "reps"
               ? `<input required type="number" inputmode="numeric" min="1" max="100" step="1" value="${set.reps}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="reps" aria-label="${label} reps" ${set.done ? "disabled" : ""}><span class="unit-cell">reps</span>`
               : `<input required type="number" inputmode="decimal" min="0" max="10000000" step="${unit === "sec" || unit === "m" ? "1" : "0.1"}" value="${set.value || 0}" data-ex="${exerciseIndex}" data-set="${setIndex}" data-field="value" aria-label="${label} ${tracking}" ${set.done ? "disabled" : ""}><span class="unit-cell">${unit}</span>`;
-      return `<div class="set-grid session-set${record ? " is-pr" : ""}"><span class="set-position">${record ? '<span class="pr-medal" aria-label="Personal record">🏅</span>' : setIndex + 1}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= 1 ? "disabled" : ""} aria-label="Remove ${label}">×</button><small class="set-previous">Previous: ${previousSet ? esc(setSummary(previous!.exercise, previousSet)) : "—"}${record ? ` · ${esc(record.label)}` : ""}</small></div>`;
+      return `<div class="set-grid session-set${record ? " is-pr" : ""}"><span class="set-position">${record ? '<span class="pr-medal" aria-label="Personal record">🏅</span>' : `${sideIndex}${set.side ? `<small>${set.side === "left" ? "L" : "R"}</small>` : ""}`}</span>${fields}<button class="check" data-ex="${exerciseIndex}" data-set="${setIndex}" aria-pressed="${set.done}" aria-label="Complete ${label}">✓</button><button class="text-button" data-session-set-remove="${exerciseIndex}" data-set="${setIndex}" ${exercise.sets.length <= (exercise.sides ? 2 : 1) ? "disabled" : ""} aria-label="Remove ${label}">×</button><small class="set-previous">Previous: ${previousSet ? esc(setSummary(previous!.exercise, previousSet)) : "—"}${record ? ` · ${esc(record.label)}` : ""}</small></div>`;
     })
     .join("");
 }
@@ -2590,7 +2797,7 @@ function renderToday() {
     `<div class="card session-head"><div class="eyebrow">In progress · ${done} / ${total} sets</div><div class="title-with-help"><h2>${esc(draft.workoutName)}</h2>${helpButton("session", "How to record and change an active workout")}</div>${draft.program && draftTemplate ? `<p>${esc(draftTemplate.name)} · Week ${draft.program.week}, session ${draft.program.day}<br>${esc(phaseFor(draftTemplate, draft.program.week).name)}</p>` : ""}<button class="text-button" id="edit-session-details">Edit session details</button><p>Started ${new Date(draft.startedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} · <span id="draft-status" role="status">Saved on phone</span></p><div class="progress-line"><i style="width:${total ? (done / total) * 100 : 0}%"></i></div><button class="primary" id="finish" ${!done ? "disabled" : ""}>Finish workout${done < total ? " · " + done + "/" + total + " sets" : ""}</button><div id="rest-timer" role="status"></div></div>${guidedIntervalPanel(draft)}<div id="logging">${draft.exercises
       .map((e, i) => {
         const labels = sessionSetLabels(e);
-        return `<section class="card pad logging-exercise${guidedInterval?.exerciseIndex === i ? " interval-current" : ""}"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}${isGuidedExercise(e) ? " · Guided intervals" : ""}</div><div class="logging-exercise-title">${exerciseThumbnail(store.state.exercises[e.exerciseId] || { id: e.exerciseId, name: e.name, description: e.description, createdAt: 1 })}<h2>${esc(e.name)}</h2></div>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<label class="session-note">Workout note<textarea data-session-note="${i}" maxlength="500" placeholder="e.g. seat 4, narrow handle, left shoulder felt tight">${esc(e.note || "")}</textarea></label><div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details><div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= 12 ? "disabled" : ""} aria-label="Add set to ${esc(e.name)}">＋ Add set</button></section>`;
+        return `<section class="card pad logging-exercise${guidedInterval?.exerciseIndex === i ? " interval-current" : ""}"><div class="eyebrow">Exercise ${i + 1} / ${draft.exercises.length} · ${trackingLabel[trackingFor(e)]}${e.sides ? " · Left + right" : ""}${isGuidedExercise(e) ? " · Guided intervals" : ""}</div><div class="logging-exercise-title">${exerciseThumbnail(store.state.exercises[e.exerciseId] || { id: e.exerciseId, name: e.name, description: e.description, createdAt: 1 })}<h2>${esc(e.name)}</h2></div>${e.guidance ? `<p class="training-guidance">${esc(e.guidance)}</p>` : ""}<label class="session-note">Workout note<textarea data-session-note="${i}" maxlength="500" placeholder="e.g. seat 4, narrow handle, left shoulder felt tight">${esc(e.note || "")}</textarea></label><div class="actions"><button class="text-button" data-session-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move ${esc(e.name)} up">↑ Move up</button><button class="text-button" data-session-remove="${i}" aria-label="Remove ${esc(e.name)}">Remove exercise</button></div>${guideButton(e.name)}${e.description ? `<details><summary>Exercise description</summary><p class="description">${esc(e.description)}</p></details>` : ""}<div class="set-grid session-set labels"><span>Set</span><span>${labels[0]}</span><span>${labels[1]}</span><span>Done</span><span></span></div>${sessionSetRows(e, i)}<button class="text-button" data-session-set-add="${i}" ${e.sets.length >= (e.sides ? 24 : 12) ? "disabled" : ""} aria-label="Add ${e.sides ? "left and right set" : "set"} to ${esc(e.name)}">＋ Add ${e.sides ? "set pair" : "set"}</button></section>`;
       })
       .join(
         "",
@@ -2663,8 +2870,16 @@ function renderToday() {
       (event.currentTarget as HTMLElement).dataset.sessionSetAdd,
     );
     return editSession((session) => {
-      const sets = session.exercises[index].sets;
-      if (sets.length < 12) sets.push({ ...sets.at(-1)!, done: false });
+      const exercise = session.exercises[index],
+        sets = exercise.sets;
+      if (exercise.sides && sets.length <= 22) {
+        const source = sets.slice(-2);
+        sets.push(
+          { ...source[0], side: "left", done: false },
+          { ...source[1], side: "right", done: false },
+        );
+      } else if (!exercise.sides && sets.length < 12)
+        sets.push({ ...sets.at(-1)!, done: false });
     });
   });
   document
@@ -2744,7 +2959,12 @@ function renderToday() {
         : state.draft.rest
           ? (state.draft.exercises[exerciseIndex].rest ?? state.draft.rest)
           : 0;
-      if (set.done && rest) startRest(rest, false);
+      if (
+        set.done &&
+        rest &&
+        (!state.draft.exercises[exerciseIndex].sides || set.side === "right")
+      )
+        startRest(rest, false);
     });
     const completedExercise = store.state.draft!.exercises[exerciseIndex],
       record = !wasDone
@@ -2781,7 +3001,9 @@ function renderToday() {
           day = updated.custom!.sessions[s.program!.day - 1];
         day.exercises = s.exercises.map((exercise) => ({
           exerciseName: exercise.name,
-          sets: exercise.sets.length,
+          sets: exercise.sides
+            ? exercise.sets.filter((set) => set.side === "left").length
+            : exercise.sets.length,
           reps: exercise.sets[0].reps,
           rest: exercise.rest ?? s.rest,
           effort:
@@ -3063,9 +3285,9 @@ function muscleHeatmap() {
 }
 
 function bodyEntries() {
-  return Object.values(store.state.bodyEntries).sort(
-    (a, b) => b.recordedAt - a.recordedAt,
-  );
+  return Object.values(store.state.bodyEntries)
+    .filter(belongsToActiveProfile)
+    .sort((a, b) => b.recordedAt - a.recordedAt);
 }
 
 function renderBodyTracking() {
@@ -3146,10 +3368,13 @@ function bodyEntryDialog(entry?: BodyEntry) {
       },
       dayValue = String(data.get("day")),
       record: BodyEntry = {
-        id: entry?.id || `body-${dayValue}`,
+        id:
+          entry?.id ||
+          `body-${store.state.activeProfileId}-${dayValue}`.slice(0, 128),
         recordedAt: new Date(`${dayValue}T12:00:00`).getTime(),
         weightUnit: data.get("weightUnit") as "kg" | "lb",
         measurementUnit: data.get("measurementUnit") as "cm" | "in",
+        profileId: store.state.activeProfileId,
       };
     for (const key of [
       "weight",
@@ -3370,10 +3595,67 @@ function renderRecordProgress() {
   $("#progress-exercise").addEventListener("change", draw);
   draw();
 }
+function profileDialog() {
+  const profiles = Object.values(store.state.profiles).sort(
+    (a, b) => a.createdAt - b.createdAt,
+  );
+  modal(
+    `<div class="eyebrow">Training profiles</div><h2>Who is training?</h2><p>Each person has separate workouts, programs, history, body measurements and PRs inside this account.</p><div class="profile-list">${profiles
+      .map(
+        (profile) =>
+          `<button class="profile-choice ${profile.id === store.state.activeProfileId ? "selected" : ""}" data-profile-id="${profile.id}"><span>${esc(profile.name)}</span><small>${profile.id === store.state.activeProfileId ? "Current profile" : "Switch profile"}</small></button>`,
+      )
+      .join(
+        "",
+      )}</div><form id="profile-add"><label>Add another person<input name="name" required maxlength="40" placeholder="e.g. Daniel"></label><div class="actions"><button class="secondary" type="button" data-close>Close</button><button class="primary" type="submit">Add profile</button></div></form>`,
+  );
+  action("[data-profile-id]", async (event) => {
+    const id = (event.currentTarget as HTMLElement).dataset.profileId!;
+    if (id === store.state.activeProfileId) return close();
+    if (store.state.draft) {
+      toast("Finish or discard the active workout before switching profiles.");
+      return;
+    }
+    await store.mutate((state) => {
+      state.activeProfileId = id;
+    });
+    close();
+    previewProgram = null;
+    view = "today";
+    render();
+    toast(`Switched to ${store.state.profiles[id].name}.`);
+  });
+  $("#profile-add").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (store.state.draft) {
+      toast("Finish or discard the active workout before adding a profile.");
+      return;
+    }
+    const name = String(
+      new FormData(event.currentTarget as HTMLFormElement).get("name"),
+    ).trim();
+    if (!name) return;
+    const now = Date.now(),
+      profile: TrainingProfile = {
+        id: uid(),
+        name,
+        createdAt: now,
+        updatedAt: now,
+      };
+    await store.put("profiles", profile);
+    await store.mutate((state) => {
+      state.activeProfileId = profile.id;
+    });
+    close();
+    view = "today";
+    await saved();
+    toast(`${profile.name}'s training profile is ready.`);
+  });
+}
 function renderAccount() {
   const local = store.account === "local";
   $("#screen").innerHTML =
-    `<div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
+    `<div class="card pad"><div class="eyebrow">Training profiles</div><h2>Training as ${esc(activeProfile()?.name || "Me")}</h2><p>Keep each person's plans, sessions, measurements and records separate inside this account.</p><button class="primary" id="manage-profiles">Switch or add profile</button></div><div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, profiles, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
   navigator.serviceWorker?.getRegistration().then((r) => {
     const el = document.querySelector("#offline-status");
     if (el)
@@ -3382,6 +3664,7 @@ function renderAccount() {
         : "Offline launch becomes available from the production build after its first online load.";
   });
   action("#retry-sync", () => cloud?.retry());
+  action("#manage-profiles", profileDialog);
   action("#signin", authDialog);
   action("#signout", async () => {
     if (store.state.pending.length || store.state.draft) {
@@ -3397,8 +3680,9 @@ function renderAccount() {
       exercises: Object.values(store.state.exercises).filter(
         (exercise) => exercise.createdAt !== 1,
       ),
+      profiles: Object.values(store.state.profiles),
       workouts: Object.values(store.state.workouts),
-      sessions: history(),
+      sessions: Object.values(store.state.sessions),
       programs: Object.values(store.state.programs),
       bodyEntries: Object.values(store.state.bodyEntries),
     };

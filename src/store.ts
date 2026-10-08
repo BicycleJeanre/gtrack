@@ -19,9 +19,24 @@ export class Store {
   async load() {
     this.state =
       (await (await database).get("accounts", this.account)) || emptyState();
+    this.state.profiles ||= {};
     this.state.bodyEntries ||= {};
     const seeds = await seedExercises();
     await this.mutate((s) => {
+      s.profiles ||= {};
+      if (!s.profiles.primary) {
+        const now = Date.now();
+        s.profiles.primary = {
+          id: "primary",
+          name: "Me",
+          createdAt: now,
+          updatedAt: now,
+        };
+        if (this.account !== "local")
+          s.pending.push({ kind: "profiles", id: "primary", token: uid() });
+      }
+      if (!s.activeProfileId || !s.profiles[s.activeProfileId])
+        s.activeProfileId = "primary";
       for (const e of seeds) if (!s.exercises[e.id]) s.exercises[e.id] = e;
     });
   }
@@ -30,6 +45,7 @@ export class Store {
     const tx = (await database).transaction("accounts", "readwrite");
     const latest = (await tx.store.get(this.account)) || emptyState();
     latest.programs ||= {};
+    latest.profiles ||= {};
     latest.bodyEntries ||= {};
     change(latest);
     await tx.store.put(latest, this.account);
@@ -83,6 +99,7 @@ export class Store {
         "sessions",
         "programs",
         "bodyEntries",
+        "profiles",
       ] as Kind[]) {
         for (const r of Object.values(records[kind])) {
           // Merge missing IDs only. Import never overwrites existing history or newer plans.

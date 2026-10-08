@@ -78,6 +78,59 @@ header {
   align-items: center;
   gap: 9px;
 }
+.profile-switch {
+  max-width: 120px;
+  min-height: 40px;
+  padding: 8px 11px;
+  overflow: hidden;
+  border: 1px solid #3a3a3a;
+  border-radius: 20px;
+  background: #252525;
+  color: #e8e8e8;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+.profile-choice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  background: #181818;
+  color: #e8e8e8;
+  text-align: left;
+}
+.profile-choice.selected {
+  border-color: #00d4ffaa;
+  background: #102126;
+}
+.profile-choice small,
+.set-position small {
+  color: var(--muted);
+}
+@media (max-width: 400px) {
+  .profile-switch {
+    max-width: 78px;
+    padding-inline: 8px;
+  }
+  .header-actions {
+    gap: 6px;
+  }
+}
+.set-position small {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+}
 .help-icon {
   display: inline-grid;
   width: 28px;

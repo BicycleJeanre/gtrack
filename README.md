@@ -1,20 +1,20 @@
 # GTrack
 
-A personal gym training PWA for iPhone: plan workouts, log sets without reception, and review actual training progress. Intended for personal use and a few friends with separate accounts. The mobile UI follows FTrack’s charcoal and cyan theme.
+A gym training PWA for iPhone: plan workouts, log sets without reception, and review actual training progress. One account can contain separate training profiles for a user and their partner. The mobile UI follows FTrack’s charcoal and cyan theme.
 
 ## Current implementation
 
 - Programs catalog: Foundation (3 days, 8 weeks), Strength and Size (4 days, 12 weeks), and Barbell Strength (4 days, 12 weeks). Preview every week, enroll, confirm working weights, follow phase-specific sets/reps/effort/rest, and pause/resume. Completed session slots advance the program; partial logs advance only when explicitly marked complete. Program enrollment/history sync and export with the account.
 
 - Create, edit and archive workout plans; set exercise order, optional automatic rest periods, and individual targets for each set. Timed exercises can optionally run as guided intervals with work time, rest between sets, rest after each exercise, automatic progression and alerts. Exercise weights support two decimal places for increments such as 1.25 kg. Cable exercises can track an unknown-weight numbered machine setting plus reps without adding it to weight volume. Add or remove sets for warm-ups and working sets. Existing plans with uniform targets remain compatible.
-- Select from 969 offline exercise names using visual cards, name search, equipment and broad primary muscle-group filters. The library includes the full beginner prenatal stretching routine plus familiar yoga and mobility names. Every bundled movement has a thumbnail; mobile selections survive filter changes and refresh after shared-library sync. New shared exercises include a compressed photo, description, equipment and muscle metadata. Larger GTrack movement images and videos remain available where configured; no fake workouts or history are created.
+- Select from 969 offline exercise names using visual cards, name search, exercise type, equipment, broad primary muscle groups and detailed muscles. The library includes the full beginner prenatal stretching routine plus familiar yoga and mobility names. Every bundled movement has a thumbnail; session filters persist between additions. Selecting several movements adds each as a separate exercise. New shared exercises require only a name; descriptions, photos, equipment and muscle metadata are optional.
 - Start an empty session or use a saved plan. While recording, add library or new exercises, remove or reorder exercises, add or remove sets, and edit session name/rest. Completed work requires confirmation before removal. Changes save on the device and leave the original plan unchanged.
-- Log a session with automatic device saves, per-exercise notes, per-set previous results, live PR markers and congratulations banners, optional regular and guided interval timers, restart recovery, and partial-session completion.
+- Log a session with automatic device saves, optional separate left/right set rows for unilateral movements, per-exercise notes, side-aware previous results and PRs, live PR markers and congratulations banners, optional regular and guided interval timers, restart recovery, and partial-session completion.
 - Review completed sessions, correct their logged values and exercise selection, and add or remove logged exercises. Track exercise PRs, estimated one-rep max, recent performance and a 30-day muscle workload heat map.
 - Privately track body weight, body-fat percentage and waist, chest, upper-arm and thigh measurements. Use built-in plate-loading and warm-up calculators.
 - Export/import JSON backups; imports add missing records and preserve existing IDs.
 - Installable PWA with a versioned offline app cache and safe update prompt.
-- Optional Firebase email/password accounts, a shared exercise library, private plans/history, and a durable synchronization queue.
+- Optional Firebase email/password accounts, multiple private training profiles per account, a shared exercise library, private plans/history, and a durable synchronization queue.
 - Automated Chromium and WebKit browser tests, data-model tests, Firebase Rules tests and an emulator-based multi-account sync test.
 
 **The Firebase project is configured locally: Firestore rules/indexes are deployed and email/password sign-in is enabled. The site is deployed through GitHub Pages.** Without Firebase configuration the app is fully usable in device-only mode. Its records survive page refreshes, but are not synced or shared between users. The original design exploration remains in `mockups/workout.html`.
@@ -61,6 +61,7 @@ All signed-in users can read and create library entries. Entries cannot be edite
 | Record                           | Storage and access                                                                                                                                 |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `exercises/{nameHash}`           | Shared with authenticated users; create-only.                                                                                                      |
+| `users/{uid}/profiles/{id}`      | Private people within an account. The selected profile stays device-local.                                                                         |
 | `users/{uid}/workouts/{id}`      | Private plan documents; soft archive. Concurrent plan edits use the last server write.                                                             |
 | `users/{uid}/sessions/{uuid}`    | Private completed sessions; owners may correct the name, exercises, counted sets and logged values while the session ID and start time stay fixed. |
 | `users/{uid}/programs/{uuid}`    | Private versioned catalog enrollment; pause state uses last server write. Progress derives from completed sessions.                                |
@@ -76,7 +77,7 @@ One editor tab is allowed per origin using Web Locks where supported. This preve
 
 Use the app on trusted devices: locally cached account data remains in browser storage after sign-out and is not encrypted by GTrack. Signing out does not expose it in another account’s UI. Pending records or active sessions must be finished/synced before app sign-out. Browser storage can be cleared or evicted; synchronization is not a backup.
 
-Exports contain custom exercises, plans (including archived plans), **completed** sessions, programs and body measurements. The bundled exercise catalogue is omitted because every app installation already contains it. Active sessions stay device-local and are not exported. Import validates the format before any write, merges missing IDs in one transaction, and does not replace existing records. Keep an independent export even when syncing.
+Exports contain training profiles, custom exercises, plans (including archived plans), **completed** sessions, programs and body measurements. The bundled exercise catalogue is omitted because every app installation already contains it. Active sessions stay device-local and are not exported. Import validates the format before any write, merges missing IDs in one transaction, and does not replace existing records. Keep an independent export even when syncing.
 
 ## Deployment
 
@@ -123,7 +124,7 @@ Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, 
 
 ## Program content
 
-The version 1 catalog lives in `docs/research/example-programs.json`; its source rationale is in `docs/research/sebastian-oreb-program-proposals.md`. These are original GTrack examples informed by public Sebastian Oreb principles, not endorsed or official Strength System programs. Keep version 1 prescriptions stable for existing enrollments. Personal structural changes affect the current session only. Current program logging covers working sets; warm-ups should be done separately. No universal starting weight or automatic load progression is prescribed.
+The version 1 catalog lives in `docs/research/example-programs.json`; its design rationale is in `docs/research/program-design-notes.md`. These are original GTrack example programs. Keep version 1 prescriptions stable for existing enrollments. Personal structural changes affect the current session only. Current program logging covers working sets; warm-ups should be done separately. No universal starting weight or automatic load progression is prescribed.
 
 Exercise guidance is available under **Workouts → Exercise guide** and through **View form** on program exercises, workout plans and active sessions. The catalogue contains 876 source exercises and 93 curated GTrack movements with equipment and muscle metadata. Existing GTrack media coverage remains separate, currently including 64 movement guides and 62 photo pairs cached for offline use. See [exercise-guide sources and coverage](docs/exercise-guides.md) and [catalogue source and maintenance](docs/exercise-catalog.md).
 

@@ -10,7 +10,7 @@ The exercise catalogue contains 876 source records plus 93 curated GTrack names 
 
 124 unmodified JPEGs from [free-exercise-db](https://github.com/yuhonas/free-exercise-db), pinned to commit `a859101d633a01c4a1a920d6a8ce41dabba0705f`, downloaded September 16, 2026. The upstream project releases its data and images under the Unlicense. Its full license is retained in `src/assets/exercises/LICENSE.txt`. Each catalog entry records the original exercise directory and image paths. The app links directly to those pinned sources.
 
-The photo pairs show two positions, not a continuous animation. High-pulley fly and bench leg-raise variations are labeled. The original photos have been visually checked against the exercise mappings. Coaching cues are general educational guidance, not individually assessed technique or official Sebastian Oreb material.
+The photo pairs show two positions, not a continuous animation. High-pulley fly and bench leg-raise variations are labeled. The original photos have been visually checked against the exercise mappings. Coaching cues are general educational guidance, not individually assessed technique.
 
 Further learning: [ACE exercise library](https://www.acefitness.org/resources/everyone/exercise-library/). Hip-hinge cues were cross-checked against [NASM’s barbell Romanian deadlift guide](https://www.nasm.org/resource-center/exercise-library/romanian-deadlift-barbell).
 
