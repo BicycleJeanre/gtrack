@@ -412,12 +412,18 @@ test("desktop uses a sidebar and wider workout layout without changing mobile", 
   await expect(page.locator("#logging")).toBeVisible();
   const desktop = await page.evaluate(() => {
     const nav = document.querySelector("nav")!,
+      header = document.querySelector("header")!,
+      headerActions = document.querySelector(".header-actions")!,
       main = document.querySelector("main")!,
       logging = document.querySelector("#logging")!;
     return {
       navDirection: getComputedStyle(nav).flexDirection,
       navLeft: nav.getBoundingClientRect().left,
       navWidth: nav.getBoundingClientRect().width,
+      navTop: nav.getBoundingClientRect().top,
+      headerRight: header.getBoundingClientRect().right,
+      headerBottom: header.getBoundingClientRect().bottom,
+      headerActionsRight: headerActions.getBoundingClientRect().right,
       mainLeft: main.getBoundingClientRect().left,
       loggingColumns: getComputedStyle(logging).gridTemplateColumns,
       fits: document.documentElement.scrollWidth <= innerWidth,
@@ -426,6 +432,11 @@ test("desktop uses a sidebar and wider workout layout without changing mobile", 
   expect(desktop.navDirection).toBe("column");
   expect(desktop.navLeft).toBe(0);
   expect(desktop.navWidth).toBe(240);
+  expect(desktop.headerRight).toBeLessThanOrEqual(240);
+  expect(desktop.headerActionsRight).toBeLessThanOrEqual(
+    desktop.headerRight,
+  );
+  expect(desktop.navTop).toBeGreaterThanOrEqual(desktop.headerBottom);
   expect(desktop.mainLeft).toBeGreaterThanOrEqual(240);
   expect(desktop.loggingColumns.split(" ")).toHaveLength(2);
   expect(desktop.fits).toBe(true);
