@@ -2,70 +2,23 @@
   "schema": "gtrack-program-proposal-1",
   "status": "app-catalog-version-1-not-backup-import",
   "researchedAt": "2026-09-16",
-  "attribution": "Original GTrack examples informed by Sebastian Oreb’s public principles. Not official or endorsed Strength System programs.",
+  "attribution": "Original GTrack example programs.",
   "weightKg": null,
   "prescriptionFormat": "[working sets, reps per set]; phase overrides apply to every exercise with that role",
   "restSeconds": {
-    "primary": [
-      180,
-      300
-    ],
-    "practice": [
-      180,
-      300
-    ],
-    "secondary": [
-      120,
-      180
-    ],
-    "accessory": [
-      60,
-      120
-    ]
+    "primary": [180, 300],
+    "practice": [180, 300],
+    "secondary": [120, 180],
+    "accessory": [60, 120]
   },
-  "sources": [
-    {
-      "id": "load",
-      "title": "Sebastian Oreb: Load Selection",
-      "url": "https://strengthsystem.com/all-articles/your-program-sucks-part-2/"
-    },
-    {
-      "id": "progression",
-      "title": "Sebastian Oreb: Progressive Overload",
-      "url": "https://strengthsystem.com/all-articles/your-program-sucks-part-3/"
-    },
-    {
-      "id": "beginner",
-      "title": "Strength System: Beginners Guide to Lifting Weights",
-      "url": "https://strengthsystem.com/beginners-guide-to-lifting-weights/"
-    },
-    {
-      "id": "system",
-      "title": "Strength System: program and technique-feedback overview",
-      "url": "https://strengthsystem.com/"
-    },
-    {
-      "id": "interview",
-      "title": "Raise the Bar: Sebastian Oreb interview, 2 August 2026 (publisher show notes)",
-      "url": "https://podcasts.apple.com/ca/podcast/coach-to-the-strongest-man-alive-on-breaking-plateaus/id6793696383?i=1000779498914"
-    },
-    {
-      "id": "recap",
-      "title": "OneCoach: publisher recap of its Oreb interview, 12 August 2026",
-      "url": "https://one.coach/resources/how-to-get-stronger/"
-    }
-  ],
+  "sources": [],
   "programs": [
     {
       "id": "foundation-3",
       "name": "Foundation — 3 days",
       "weeks": 8,
       "audience": "New or returning lifters learning consistent technique",
-      "schedule": [
-        "Monday: A",
-        "Wednesday: B",
-        "Friday: C"
-      ],
+      "schedule": ["Monday: A", "Wednesday: B", "Friday: C"],
       "estimatedMinutes": "45–65",
       "sessions": [
         {
@@ -146,83 +99,35 @@
       ],
       "phases": [
         {
-          "weeks": [
-            1,
-            2
-          ],
+          "weeks": [1, 2],
           "name": "Learn the movements",
-          "primary": [
-            2,
-            8
-          ],
-          "secondary": [
-            2,
-            10
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [2, 8],
+          "secondary": [2, 10],
+          "accessory": [2, 12],
           "rir": "3–4"
         },
         {
-          "weeks": [
-            3,
-            4
-          ],
+          "weeks": [3, 4],
           "name": "Build repeatable work",
-          "primary": [
-            3,
-            8
-          ],
-          "secondary": [
-            3,
-            10
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [3, 8],
+          "secondary": [3, 10],
+          "accessory": [2, 12],
           "rir": "3"
         },
         {
-          "weeks": [
-            5,
-            6,
-            7
-          ],
+          "weeks": [5, 6, 7],
           "name": "Progress gradually",
-          "primary": [
-            3,
-            8
-          ],
-          "secondary": [
-            3,
-            10
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [3, 8],
+          "secondary": [3, 10],
+          "accessory": [2, 12],
           "rir": "2–3"
         },
         {
-          "weeks": [
-            8
-          ],
+          "weeks": [8],
           "name": "Consolidate and review",
-          "primary": [
-            2,
-            8
-          ],
-          "secondary": [
-            2,
-            10
-          ],
-          "accessory": [
-            1,
-            12
-          ],
+          "primary": [2, 8],
+          "secondary": [2, 10],
+          "accessory": [1, 12],
           "rir": "3–4"
         }
       ]
@@ -343,123 +248,51 @@
       ],
       "phases": [
         {
-          "weeks": [
-            1,
-            2,
-            3
-          ],
+          "weeks": [1, 2, 3],
           "name": "Establish a base",
-          "primary": [
-            3,
-            8
-          ],
-          "secondary": [
-            3,
-            10
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [3, 8],
+          "secondary": [3, 10],
+          "accessory": [2, 12],
           "rir": "3 → 2"
         },
         {
-          "weeks": [
-            4
-          ],
+          "weeks": [4],
           "name": "Easy week",
-          "primary": [
-            2,
-            8
-          ],
-          "secondary": [
-            2,
-            10
-          ],
-          "accessory": [
-            1,
-            12
-          ],
+          "primary": [2, 8],
+          "secondary": [2, 10],
+          "accessory": [1, 12],
           "rir": "4+"
         },
         {
-          "weeks": [
-            5,
-            6,
-            7
-          ],
+          "weeks": [5, 6, 7],
           "name": "Build work capacity",
-          "primary": [
-            4,
-            6
-          ],
-          "secondary": [
-            3,
-            8
-          ],
-          "accessory": [
-            3,
-            10
-          ],
+          "primary": [4, 6],
+          "secondary": [3, 8],
+          "accessory": [3, 10],
           "rir": "3 → 2"
         },
         {
-          "weeks": [
-            8
-          ],
+          "weeks": [8],
           "name": "Easy week",
-          "primary": [
-            2,
-            6
-          ],
-          "secondary": [
-            2,
-            8
-          ],
-          "accessory": [
-            1,
-            10
-          ],
+          "primary": [2, 6],
+          "secondary": [2, 8],
+          "accessory": [1, 10],
           "rir": "4+"
         },
         {
-          "weeks": [
-            9,
-            10,
-            11
-          ],
+          "weeks": [9, 10, 11],
           "name": "Emphasise strength",
-          "primary": [
-            4,
-            5
-          ],
-          "secondary": [
-            3,
-            8
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [4, 5],
+          "secondary": [3, 8],
+          "accessory": [2, 12],
           "rir": "3 → 2"
         },
         {
-          "weeks": [
-            12
-          ],
+          "weeks": [12],
           "name": "Review without maxing",
-          "primary": [
-            2,
-            5
-          ],
-          "secondary": [
-            2,
-            8
-          ],
-          "accessory": [
-            1,
-            12
-          ],
+          "primary": [2, 5],
+          "secondary": [2, 8],
+          "accessory": [1, 12],
           "rir": "2 on first primary set; 4+ thereafter"
         }
       ]
@@ -572,147 +405,57 @@
       ],
       "phases": [
         {
-          "weeks": [
-            1,
-            2,
-            3
-          ],
+          "weeks": [1, 2, 3],
           "name": "Build repeatable volume",
-          "primary": [
-            3,
-            6
-          ],
-          "practice": [
-            3,
-            6
-          ],
-          "secondary": [
-            3,
-            8
-          ],
-          "accessory": [
-            2,
-            12
-          ],
+          "primary": [3, 6],
+          "practice": [3, 6],
+          "secondary": [3, 8],
+          "accessory": [2, 12],
           "rir": "3 → 2; practice always 4+"
         },
         {
-          "weeks": [
-            4
-          ],
+          "weeks": [4],
           "name": "Easy week",
-          "primary": [
-            2,
-            6
-          ],
-          "practice": [
-            2,
-            6
-          ],
-          "secondary": [
-            2,
-            8
-          ],
-          "accessory": [
-            1,
-            12
-          ],
+          "primary": [2, 6],
+          "practice": [2, 6],
+          "secondary": [2, 8],
+          "accessory": [1, 12],
           "rir": "4+"
         },
         {
-          "weeks": [
-            5,
-            6,
-            7
-          ],
+          "weeks": [5, 6, 7],
           "name": "Build strength",
-          "primary": [
-            4,
-            4
-          ],
-          "practice": [
-            3,
-            5
-          ],
-          "secondary": [
-            3,
-            8
-          ],
-          "accessory": [
-            2,
-            10
-          ],
+          "primary": [4, 4],
+          "practice": [3, 5],
+          "secondary": [3, 8],
+          "accessory": [2, 10],
           "rir": "3 → 2; practice always 4+"
         },
         {
-          "weeks": [
-            8
-          ],
+          "weeks": [8],
           "name": "Easy week",
-          "primary": [
-            2,
-            4
-          ],
-          "practice": [
-            2,
-            5
-          ],
-          "secondary": [
-            2,
-            8
-          ],
-          "accessory": [
-            1,
-            10
-          ],
+          "primary": [2, 4],
+          "practice": [2, 5],
+          "secondary": [2, 8],
+          "accessory": [1, 10],
           "rir": "4+"
         },
         {
-          "weeks": [
-            9,
-            10,
-            11
-          ],
+          "weeks": [9, 10, 11],
           "name": "Practise heavier weights",
-          "primary": [
-            4,
-            3
-          ],
-          "practice": [
-            3,
-            4
-          ],
-          "secondary": [
-            2,
-            8
-          ],
-          "accessory": [
-            2,
-            10
-          ],
+          "primary": [4, 3],
+          "practice": [3, 4],
+          "secondary": [2, 8],
+          "accessory": [2, 10],
           "rir": "3 → 2; practice always 4+"
         },
         {
-          "weeks": [
-            12
-          ],
+          "weeks": [12],
           "name": "Submaximal benchmark",
-          "primary": [
-            2,
-            3
-          ],
-          "practice": [
-            2,
-            4
-          ],
-          "secondary": [
-            1,
-            8
-          ],
-          "accessory": [
-            1,
-            10
-          ],
+          "primary": [2, 3],
+          "practice": [2, 4],
+          "secondary": [1, 8],
+          "accessory": [1, 10],
           "rir": "2 on first primary set; 4+ thereafter"
         }
       ]

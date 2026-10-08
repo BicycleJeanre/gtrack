@@ -4,9 +4,7 @@ import { readFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
 import { stretchingExercises } from "../src/stretching-exercises";
 async function addExercisePhoto(page: Page) {
-  await page
-    .getByLabel("Exercise photo", { exact: true })
-    .setInputFiles("public/icon-192.png");
+  await page.locator("#exercise-image").setInputFiles("public/icon-192.png");
   await expect(page.locator("#exercise-image-preview img")).toBeVisible();
 }
 async function selectVisualExercise(page: Page, name: string) {
@@ -226,6 +224,77 @@ test("mobile visual exercise filters preserve selections and show movement image
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test("profiles separate training and unilateral multi-select keeps session filters", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Switch training profile" }).click();
+  await page.getByLabel("Add another person").fill("Daniel");
+  await page.getByRole("button", { name: "Add profile" }).click();
+  await expect(
+    page.getByRole("button", { name: "Switch training profile" }),
+  ).toContainText("Daniel");
+
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await page.locator("#session-add").click();
+  await page.locator("#session-type").selectOption("yoga");
+  await page.locator("#session-muscle").selectOption("legs");
+  await expect(page.locator("#session-detail-label")).toBeVisible();
+  await page.locator("#session-detail").selectOption("quadriceps");
+  await selectVisualExercise(page, "Warrior I");
+  await selectVisualExercise(page, "Warrior II");
+  await page.getByLabel("Log left and right sides separately").check();
+  await page.getByRole("button", { name: "Add to session" }).click();
+  await expect(page.locator(".logging-exercise h2")).toHaveText([
+    "Warrior I",
+    "Warrior II",
+  ]);
+  await expect(page.locator(".logging-exercise").first()).toContainText(
+    "Left + right",
+  );
+  await expect(
+    page.locator(".logging-exercise").first().locator(".session-set"),
+  ).toHaveCount(3);
+
+  await page.locator("#session-add").click();
+  await expect(page.locator("#session-type")).toHaveValue("yoga");
+  await expect(page.locator("#session-muscle")).toHaveValue("legs");
+  await expect(page.locator("#session-detail")).toHaveValue("quadriceps");
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await page
+    .getByRole("button", { name: "Complete Warrior I left side set 1" })
+    .click();
+  await page.locator("#finish").click();
+  await page.getByRole("button", { name: "Save session" }).click();
+  await page.getByRole("button", { name: "Switch training profile" }).click();
+  await page.getByRole("button", { name: /Me.*Switch profile/ }).click();
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(
+    page.getByText("Your first session is ahead", { exact: false }),
+  ).toBeVisible();
+});
+
+test("a custom exercise can be created with only its name", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start empty session" }).click();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await page.locator("#session-add").click();
+  await page
+    .getByRole("button", { name: "New exercise for the library" })
+    .click();
+  await page.getByLabel("Exercise name", { exact: true }).fill("Partner carry");
+  await page.getByRole("button", { name: "Add to library" }).click();
+  await expect(page.locator(".logging-exercise h2")).toHaveText(
+    "Partner carry",
+  );
+  await expect(page.locator(".exercise-thumbnail-missing")).toBeVisible();
 });
 
 test("prenatal, stretching and yoga exercises are searchable with images", async ({

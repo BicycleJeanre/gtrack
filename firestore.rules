@@ -4,16 +4,18 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function owner(uid) { return signedIn() && request.auth.uid == uid; }
     function stringBetween(value, max) { return value is string && value.size() > 0 && value.size() <= max; }
+    function optionalProfile(d) { return !('profileId' in d) || (d.profileId is string && d.profileId.matches('^[a-zA-Z0-9-]{1,128}$')); }
     function validExercise(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','name','description','createdAt'])
-        && d.keys().hasOnly(['id','name','description','createdAt','equipment','primaryMuscleGroup','primaryMuscles','secondaryMuscles','category','image'])
+        && d.keys().hasOnly(['id','name','description','createdAt','equipment','primaryMuscleGroup','primaryMuscles','secondaryMuscles','category','exerciseType','image'])
         && d.id == id && id.matches('^[a-f0-9]{64}$')
-        && stringBetween(d.name, 80) && stringBetween(d.description, 600)
+        && stringBetween(d.name, 80) && d.description is string && d.description.size() <= 600
         && (!('image' in d) || (d.image is string && d.image.size() <= 100000 && d.image.matches('^data:image/(webp|jpeg|png);base64,[a-zA-Z0-9+/=]+$')))
         && (!('equipment' in d) || d.equipment in ['bands','barbell','body only','cable','dumbbell','e-z curl bar','exercise ball','foam roll','kettlebells','machine','medicine ball','other'])
         && (!('primaryMuscleGroup' in d) || d.primaryMuscleGroup in ['arms','back','chest','core','legs','shoulders','full body'])
         && (!('category' in d) || d.category in ['strength','stretching','plyometrics','powerlifting','olympic weightlifting','strongman','cardio'])
+        && (!('exerciseType' in d) || d.exerciseType in ['strength','cardio','stretch','yoga','mobility','breathing','other'])
         && (!('primaryMuscles' in d) || (d.primaryMuscles is list && d.primaryMuscles.size() <= 8 && d.primaryMuscles.hasOnly(['abdominals','abductors','adductors','biceps','calves','chest','forearms','glutes','hamstrings','lats','lower back','middle back','neck','quadriceps','shoulders','traps','triceps'])))
         && (!('secondaryMuscles' in d) || (d.secondaryMuscles is list && d.secondaryMuscles.size() <= 8 && d.secondaryMuscles.hasOnly(['abdominals','abductors','adductors','biceps','calves','chest','forearms','glutes','hamstrings','lats','lower back','middle back','neck','quadriceps','shoulders','traps','triceps'])))
         && d.createdAt is number && d.createdAt > 0;
@@ -21,9 +23,10 @@ service cloud.firestore {
     function validBodyEntry(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','recordedAt'])
-        && d.keys().hasOnly(['id','recordedAt','weight','weightUnit','bodyFat','waist','chest','upperArm','thigh','measurementUnit'])
+        && d.keys().hasOnly(['id','recordedAt','weight','weightUnit','bodyFat','waist','chest','upperArm','thigh','measurementUnit','profileId'])
         && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$')
         && d.recordedAt is number && d.recordedAt > 0
+        && optionalProfile(d)
         && (!('weight' in d) || (d.weight is number && d.weight >= 1 && d.weight <= 1000))
         && (!('bodyFat' in d) || (d.bodyFat is number && d.bodyFat >= 0 && d.bodyFat <= 100))
         && (!('waist' in d) || (d.waist is number && d.waist >= 1 && d.waist <= 500))
@@ -37,8 +40,9 @@ service cloud.firestore {
     function validWorkout(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','name','rest','exercises','updatedAt','archived'])
-        && d.keys().hasOnly(['id','name','rest','exercises','updatedAt','archived'])
+        && d.keys().hasOnly(['id','name','rest','exercises','updatedAt','archived','profileId'])
         && d.id == id && stringBetween(d.name, 60)
+        && optionalProfile(d)
         && d.rest is number && d.rest >= 0 && d.rest <= 600
         && d.exercises is list && d.exercises.size() > 0 && d.exercises.size() <= 30
         && d.updatedAt is number && d.updatedAt > 0 && d.archived is bool;
@@ -46,9 +50,10 @@ service cloud.firestore {
     function validSession(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','workoutName','rest','startedAt','completedAt','exercises'])
-        && d.keys().hasOnly(['id','workoutName','rest','startedAt','completedAt','exercises','program'])
+        && d.keys().hasOnly(['id','workoutName','rest','startedAt','completedAt','exercises','program','profileId'])
         && (!('program' in d) || validProgramSession(d.program))
         && d.id == id && stringBetween(d.workoutName, 60)
+        && optionalProfile(d)
         && d.rest is number && d.rest >= 0 && d.rest <= 600
         && d.startedAt is number && d.startedAt > 0
         && d.completedAt is number && d.completedAt >= d.startedAt
@@ -79,8 +84,9 @@ service cloud.firestore {
     function validProgram(id) {
       let d = request.resource.data;
       return d.keys().hasAll(['id','templateId','version','startedAt','updatedAt','archived'])
-        && d.keys().hasOnly(['id','templateId','version','startedAt','updatedAt','archived','deleted','custom'])
+        && d.keys().hasOnly(['id','templateId','version','startedAt','updatedAt','archived','deleted','custom','profileId'])
         && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$') && programTemplate(d.templateId)
+        && optionalProfile(d)
         && (d.templateId.matches('^custom-.*$') ? ('custom' in d && validCustomProgram(d.custom)) : !('custom' in d))
         && d.version == 1 && d.startedAt is number && d.startedAt > 0
         && d.updatedAt is number && d.updatedAt >= d.startedAt && d.archived is bool
@@ -89,6 +95,20 @@ service cloud.firestore {
     match /users/{uid}/programs/{id} {
       allow read: if owner(uid);
       allow create, update: if owner(uid) && validProgram(id);
+      allow delete: if false;
+    }
+    function validProfile(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','name','createdAt','updatedAt'])
+        && d.keys().hasOnly(['id','name','createdAt','updatedAt'])
+        && d.id == id && id.matches('^[a-zA-Z0-9-]{1,128}$')
+        && stringBetween(d.name, 40)
+        && d.createdAt is number && d.createdAt > 0
+        && d.updatedAt is number && d.updatedAt >= d.createdAt;
+    }
+    match /users/{uid}/profiles/{id} {
+      allow read: if owner(uid);
+      allow create, update: if owner(uid) && validProfile(id);
       allow delete: if false;
     }
     match /exercises/{id} {

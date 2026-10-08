@@ -487,3 +487,62 @@ test("private body measurements validate and round-trip through backups", async 
   });
   assert.deepEqual(restored.bodyEntries[bodyEntry.id], bodyEntry);
 });
+
+test("name-only exercises, training profiles and profile-owned records validate", async () => {
+  const exercise = {
+    id: await exerciseId("Partner carry"),
+    name: "Partner carry",
+    description: "",
+    createdAt: 1,
+    exerciseType: "strength",
+  };
+  assert.equal(validateRecord("exercises", exercise), true);
+  assert.equal(
+    validateRecord("profiles", {
+      id: "daniel",
+      name: "Daniel",
+      createdAt: 1,
+      updatedAt: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    validateRecord("bodyEntries", {
+      id: "body-daniel",
+      recordedAt: 1,
+      weight: 80,
+      profileId: "daniel",
+    }),
+    true,
+  );
+});
+
+test("unilateral workout targets become separate left and right set rows", () => {
+  const session = startSession({
+    id: "unilateral",
+    name: "Single arm work",
+    rest: 60,
+    updatedAt: 1,
+    archived: false,
+    profileId: "daniel",
+    exercises: [
+      {
+        exerciseId: "curl",
+        name: "Single arm curl",
+        description: "",
+        sets: 2,
+        reps: 10,
+        weight: 12.5,
+        sides: true,
+      },
+    ],
+  });
+  assert.equal(session.profileId, "daniel");
+  assert.deepEqual(
+    session.exercises[0].sets.map((set) => set.side),
+    ["left", "right", "left", "right"],
+  );
+  session.exercises[0].sets[0].done = true;
+  session.completedAt = Date.now();
+  assert.equal(validateRecord("sessions", session), true);
+});

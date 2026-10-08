@@ -76,6 +76,7 @@ export class Cloud {
       "sessions",
       "programs",
       "bodyEntries",
+      "profiles",
     ] as Kind[]) {
       const ref =
         kind === "exercises"

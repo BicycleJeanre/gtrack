@@ -133,6 +133,29 @@ test("signed-in users share the create-only exercise library", async () => {
       primaryMuscleGroup: "upper torso",
     }),
   );
+  await assertSucceeds(
+    setDoc(doc(alice, "exercises", "e".repeat(64)), {
+      id: "e".repeat(64),
+      name: "Name only movement",
+      description: "",
+      createdAt: 1,
+      exerciseType: "mobility",
+    }),
+  );
+});
+test("training profiles are private to their account", async () => {
+  const profile = {
+    id: "daniel",
+    name: "Daniel",
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const ref = doc(alice, "users/alice/profiles/daniel");
+  await assertSucceeds(setDoc(ref, profile));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(getDoc(doc(bob, "users/alice/profiles/daniel")));
+  await assertFails(setDoc(ref, { ...profile, name: "" }));
+  await assertFails(deleteDoc(ref));
 });
 test("workouts are account isolated and validated", async () => {
   await assertSucceeds(

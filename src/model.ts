@@ -17,7 +17,22 @@ export interface Exercise {
   primaryMuscles?: string[];
   secondaryMuscles?: string[];
   category?: string;
+  exerciseType?: ExerciseType;
   image?: string;
+}
+export type ExerciseType =
+  | "strength"
+  | "cardio"
+  | "stretch"
+  | "yoga"
+  | "mobility"
+  | "breathing"
+  | "other";
+export interface TrainingProfile {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }
 export interface PlannedSet {
   reps: number;
@@ -42,6 +57,7 @@ export interface Target {
   guided?: boolean;
   setRest?: number;
   exerciseRest?: number;
+  sides?: boolean;
 }
 export interface Workout {
   id: string;
@@ -50,12 +66,14 @@ export interface Workout {
   exercises: Target[];
   updatedAt: number;
   archived: boolean;
+  profileId?: string;
 }
 export interface LoggedSet {
   weight: number;
   reps: number;
   value?: number;
   done: boolean;
+  side?: "left" | "right";
 }
 export interface CustomProgramExercise {
   exerciseName: string;
@@ -85,6 +103,7 @@ export interface ProgramEnrollment {
   archived: boolean;
   deleted?: boolean;
   custom?: CustomProgramDefinition;
+  profileId?: string;
 }
 export interface ProgramSession {
   enrollmentId: string;
@@ -105,6 +124,7 @@ export interface SessionExercise {
   description: string;
   tracking?: TrackingType;
   unit?: MeasureUnit;
+  sides?: boolean;
   sets: LoggedSet[];
 }
 export interface Session {
@@ -115,6 +135,7 @@ export interface Session {
   completedAt: number;
   rest: number;
   exercises: SessionExercise[];
+  profileId?: string;
 }
 export interface BodyEntry {
   id: string;
@@ -127,10 +148,17 @@ export interface BodyEntry {
   upperArm?: number;
   thigh?: number;
   measurementUnit?: "cm" | "in";
+  profileId?: string;
 }
 export type Kind =
-  "exercises" | "workouts" | "sessions" | "programs" | "bodyEntries";
+  | "profiles"
+  | "exercises"
+  | "workouts"
+  | "sessions"
+  | "programs"
+  | "bodyEntries";
 export interface Records {
+  profiles: Record<string, TrainingProfile>;
   programs: Record<string, ProgramEnrollment>;
   exercises: Record<string, Exercise>;
   workouts: Record<string, Workout>;
@@ -146,9 +174,11 @@ export interface State extends Records {
   schema: 1;
   draft: Session | null;
   pending: Pending[];
+  activeProfileId: string;
 }
 export const emptyState = (): State => ({
   schema: 1,
+  profiles: {},
   programs: {},
   exercises: {},
   workouts: {},
@@ -156,6 +186,7 @@ export const emptyState = (): State => ({
   bodyEntries: {},
   draft: null,
   pending: [],
+  activeProfileId: "",
 });
 export const uid = () => crypto.randomUUID();
 export const normalize = (name: string) =>
@@ -189,6 +220,15 @@ const trackingTypes = [
   "distance",
 ];
 const units = ["kg", "lb", "plates", "sec", "min", "m", "km", "mi"];
+export const exerciseTypes: ExerciseType[] = [
+  "strength",
+  "cardio",
+  "stretch",
+  "yoga",
+  "mobility",
+  "breathing",
+  "other",
+];
 export const trackingFor = (value: { tracking?: TrackingType }) =>
   value.tracking || "weight_reps";
 export const unitFor = (value: {
@@ -254,6 +294,17 @@ const validCustomProgram = (value: any): value is CustomProgramDefinition =>
   );
 export function validateRecord(kind: Kind, value: any): boolean {
   if (!value || !validId(value.id)) return false;
+  const validProfileId =
+    value.profileId === undefined || validId(value.profileId);
+  if (kind === "profiles")
+    return (
+      Object.keys(value).every((key) =>
+        ["id", "name", "createdAt", "updatedAt"].includes(key),
+      ) &&
+      text(value.name, 40) &&
+      number(value.createdAt, 1, 9e15) &&
+      number(value.updatedAt, value.createdAt, 9e15)
+    );
   if (kind === "bodyEntries") {
     const optionalNumber = (key: string, min: number, max: number) =>
       value[key] === undefined || number(value[key], min, max);
@@ -270,8 +321,10 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "upperArm",
           "thigh",
           "measurementUnit",
+          "profileId",
         ].includes(key),
       ) &&
+      validProfileId &&
       number(value.recordedAt, 1, 9e15) &&
       optionalNumber("weight", 1, 1000) &&
       optionalNumber("bodyFat", 0, 100) &&
@@ -300,8 +353,10 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "archived",
           "deleted",
           "custom",
+          "profileId",
         ].includes(k),
       ) &&
+      validProfileId &&
       (["foundation-3", "strength-size-4", "barbell-strength-4"].includes(
         value.templateId,
       ) ||
@@ -329,10 +384,19 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "primaryMuscles",
           "secondaryMuscles",
           "category",
+          "exerciseType",
           "image",
         ]
       : kind === "workouts"
-        ? ["id", "name", "rest", "exercises", "updatedAt", "archived"]
+        ? [
+            "id",
+            "name",
+            "rest",
+            "exercises",
+            "updatedAt",
+            "archived",
+            "profileId",
+          ]
         : [
             "id",
             "workoutName",
@@ -341,12 +405,14 @@ export function validateRecord(kind: Kind, value: any): boolean {
             "startedAt",
             "completedAt",
             "exercises",
+            "profileId",
           ];
   if (Object.keys(value).some((key) => !allowed.includes(key))) return false;
   if (kind === "exercises")
     return (
       text(value.name, 80) &&
-      text(value.description, 600) &&
+      typeof value.description === "string" &&
+      value.description.length <= 600 &&
       number(value.createdAt, 1, 9e15) &&
       (value.image === undefined || exerciseImage(value.image)) &&
       (value.equipment === undefined ||
@@ -363,6 +429,8 @@ export function validateRecord(kind: Kind, value: any): boolean {
           "strongman",
           "cardio",
         ].includes(value.category)) &&
+      (value.exerciseType === undefined ||
+        exerciseTypes.includes(value.exerciseType)) &&
       ["primaryMuscles", "secondaryMuscles"].every(
         (key) =>
           value[key] === undefined ||
@@ -378,6 +446,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
   if (kind === "workouts")
     return (
       text(value.name, 60) &&
+      validProfileId &&
       number(value.rest, 0, 600) &&
       number(value.updatedAt, 1, 9e15) &&
       typeof value.archived === "boolean" &&
@@ -388,7 +457,8 @@ export function validateRecord(kind: Kind, value: any): boolean {
         (e: any) =>
           validId(e.exerciseId) &&
           text(e.name, 80) &&
-          text(e.description, 600) &&
+          typeof e.description === "string" &&
+          e.description.length <= 600 &&
           count(e.sets, 12) &&
           count(e.reps, 100) &&
           number(e.weight, 0, 1000) &&
@@ -396,6 +466,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
           (e.guided === undefined || typeof e.guided === "boolean") &&
           (e.setRest === undefined || number(e.setRest, 0, 600)) &&
           (e.exerciseRest === undefined || number(e.exerciseRest, 0, 600)) &&
+          (e.sides === undefined || typeof e.sides === "boolean") &&
           (!e.guided ||
             (trackingFor(e) === "duration" &&
               e.setRest !== undefined &&
@@ -459,6 +530,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
     return false;
   return (
     text(value.workoutName, 60) &&
+    validProfileId &&
     number(value.rest, 0, 600) &&
     number(value.startedAt, 1, 9e15) &&
     number(value.completedAt, value.startedAt, 9e15) &&
@@ -469,7 +541,8 @@ export function validateRecord(kind: Kind, value: any): boolean {
       (e: any) =>
         validId(e.exerciseId) &&
         text(e.name, 80) &&
-        text(e.description, 600) &&
+        typeof e.description === "string" &&
+        e.description.length <= 600 &&
         validTracking(e) &&
         (e.guidance === undefined || text(e.guidance, 500)) &&
         (e.note === undefined || text(e.note, 500)) &&
@@ -477,6 +550,7 @@ export function validateRecord(kind: Kind, value: any): boolean {
         (e.guided === undefined || typeof e.guided === "boolean") &&
         (e.setRest === undefined || number(e.setRest, 0, 600)) &&
         (e.exerciseRest === undefined || number(e.exerciseRest, 0, 600)) &&
+        (e.sides === undefined || typeof e.sides === "boolean") &&
         (!e.guided ||
           (trackingFor(e) === "duration" &&
             e.setRest !== undefined &&
@@ -485,12 +559,13 @@ export function validateRecord(kind: Kind, value: any): boolean {
             e.sets.every((set: any) => number(set.value, 1, 1e7)))) &&
         Array.isArray(e.sets) &&
         e.sets.length > 0 &&
-        e.sets.length <= 12 &&
+        e.sets.length <= (e.sides ? 24 : 12) &&
         e.sets.every(
           (s: any) =>
             number(s.weight, 0, 1000) &&
             count(s.reps, 100) &&
             (s.value === undefined || number(s.value, 0, 1e7)) &&
+            (s.side === undefined || ["left", "right"].includes(s.side)) &&
             typeof s.done === "boolean",
         ),
     ) &&
@@ -521,6 +596,7 @@ export function startSession(workout: Workout): Session {
     startedAt: Date.now(),
     completedAt: 0,
     rest: workout.rest,
+    ...(workout.profileId ? { profileId: workout.profileId } : {}),
     exercises: workout.exercises.map((e) => ({
       exerciseId: e.exerciseId,
       name: e.name,
@@ -530,7 +606,15 @@ export function startSession(workout: Workout): Session {
       ...(e.guided ? { guided: true } : {}),
       ...(e.setRest !== undefined ? { setRest: e.setRest } : {}),
       ...(e.exerciseRest !== undefined ? { exerciseRest: e.exerciseRest } : {}),
-      sets: plannedSets(e).map((set) => ({ ...set, done: false })),
+      ...(e.sides ? { sides: true } : {}),
+      sets: plannedSets(e).flatMap((set) =>
+        e.sides
+          ? [
+              { ...set, side: "left" as const, done: false },
+              { ...set, side: "right" as const, done: false },
+            ]
+          : [{ ...set, done: false }],
+      ),
     })),
   };
 }
@@ -552,6 +636,7 @@ export async function validateBackup(input: unknown): Promise<Records> {
   if (data?.schema !== 1 || !data.records)
     throw new Error("This is not a GTrack version 1 backup.");
   const result: Records = {
+    profiles: {},
     exercises: {},
     workouts: {},
     sessions: {},
@@ -564,9 +649,10 @@ export async function validateBackup(input: unknown): Promise<Records> {
     "sessions",
     "programs",
     "bodyEntries",
+    "profiles",
   ] as Kind[]) {
     if (
-      ["programs", "bodyEntries"].includes(kind) &&
+      ["programs", "bodyEntries", "profiles"].includes(kind) &&
       data.records[kind] === undefined
     )
       continue;
