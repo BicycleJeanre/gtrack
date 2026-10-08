@@ -232,6 +232,12 @@ test("profiles separate training and unilateral multi-select keeps session filte
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Switch training profile" }).click();
+  await page.getByLabel("Current profile name").fill("Jeanre");
+  await page.getByRole("button", { name: "Save profile name" }).click();
+  await expect(
+    page.getByRole("button", { name: "Switch training profile" }),
+  ).toContainText("Jeanre");
+  await page.getByRole("button", { name: "Switch training profile" }).click();
   await page.getByLabel("Add another person").fill("Daniel");
   await page.getByRole("button", { name: "Add profile" }).click();
   await expect(
@@ -272,7 +278,7 @@ test("profiles separate training and unilateral multi-select keeps session filte
   await page.locator("#finish").click();
   await page.getByRole("button", { name: "Save session" }).click();
   await page.getByRole("button", { name: "Switch training profile" }).click();
-  await page.getByRole("button", { name: /Me.*Switch profile/ }).click();
+  await page.getByRole("button", { name: /Jeanre.*Switch profile/ }).click();
   await page.getByRole("button", { name: "History" }).click();
   await expect(
     page.getByText("Your first session is ahead", { exact: false }),

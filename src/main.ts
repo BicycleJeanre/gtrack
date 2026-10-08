@@ -3598,9 +3598,10 @@ function renderRecordProgress() {
 function profileDialog() {
   const profiles = Object.values(store.state.profiles).sort(
     (a, b) => a.createdAt - b.createdAt,
-  );
+  ),
+    current = activeProfile();
   modal(
-    `<div class="eyebrow">Training profiles</div><h2>Who is training?</h2><p>Each person has separate workouts, programs, history, body measurements and PRs inside this account.</p><div class="profile-list">${profiles
+    `<div class="eyebrow">Training profiles</div><h2>Who is training?</h2><p>Each person has separate workouts, programs, history, body measurements and PRs inside this account.</p><form id="profile-rename" class="profile-rename"><label>Current profile name<input name="name" required maxlength="40" value="${esc(current?.name || "Me")}"></label><button class="secondary" type="submit">Save profile name</button></form><div class="profile-list">${profiles
       .map(
         (profile) =>
           `<button class="profile-choice ${profile.id === store.state.activeProfileId ? "selected" : ""}" data-profile-id="${profile.id}"><span>${esc(profile.name)}</span><small>${profile.id === store.state.activeProfileId ? "Current profile" : "Switch profile"}</small></button>`,
@@ -3609,6 +3610,22 @@ function profileDialog() {
         "",
       )}</div><form id="profile-add"><label>Add another person<input name="name" required maxlength="40" placeholder="e.g. Daniel"></label><div class="actions"><button class="secondary" type="button" data-close>Close</button><button class="primary" type="submit">Add profile</button></div></form>`,
   );
+  $("#profile-rename").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const profile = activeProfile(),
+      name = String(
+        new FormData(event.currentTarget as HTMLFormElement).get("name"),
+      ).trim();
+    if (!profile || !name) return;
+    await store.put("profiles", {
+      ...profile,
+      name,
+      updatedAt: Date.now(),
+    });
+    close();
+    await saved();
+    toast(`Profile renamed to ${name}.`);
+  });
   action("[data-profile-id]", async (event) => {
     const id = (event.currentTarget as HTMLElement).dataset.profileId!;
     if (id === store.state.activeProfileId) return close();
@@ -3655,7 +3672,7 @@ function profileDialog() {
 function renderAccount() {
   const local = store.account === "local";
   $("#screen").innerHTML =
-    `<div class="card pad"><div class="eyebrow">Training profiles</div><h2>Training as ${esc(activeProfile()?.name || "Me")}</h2><p>Keep each person's plans, sessions, measurements and records separate inside this account.</p><button class="primary" id="manage-profiles">Switch or add profile</button></div><div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, profiles, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
+    `<div class="card pad"><div class="eyebrow">Training profiles</div><h2>Training as ${esc(activeProfile()?.name || "Me")}</h2><p>Keep each person's plans, sessions, measurements and records separate inside this account.</p><button class="primary" id="manage-profiles">Switch, rename or add profile</button></div><div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, profiles, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
   navigator.serviceWorker?.getRegistration().then((r) => {
     const el = document.querySelector("#offline-status");
     if (el)
