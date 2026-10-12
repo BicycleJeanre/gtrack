@@ -1247,6 +1247,7 @@ test("build a session while recording and resume structural edits", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "Start empty session" }).click();
   await page.getByLabel("Session name", { exact: true }).fill("Gym freestyle");
+  await page.getByLabel("No automatic rest timer").check();
   await page
     .getByRole("button", { name: "Start session", exact: true })
     .click();
