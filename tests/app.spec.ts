@@ -19,7 +19,23 @@ async function selectVisualExercise(page: Page, name: string) {
       .click();
   await choice.getByRole("checkbox").check();
 }
-async function offlineServer(cachePages = false) {
+async function offlinePicturesReady(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const worker = navigator.serviceWorker.controller;
+        if (!worker) return resolve(false);
+        const channel = new MessageChannel(),
+          timeout = window.setTimeout(() => resolve(false), 1000);
+        channel.port1.onmessage = (event) => {
+          clearTimeout(timeout);
+          resolve(Boolean(event.data?.optionalReady));
+        };
+        worker.postMessage({ type: "CACHE_STATUS" }, [channel.port2]);
+      }),
+  );
+}
+async function offlineServer(cachePages = false, failExerciseImages = false) {
   const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -33,6 +49,11 @@ async function offlineServer(cachePages = false) {
   const server = createServer(async (req, res) => {
     try {
       const pathname = new URL(req.url!, "http://test").pathname;
+      if (failExerciseImages && /\.(?:jpe?g|webp)$/i.test(pathname)) {
+        res.statusCode = 503;
+        res.end("exercise image unavailable");
+        return;
+      }
       const file = resolve(
         "dist",
         "." + (pathname === "/" ? "/index.html" : pathname),
@@ -647,6 +668,37 @@ test("offline session survives restart, completes once, and exports/imports", as
   await restored.getByRole("button", { name: "History", exact: true }).click();
   await expect(restored.locator(".history")).toHaveCount(1);
   await clean.close();
+});
+test("offline shell installs when exercise image caching is interrupted", async ({
+  page,
+  context,
+  browserName,
+}) => {
+  const server = await offlineServer(false, true);
+  let stopped = false;
+  try {
+    await page.goto(server.url);
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+    await expect
+      .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
+      .toBe(true);
+    await page
+      .getByRole("button", { name: "Account and data settings" })
+      .click();
+    await expect(page.locator("#offline-status")).toContainText(
+      "Core app ready for offline launch",
+    );
+    await server.stop();
+    stopped = true;
+    if (browserName === "chromium") await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Workouts" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Your workouts." }),
+    ).toBeVisible();
+  } finally {
+    if (!stopped) await server.stop();
+  }
 });
 test("invalid backups cannot replace data and second tabs cannot edit a session", async ({
   page,
@@ -1835,6 +1887,9 @@ test("exercise guides search, display photos offline and fit a narrow phone", as
       await navigator.serviceWorker.ready;
     });
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await expect
+      .poll(() => offlinePicturesReady(page), { timeout: 15000 })
+      .toBe(true);
     await server.stop();
     stopped = true;
     await page.reload();
