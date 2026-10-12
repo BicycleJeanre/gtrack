@@ -1,4 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
+async function selectVisualExercise(page: Page, name: string) {
+  const choice = page
+    .locator(".exercise-choice")
+    .filter({ has: page.getByText(name, { exact: true }) });
+  await expect(choice).toHaveCount(1);
+  if (!(await choice.isVisible()))
+    await choice
+      .locator("xpath=ancestor::section[contains(@class,'exercise-family')]")
+      .locator(".exercise-family-toggle")
+      .click();
+  await choice.getByRole("checkbox").check();
+}
 async function signIn(page: Page, email: string, create: boolean) {
   await page.goto("/");
   await page.getByRole("button", { name: "Account and data settings" }).click();
@@ -28,6 +40,9 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
     .getByLabel("Workout name", { exact: true })
     .fill("Private Alice plan");
   await page
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page
     .getByRole("button", { name: "New exercise for the library" })
     .click();
   await page
@@ -56,8 +71,11 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
     .getByRole("button", { name: "Create workout", exact: false })
     .click();
   await other
-    .getByLabel("Exercise from library")
-    .selectOption({ label: "Shared synthetic press" });
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await other.getByLabel("Search exercises").fill("Shared synthetic press");
+  await selectVisualExercise(other, "Shared synthetic press");
+  await other.getByRole("button", { name: "Add to workout" }).click();
   await expect(other.locator(".description")).toContainText(
     "shared across test accounts",
   );
@@ -189,6 +207,10 @@ test("custom programs and edits sync privately", async ({ page, browser }) => {
   await page.getByLabel("Program name").fill("Cloud strength plan");
   await page.getByLabel("Workout name").fill("Monday strength");
   await page.getByLabel("Schedule label").fill("Monday");
+  await page.getByRole("button", { name: "Add exercise" }).click();
+  await page.getByLabel("Search exercises").fill("Barbell bench press");
+  await selectVisualExercise(page, "Barbell bench press");
+  await page.getByRole("button", { name: "Add to program" }).click();
   await page.getByRole("button", { name: "Save program", exact: true }).click();
   await expect(page.locator("#sync")).toHaveText("Synced", { timeout: 15000 });
 
