@@ -143,3 +143,62 @@ export function catalogueMetadata(name: string): {
 
 export const displayLabel = (value: string) =>
   value.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+
+const exerciseFamilies: Array<[RegExp, string]> = [
+  [
+    /\b(front|back|goblet|hack|split|overhead|box|zercher|sissy|pistol|smith machine)?\s*squats?\b/i,
+    "Squat",
+  ],
+  [
+    /\b(deadlifts?|romanian deadlifts?|stiff[- ]leg(?:ged)? deadlifts?|rack pulls?)\b/i,
+    "Deadlift",
+  ],
+  [/\b(bench press(?:es)?|chest press(?:es)?)\b/i, "Bench press"],
+  [/\b(shoulder|overhead|military|arnold) press(?:es)?\b/i, "Overhead press"],
+  [/\b(rows?|rowing)\b/i, "Row"],
+  [/\b(pull[- ]?ups?|chin[- ]?ups?)\b/i, "Pull-up"],
+  [/\b(pulldowns?|pull-downs?)\b/i, "Pulldown"],
+  [/\b(push[- ]?ups?)\b/i, "Push-up"],
+  [/\b(lunges?|reverse lunges?|walking lunges?)\b/i, "Lunge"],
+  [/\b(step[- ]?ups?)\b/i, "Step-up"],
+  [/\b(leg press(?:es)?)\b/i, "Leg press"],
+  [/\b(leg extensions?)\b/i, "Leg extension"],
+  [/\b(leg curls?|hamstring curls?)\b/i, "Leg curl"],
+  [/\b(calf raises?)\b/i, "Calf raise"],
+  [/\b(hip thrusts?)\b/i, "Hip thrust"],
+  [/\b(glute bridges?)\b/i, "Glute bridge"],
+  [/\b(curls?)\b/i, "Curl"],
+  [/\b(triceps pushdowns?|pushdowns?)\b/i, "Triceps pushdown"],
+  [
+    /\b(triceps extensions?|skull crushers?|french press(?:es)?)\b/i,
+    "Triceps extension",
+  ],
+  [
+    /\b(chest fly(?:es)?|pec fly(?:es)?|cable crossovers?|butterfl(?:y|ies))\b/i,
+    "Chest fly",
+  ],
+  [/\b(lateral raises?)\b/i, "Lateral raise"],
+  [/\b(front raises?)\b/i, "Front raise"],
+  [/\b(reverse fly(?:es)?|rear delt fly(?:es)?)\b/i, "Rear delt fly"],
+  [/\b(face pulls?)\b/i, "Face pull"],
+  [/\b(shrugs?)\b/i, "Shrug"],
+  [/\b(dips?)\b/i, "Dip"],
+  [/\b(planks?)\b/i, "Plank"],
+  [/\b(crunches?)\b/i, "Crunch"],
+  [/\b(sit[- ]?ups?)\b/i, "Sit-up"],
+  [/\b(leg raises?|knee raises?)\b/i, "Leg raise"],
+  [/\b(back extensions?|hyperextensions?)\b/i, "Back extension"],
+  [/\b(good mornings?)\b/i, "Good morning"],
+  [/\b(burpees?)\b/i, "Burpee"],
+  [/\b(mountain climbers?)\b/i, "Mountain climber"],
+];
+
+/** A stable movement family used to browse a large catalogue before choosing a variant. */
+export function exerciseFamilyName(name: string) {
+  for (const [pattern, family] of exerciseFamilies)
+    if (pattern.test(name)) return family;
+  return name
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

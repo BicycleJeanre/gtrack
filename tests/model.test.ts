@@ -8,6 +8,7 @@ import {
   validateRecord,
   seedExercises,
 } from "../src/model.ts";
+import { exerciseFamilyName } from "../src/exercise-catalog.ts";
 import { muscleGroupFor } from "../src/exercise-catalog.ts";
 import { stretchingExercises } from "../src/stretching-exercises.ts";
 test("exercise identities normalize spaces, Unicode and case", async () => {
@@ -545,4 +546,17 @@ test("unilateral workout targets become separate left and right set rows", () =>
   session.exercises[0].sets[0].done = true;
   session.completedAt = Date.now();
   assert.equal(validateRecord("sessions", session), true);
+});
+
+test("exercise variants share stable main exercise families", () => {
+  assert.equal(
+    exerciseFamilyName("Incline Dumbbell Bench Press"),
+    "Bench press",
+  );
+  assert.equal(
+    exerciseFamilyName("Barbell Bench Press - Medium Grip"),
+    "Bench press",
+  );
+  assert.equal(exerciseFamilyName("One-Arm Dumbbell Row"), "Row");
+  assert.equal(exerciseFamilyName("Warrior I (Yoga)"), "Warrior I");
 });

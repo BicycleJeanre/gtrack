@@ -968,6 +968,74 @@ dialog h2 {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.exercise-family {
+  overflow: hidden;
+  border: 1px solid #343434;
+  border-radius: 10px;
+  background: #151515;
+}
+.exercise-family.selected {
+  border-color: #00d4ff77;
+}
+.exercise-family-toggle {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 28px;
+  gap: 11px;
+  align-items: center;
+  width: 100%;
+  min-height: 70px;
+  padding: 5px 9px 5px 5px;
+  border: 0;
+  background: #1b1b1b;
+  text-align: left;
+}
+.exercise-family-toggle strong,
+.exercise-family-toggle small {
+  display: block;
+}
+.exercise-family-toggle small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.exercise-family-thumbnail {
+  width: 60px;
+  height: 60px;
+  flex-basis: 60px;
+}
+.exercise-family-chevron {
+  color: var(--accent);
+  font-size: 22px;
+  text-align: center;
+}
+.exercise-family-variants {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+.selected-exercise {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #121212;
+}
+.selected-exercise > div {
+  min-width: 0;
+}
+.selected-exercise h2,
+.selected-exercise h3 {
+  margin: 4px 0;
+}
+.selected-exercise .exercise-thumbnail {
+  width: 72px;
+  height: 72px;
+  flex-basis: 72px;
+}
 .exercise-choice {
   position: relative;
   display: grid;

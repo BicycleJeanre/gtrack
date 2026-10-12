@@ -4,7 +4,7 @@ GTrack helps you plan workouts, follow multi-week programs and record each set f
 
 ## Train with more than one person
 
-Use the profile button in the header to add or switch between people such as you and your partner. Each training profile has separate workouts, programs, completed history, body measurements and PRs inside the same account. The exercise library remains shared. Finish or discard an active workout before switching profiles so a session cannot be assigned to the wrong person.
+Use the profile button in the header to rename the current profile, add another person or switch between people such as you and your partner. Each training profile has separate workouts, programs, completed history, body measurements and PRs inside the same account. The exercise library remains shared. Finish or discard an active workout before switching profiles so a session cannot be assigned to the wrong person.
 
 ## Start and resume a workout
 
@@ -34,9 +34,11 @@ For a movement performed independently on both sides, choose **Log left and righ
 
 ## Find and add exercises
 
-GTrack includes 969 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements and common yoga and mobility poses. The active-session picker shows a picture for every bundled movement so you can identify a machine or exercise without knowing its name. Tap any exercise picture to open a larger preview; closing it returns you to the same list without selecting the exercise. Search by name and filter by exercise type, equipment or broad primary muscle group. Choosing a broad group such as **Back**, **Legs** or **Arms** reveals a second filter for detailed muscles. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs.
+GTrack includes 969 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements and common yoga and mobility poses. Active sessions, saved workouts and programs now use the same visual picker. It first groups related variants under a main exercise such as **Squat**, **Row** or **Bench press**. Open the main exercise to compare its equipment, stance and grip variants by picture, then select the exact movement you want. Tap any variant picture to open a larger preview; closing it returns you to the same list without selecting the exercise.
 
-You can select several picture cards before choosing **Add to session**. Each selected movement is added as a separate exercise. The search, type, equipment and muscle filters remain selected when you reopen the picker in the same active session.
+Search by name and filter by exercise type, equipment or broad primary muscle group. Choosing a broad group such as **Back**, **Legs** or **Arms** reveals a second filter for detailed muscles. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs.
+
+You can select several variant cards before choosing **Add to session**, **Add to workout** or **Add to program**. Each selected movement is added as a separate exercise. The search, type, equipment and muscle filters remain selected when you reopen the picker in the same active session.
 
 If a movement is missing, choose **New exercise for the library**. Only a clear name is required. Description, exercise type, equipment, broad and detailed muscle information, and a photo are optional. GTrack compresses any photo before saving it. Custom exercise names, photos and metadata are shared between signed-in users; training profiles, workouts, programs, body measurements and history remain private.
 
