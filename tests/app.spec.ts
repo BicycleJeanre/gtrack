@@ -12,6 +12,11 @@ async function selectVisualExercise(page: Page, name: string) {
     .locator(".exercise-choice")
     .filter({ has: page.getByText(name, { exact: true }) });
   await expect(choice).toHaveCount(1);
+  if (!(await choice.isVisible()))
+    await choice
+      .locator("xpath=ancestor::section[contains(@class,'exercise-family')]")
+      .locator(".exercise-family-toggle")
+      .click();
   await choice.getByRole("checkbox").check();
 }
 async function offlineServer(cachePages = false) {
@@ -83,8 +88,11 @@ async function createWorkout(
     .getByLabel("Rest between sets (seconds)", { exact: true })
     .fill(String(rest));
   await page
-    .getByLabel("Exercise from library")
-    .selectOption({ label: "Barbell bench press" });
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page.getByLabel("Search exercises").fill("Barbell bench press");
+  await selectVisualExercise(page, "Barbell bench press");
+  await page.getByRole("button", { name: "Add to workout" }).click();
   await page.getByLabel("Sets", { exact: true }).fill("2");
   await page
     .getByLabel("Exercise 1 set 1 weight (kg)", { exact: true })
@@ -143,7 +151,7 @@ test("global and contextual help explain current workout features on mobile", as
     })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
-    "select several picture cards",
+    "select several variants",
   );
   await page.getByRole("button", { name: "Got it" }).click();
   await page
@@ -172,15 +180,19 @@ test("mobile visual exercise filters preserve selections and show movement image
   await page.getByRole("button", { name: "Start session" }).click();
   await page.locator("#session-add").click();
 
-  await page.locator("#session-equipment").selectOption("cable");
-  await page.locator("#session-muscle").selectOption("back");
-  await expect(page.locator("#session-filter-count")).toContainText(
+  await page.locator(".picker-equipment").selectOption("cable");
+  await page.locator(".picker-muscle").selectOption("back");
+  await expect(page.locator(".picker-filter-count")).toContainText(
     "matching exercises",
   );
   const vBar = page
     .locator(".exercise-choice")
     .filter({ has: page.getByText("V-Bar Pulldown", { exact: true }) });
   await expect(vBar).toHaveCount(1);
+  await vBar
+    .locator("xpath=ancestor::section[contains(@class,'exercise-family')]")
+    .locator(".exercise-family-toggle")
+    .click();
   await expect(vBar.locator(".exercise-thumbnail")).toBeVisible();
   await vBar.locator(".exercise-thumbnail").click();
   const imagePreview = page.locator("#exercise-image-preview-dialog");
@@ -199,18 +211,22 @@ test("mobile visual exercise filters preserve selections and show movement image
   ).toHaveCount(0);
   await vBar.getByRole("checkbox").check();
 
-  await page.locator("#session-equipment").selectOption("dumbbell");
-  await page.locator("#session-muscle").selectOption("chest");
+  await page.locator(".picker-equipment").selectOption("dumbbell");
+  await page.locator(".picker-muscle").selectOption("chest");
   await expect(vBar.getByRole("checkbox")).toBeChecked();
   await expect(
-    page.getByText("Dumbbell bench press", { exact: true }),
+    page
+      .locator(".exercise-choice")
+      .filter({ has: page.getByText("Dumbbell bench press", { exact: true }) }),
   ).toHaveCount(1);
   await expect(
-    page.getByText("Barbell bench press", { exact: true }),
+    page
+      .locator(".exercise-choice")
+      .filter({ has: page.getByText("Barbell bench press", { exact: true }) }),
   ).toHaveCount(0);
 
   await page.getByLabel("Search exercises").fill("no-such-exercise-name");
-  await expect(page.locator("#session-filter-count")).toContainText(
+  await expect(page.locator(".picker-filter-count")).toContainText(
     "0 matching exercises",
   );
   await expect(page.locator(".exercise-choice")).toHaveCount(1);
@@ -224,6 +240,55 @@ test("mobile visual exercise filters preserve selections and show movement image
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
+});
+
+test("workout and program builders share the visual family and variant picker", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Create workout", exact: false })
+    .click();
+  await page
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page.getByLabel("Search exercises").fill("bench press");
+  const benchFamily = page
+    .locator(".exercise-family")
+    .filter({ has: page.getByText("Bench press", { exact: true }) });
+  await expect(benchFamily).toHaveCount(1);
+  await expect(benchFamily.locator(".exercise-family-thumbnail")).toBeVisible();
+  await selectVisualExercise(page, "Barbell bench press");
+  await selectVisualExercise(page, "Dumbbell bench press");
+  await page.getByRole("button", { name: "Add to workout" }).click();
+  await expect(page.locator(".target .selected-exercise h2")).toHaveText([
+    "Barbell bench press",
+    "Dumbbell bench press",
+  ]);
+  await expect(page.locator(".target .exercise-thumbnail")).toHaveCount(2);
+
+  await page
+    .getByLabel("Workout name", { exact: true })
+    .fill("Visual variants");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page.getByRole("button", { name: "Programs", exact: true }).click();
+  await page.getByRole("button", { name: "Create program" }).click();
+  const day = page.locator(".program-day-editor").first();
+  await day.getByRole("button", { name: "Add exercise" }).click();
+  await page.getByLabel("Search exercises").fill("Barbell squat");
+  const squatFamily = page
+    .locator(".exercise-family")
+    .filter({ has: page.getByText("Squat", { exact: true }) });
+  await expect(squatFamily).toHaveCount(1);
+  await expect(squatFamily.locator(".exercise-family-thumbnail")).toBeVisible();
+  await selectVisualExercise(page, "Barbell squat");
+  await page.getByLabel("Search exercises").fill("Goblet squat");
+  await selectVisualExercise(page, "Goblet squat");
+  await page.getByRole("button", { name: "Add to program" }).click();
+  await expect(day.locator(".program-exercise-editor")).toHaveCount(2);
+  await expect(
+    day.locator(".selected-exercise .exercise-thumbnail"),
+  ).toHaveCount(2);
 });
 
 test("profiles separate training and unilateral multi-select keeps session filters", async ({
@@ -247,10 +312,10 @@ test("profiles separate training and unilateral multi-select keeps session filte
   await page.getByRole("button", { name: "Start empty session" }).click();
   await page.getByRole("button", { name: "Start session" }).click();
   await page.locator("#session-add").click();
-  await page.locator("#session-type").selectOption("yoga");
-  await page.locator("#session-muscle").selectOption("legs");
-  await expect(page.locator("#session-detail-label")).toBeVisible();
-  await page.locator("#session-detail").selectOption("quadriceps");
+  await page.locator(".picker-type").selectOption("yoga");
+  await page.locator(".picker-muscle").selectOption("legs");
+  await expect(page.locator(".picker-detail-label")).toBeVisible();
+  await page.locator(".picker-detail").selectOption("quadriceps");
   await selectVisualExercise(page, "Warrior I");
   await selectVisualExercise(page, "Warrior II");
   await page.getByLabel("Log left and right sides separately").check();
@@ -267,9 +332,9 @@ test("profiles separate training and unilateral multi-select keeps session filte
   ).toHaveCount(3);
 
   await page.locator("#session-add").click();
-  await expect(page.locator("#session-type")).toHaveValue("yoga");
-  await expect(page.locator("#session-muscle")).toHaveValue("legs");
-  await expect(page.locator("#session-detail")).toHaveValue("quadriceps");
+  await expect(page.locator(".picker-type")).toHaveValue("yoga");
+  await expect(page.locator(".picker-muscle")).toHaveValue("legs");
+  await expect(page.locator(".picker-detail")).toHaveValue("quadriceps");
   await page.getByRole("button", { name: "Cancel" }).click();
 
   await page
@@ -295,9 +360,9 @@ test("a custom exercise can be created with only its name", async ({
   await page
     .getByRole("button", { name: "New exercise for the library" })
     .click();
-  await expect(
-    page.getByLabel("Exercise photo", { exact: true }),
-  ).toHaveCount(1);
+  await expect(page.getByLabel("Exercise photo", { exact: true })).toHaveCount(
+    1,
+  );
   await page.getByLabel("Exercise name", { exact: true }).fill("Partner carry");
   await page.getByRole("button", { name: "Add to library" }).click();
   await expect(page.locator(".logging-exercise h2")).toHaveText(
@@ -361,10 +426,9 @@ test("plans, custom library, editing, reordering and persistence", async ({
   await page
     .getByRole("button", { name: "Add exercise", exact: false })
     .click();
-  await page
-    .getByLabel("Exercise from library")
-    .nth(1)
-    .selectOption({ label: "Barbell squat" });
+  await page.getByLabel("Search exercises").fill("Barbell squat");
+  await selectVisualExercise(page, "Barbell squat");
+  await page.getByRole("button", { name: "Add to workout" }).click();
   await page.getByRole("button", { name: "Move exercise 2 up" }).click();
   await expect(page.getByLabel("Exercise from library").first()).toHaveValue(
     (await page
@@ -439,9 +503,7 @@ test("desktop uses a sidebar and wider workout layout without changing mobile", 
   expect(desktop.navLeft).toBe(0);
   expect(desktop.navWidth).toBe(240);
   expect(desktop.headerRight).toBeLessThanOrEqual(240);
-  expect(desktop.headerActionsRight).toBeLessThanOrEqual(
-    desktop.headerRight,
-  );
+  expect(desktop.headerActionsRight).toBeLessThanOrEqual(desktop.headerRight);
   expect(desktop.navTop).toBeGreaterThanOrEqual(desktop.headerBottom);
   expect(desktop.mainLeft).toBeGreaterThanOrEqual(240);
   expect(desktop.loggingColumns.split(" ")).toHaveLength(2);
@@ -1006,8 +1068,11 @@ test("workouts support no timed rest and unknown-weight machine settings", async
     page.getByLabel("Rest between sets (seconds)", { exact: true }),
   ).toBeDisabled();
   await page
-    .getByLabel("Exercise from library")
-    .selectOption({ label: "Seated cable row" });
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page.getByLabel("Search exercises").fill("Seated cable row");
+  await selectVisualExercise(page, "Seated cable row");
+  await page.getByRole("button", { name: "Add to workout" }).click();
   await page.getByLabel("Track by").selectOption("machine_setting");
   await expect(page.locator('select[name="unit"]')).toHaveValue("plates");
   await page
@@ -1073,8 +1138,11 @@ test("guided timed exercises advance through set and exercise rests on mobile", 
     .click();
   await page.getByLabel("Workout name", { exact: true }).fill("Mobility flow");
   await page
-    .getByLabel("Exercise from library")
-    .selectOption({ label: "Plank" });
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page.getByLabel("Search exercises").fill("Plank");
+  await selectVisualExercise(page, "Plank");
+  await page.getByRole("button", { name: "Add to workout" }).click();
   await page.getByLabel("Track by").selectOption("duration");
   await page.getByLabel("Run as a guided interval").check();
   await page.getByLabel("Rest between timed sets (seconds)").fill("1");
@@ -1285,9 +1353,15 @@ test("build a session while recording and resume structural edits", async ({
   await page
     .getByRole("button", { name: "Create workout", exact: false })
     .click();
+  await page
+    .getByRole("button", { name: "Add exercise", exact: false })
+    .click();
+  await page.getByLabel("Search exercises").fill("Freestyle cable row");
   await expect(
-    page.getByLabel("Exercise from library").locator("option"),
-  ).toContainText(["Freestyle cable row"]);
+    page
+      .locator(".exercise-choice")
+      .filter({ has: page.getByText("Freestyle cable row", { exact: true }) }),
+  ).toHaveCount(1);
 });
 
 test("editing a running workout preserves its template and removes items directly", async ({
@@ -1602,9 +1676,10 @@ test("custom programs can be created, edited and followed", async ({
   const first = page.locator(".program-day-editor").first();
   await first.getByLabel("Workout name").fill("Upper strength");
   await first.getByLabel("Schedule label").fill("Monday");
-  await first.getByLabel("Workout 1 exercise 1").selectOption({
-    label: "Barbell bench press",
-  });
+  await first.getByRole("button", { name: "Add exercise" }).click();
+  await page.getByLabel("Search exercises").fill("Barbell bench press");
+  await selectVisualExercise(page, "Barbell bench press");
+  await page.getByRole("button", { name: "Add to program" }).click();
   await first.locator("[data-program-exercise-sets]").fill("4");
   await first.locator("[data-program-exercise-reps]").fill("6");
   await first.locator("[data-program-exercise-rest]").fill("180");
@@ -1615,9 +1690,10 @@ test("custom programs can be created, edited and followed", async ({
   const second = page.locator(".program-day-editor").nth(1);
   await second.getByLabel("Workout name").fill("Lower strength");
   await second.getByLabel("Schedule label").fill("Thursday");
-  await second.getByLabel("Workout 2 exercise 1").selectOption({
-    label: "Barbell squat",
-  });
+  await second.getByRole("button", { name: "Add exercise" }).click();
+  await page.getByLabel("Search exercises").fill("Barbell squat");
+  await selectVisualExercise(page, "Barbell squat");
+  await page.getByRole("button", { name: "Add to program" }).click();
   await second.locator("[data-program-exercise-sets]").fill("3");
   await second.locator("[data-program-exercise-reps]").fill("5");
   await second.locator("[data-program-exercise-rest]").fill("240");
