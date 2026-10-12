@@ -145,6 +145,32 @@ export const displayLabel = (value: string) =>
   value.replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 
 const exerciseFamilies: Array<[RegExp, string]> = [
+  [/\batlas stones?(?: trainer)?\b/i, "Atlas stone"],
+  [
+    /(?:\bdumbbell\b.*\bpress(?:es)?\b|\bpress(?:es)?\b.*\bdumbbell\b)/i,
+    "Dumbbell press",
+  ],
+  [
+    /(?:\bkettlebells?\b.*\bpress(?:es)?\b|\bpress(?:es)?\b.*\bkettlebells?\b)/i,
+    "Kettlebell press",
+  ],
+  [/\bclean and jerks?\b/i, "Clean and jerk"],
+  [/\bclean and press(?:es)?\b/i, "Clean and press"],
+  [/\bclean(?:s| pull)?(?: from blocks)?\b/i, "Clean"],
+  [/\bsnatch(?:es| balance| pull)?\b/i, "Snatch"],
+  [/\bjerks?(?: balance)?\b/i, "Jerk"],
+  [/\bpush press(?:es)?\b/i, "Push press"],
+  [/\bfloor press(?:es)?\b/i, "Floor press"],
+  [/\b(?:ab |barbell )?rollouts?\b/i, "Ab rollout"],
+  [/\bpullovers?\b/i, "Pullover"],
+  [/\bbox jumps?\b/i, "Box jump"],
+  [/\brussian twists?\b/i, "Russian twist"],
+  [/\bexternal rotations?\b/i, "External rotation"],
+  [/\binternal rotations?\b/i, "Internal rotation"],
+  [/\bwindmills?\b/i, "Windmill"],
+  [/\bturkish get[- ]?ups?\b/i, "Turkish get-up"],
+  [/\b(?:hip )?adductions?\b/i, "Hip adduction"],
+  [/\b(?:hip )?abductions?\b/i, "Hip abduction"],
   [
     /\b(front|back|goblet|hack|split|overhead|box|zercher|sissy|pistol|smith machine)?\s*squats?\b/i,
     "Squat",
@@ -174,9 +200,14 @@ const exerciseFamilies: Array<[RegExp, string]> = [
     "Triceps extension",
   ],
   [
-    /\b(chest fly(?:es)?|pec fly(?:es)?|cable crossovers?|butterfl(?:y|ies))\b/i,
+    /\b(?:rear delt|reverse|back|sled reverse).*fl(?:y|yes|ies)\b/i,
+    "Rear delt fly",
+  ],
+  [
+    /\b(?:chest |pec |dumbbell |cable |machine |bodyweight )*fl(?:y|yes|ies)\b/i,
     "Chest fly",
   ],
+  [/\bcable crossovers?\b|\bbutterfl(?:y|ies)\b/i, "Chest fly"],
   [/\b(lateral raises?)\b/i, "Lateral raise"],
   [/\b(front raises?)\b/i, "Front raise"],
   [/\b(reverse fly(?:es)?|rear delt fly(?:es)?)\b/i, "Rear delt fly"],
@@ -184,7 +215,7 @@ const exerciseFamilies: Array<[RegExp, string]> = [
   [/\b(shrugs?)\b/i, "Shrug"],
   [/\b(dips?)\b/i, "Dip"],
   [/\b(planks?)\b/i, "Plank"],
-  [/\b(crunches?)\b/i, "Crunch"],
+  [/\b(crunch(?:es)?)\b/i, "Crunch"],
   [/\b(sit[- ]?ups?)\b/i, "Sit-up"],
   [/\b(leg raises?|knee raises?)\b/i, "Leg raise"],
   [/\b(back extensions?|hyperextensions?)\b/i, "Back extension"],

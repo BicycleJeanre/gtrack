@@ -551,12 +551,18 @@ test("unilateral workout targets become separate left and right set rows", () =>
 test("exercise variants share stable main exercise families", () => {
   assert.equal(
     exerciseFamilyName("Incline Dumbbell Bench Press"),
-    "Bench press",
+    "Dumbbell press",
   );
   assert.equal(
     exerciseFamilyName("Barbell Bench Press - Medium Grip"),
     "Bench press",
   );
   assert.equal(exerciseFamilyName("One-Arm Dumbbell Row"), "Row");
+  assert.equal(exerciseFamilyName("Arnold Dumbbell Press"), "Dumbbell press");
+  assert.equal(exerciseFamilyName("Atlas Stones"), "Atlas stone");
+  assert.equal(exerciseFamilyName("Atlas Stone Trainer"), "Atlas stone");
+  assert.equal(exerciseFamilyName("Cable Crunch"), "Crunch");
+  assert.equal(exerciseFamilyName("Hang Clean - Below the Knees"), "Clean");
+  assert.equal(exerciseFamilyName("Double Kettlebell Snatch"), "Snatch");
   assert.equal(exerciseFamilyName("Warrior I (Yoga)"), "Warrior I");
 });
