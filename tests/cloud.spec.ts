@@ -76,7 +76,7 @@ test("accounts share library, isolate workouts, and sync offline logs across dev
   await other.getByLabel("Search exercises").fill("Shared synthetic press");
   await selectVisualExercise(other, "Shared synthetic press");
   await other.getByRole("button", { name: "Add to workout" }).click();
-  await expect(other.locator(".description")).toContainText(
+  await expect(other.locator(".target .description")).toContainText(
     "shared across test accounts",
   );
   const deviceContext = await browser.newContext();
