@@ -34,7 +34,7 @@ For a movement performed independently on both sides, choose **Log left and righ
 
 ## Find and add exercises
 
-GTrack includes 969 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements and common yoga and mobility poses. Active sessions, saved workouts and programs now use the same visual picker. It first groups related variants under a main exercise such as **Squat**, **Row** or **Bench press**. Open the main exercise to compare its equipment, stance and grip variants by picture, then select the exact movement you want. Tap any variant picture to open a larger preview; closing it returns you to the same list without selecting the exercise.
+GTrack includes 969 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements and common yoga and mobility poses. Active sessions, saved workouts and programs use the same visual picker. It groups related variants under a main exercise such as **Squat**, **Dumbbell press** or **Atlas stone**. Tap the main exercise row to expand or collapse its equipment, stance and grip variants, then select the exact movement you want. Tap any variant picture to open a larger preview; closing it returns you to the same list without selecting the exercise.
 
 Search by name and filter by exercise type, equipment or broad primary muscle group. Choosing a broad group such as **Back**, **Legs** or **Arms** reveals a second filter for detailed muscles. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs.
 

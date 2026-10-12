@@ -258,8 +258,28 @@ test("workout and program builders share the visual family and variant picker", 
     .filter({ has: page.getByText("Bench press", { exact: true }) });
   await expect(benchFamily).toHaveCount(1);
   await expect(benchFamily.locator(".exercise-family-thumbnail")).toBeVisible();
+  const benchVariants = benchFamily.locator(".exercise-family-variants");
+  await expect(benchVariants).not.toBeVisible();
+  await benchFamily.locator(".exercise-family-toggle").click();
+  await expect(benchVariants).toBeVisible();
+  await benchFamily.locator(".exercise-family-toggle").click();
+  await expect(benchVariants).not.toBeVisible();
   await selectVisualExercise(page, "Barbell bench press");
   await selectVisualExercise(page, "Dumbbell bench press");
+  await page.getByLabel("Search exercises").fill("Atlas");
+  const atlasFamily = page
+    .locator(".exercise-family")
+    .filter({ has: page.getByText("Atlas stone", { exact: true }) });
+  await expect(atlasFamily).toHaveCount(1);
+  await expect(atlasFamily.locator(".exercise-family-toggle")).toContainText(
+    "2 variants",
+  );
+  await page.getByLabel("Search exercises").fill("Dumbbell press");
+  await expect(
+    page
+      .locator(".exercise-family")
+      .filter({ has: page.getByText("Dumbbell press", { exact: true }) }),
+  ).toHaveCount(1);
   await page.getByRole("button", { name: "Add to workout" }).click();
   await expect(page.locator(".target .selected-exercise h2")).toHaveText([
     "Barbell bench press",

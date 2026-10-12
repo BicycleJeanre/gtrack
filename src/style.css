@@ -1014,6 +1014,9 @@ dialog h2 {
   padding: 8px;
   border-top: 1px solid var(--border);
 }
+.exercise-family-variants[hidden] {
+  display: none;
+}
 .selected-exercise {
   display: flex;
   gap: 12px;
