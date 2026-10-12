@@ -249,7 +249,7 @@ const helpTopics: Record<
   "user-guide": {
     eyebrow: "GTrack help",
     title: "How to use GTrack",
-    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The visual library contains more than 900 movements and is shared by sessions, workouts and programs. Browse main exercises first, open one to see its variants, then use the pictures to choose the exact equipment, stance or grip. Search and muscle, equipment and type filters apply to every picker.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Run guided intervals</summary><p>Timed exercises can optionally count down every work set, rest between sets and rest after an exercise. Start the sequence on Today; alerts announce each transition and the next guided exercise starts automatically.</p></details><details><summary>Add exercises and notes while training</summary><p>Tap <strong>Add exercise</strong>, filter the visual library and select one or several variants. You can also create a missing exercise with an optional photo and details. Add an optional <strong>Workout note</strong> under any exercise to remember a machine setup, technique cue or how the movement felt; the note appears in History and beside the previous result next time.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a regular set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself. Guided intervals are also optional per timed exercise.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection, notes or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Check the status under Account and keep an exported backup.</p></details>`,
+    body: `<p class="help-lead">Plan workouts, follow programs and record each set from your phone.</p><details open><summary>Start or resume a workout</summary><p>Use <strong>Today</strong> for your next program session, choose a saved workout, or start an empty session. An active workout appears in the persistent bar at the top of every screen; tap its name to resume.</p></details><details><summary>Compare sets and spot a new PR</summary><p>Each set shows the matching result from your most recent comparable workout. Complete a set that beats a saved weight, machine-setting, reps, set-total, time or distance record and GTrack marks it in gold and shows a congratulations banner.</p></details><details><summary>Find exercises</summary><p>The visual library contains more than 900 movements and is shared by sessions, workouts and programs. Browse main exercises first, open one to see its variants, then use the pictures to choose the exact equipment, stance or grip. Search and muscle, equipment and type filters apply to every picker.</p></details><details><summary>Record different exercise types</summary><p>Exercises can use weight + reps, machine setting + reps, reps only, time or distance. Weight fields accept two decimal places for increments such as 1.25 kg. A machine setting records the numbered plate on an unknown-weight cable stack and never contributes to weight volume.</p></details><details><summary>Run guided intervals</summary><p>Timed exercises can optionally count down every work set, rest between sets and rest after an exercise. Start the sequence on Today; alerts announce each transition and the next guided exercise starts automatically.</p></details><details><summary>Add exercises and notes while training</summary><p>Tap <strong>Add exercise</strong>, filter the visual library and select one or several variants. You can also create a missing exercise with an optional photo and details. Add an optional <strong>Workout note</strong> under any exercise to remember a machine setup, technique cue or how the movement felt; the note appears in History and beside the previous result next time.</p></details><details><summary>Use or disable the rest timer</summary><p>Completing a regular set starts the rest timer when enabled. It stays visible at the top while you browse the app. Choose <strong>No automatic rest timer</strong> in workout or session details to pace rests yourself. Guided intervals are also optional per timed exercise.</p></details><details><summary>Review progress</summary><p><strong>Progress</strong> includes exercise PRs, estimated 1RM, a 30-day muscle heat map, body measurements and plate and warm-up calculators.</p></details><details><summary>Edit completed workouts</summary><p>Open <strong>History</strong> and tap <strong>Edit logged workout</strong> to correct its name, results, exercise selection, notes or counted sets. You can replace, remove or add exercises from the library.</p></details><details><summary>Follow or create a program</summary><p>Programs keep the next session on Today and progress week by week. You can use a suggested plan or build, duplicate, pause and edit your own.</p></details><details><summary>Saving, sync and offline use</summary><p>Active workouts are saved on this device. Signed-in workouts, programs, body records and completed history sync when the app is open and connected. Before relying on offline launch, open Account online and wait for <strong>Core app ready for offline launch</strong>. Exercise pictures continue caching in the background. Keep an exported backup.</p></details>`,
   },
 };
 function showHelp(topic: string) {
@@ -3742,13 +3742,12 @@ function renderAccount() {
   const local = store.account === "local";
   $("#screen").innerHTML =
     `<div class="card pad"><div class="eyebrow">Training profiles</div><h2>Training as ${esc(activeProfile()?.name || "Me")}</h2><p>Keep each person's plans, sessions, measurements and records separate inside this account.</p><button class="primary" id="manage-profiles">Switch, rename or add profile</button></div><div class="card pad"><div class="eyebrow">${local ? "Device-only workspace" : "Signed in"}</div><h2>${local ? "Training on this device" : esc(email)}</h2><p>${local ? "Your records are saved in this browser. They are not yet shared or synced." : "Your workouts, history and body measurements are private. Exercise names and metadata are shared."}</p>${cloud?.error ? `<p class="error">${esc(cloud.error)}</p>` : ""}${!local ? '<button class="secondary" id="retry-sync">Retry sync</button><button class="text-button" id="signout">Sign out</button>' : configured ? '<button class="primary" id="signin">Sign in or create account</button>' : '<p class="hint">Cloud accounts will be available after Firebase is configured.</p>'}</div><div class="card pad"><h2>Keep a copy</h2><p>Export your library, profiles, workouts, completed history and body measurements. Active sessions stay on this device. Import adds missing records without replacing existing ones.</p><button class="primary" id="export">Export backup</button><label class="file-label">Import backup<input type="file" id="import" accept="application/json,.json"></label><p class="hint">${local ? "After signing in, import your backup to move device-only records into your account." : "Imported custom exercise names and metadata will join the shared library."}</p></div><div class="card pad"><h2>Ready for the gym</h2><p>The app keeps downloaded workouts and pending changes on this device. Open it online before heading to the gym.</p><p id="offline-status" class="hint">Checking offline availability…</p><button class="secondary" id="persist">Request persistent storage</button><p class="hint">On iPhone: Safari → Share → Add to Home Screen. Browser storage can still be cleared; keep an export as well as syncing.</p></div>`;
-  navigator.serviceWorker?.getRegistration().then((r) => {
-    const el = document.querySelector("#offline-status");
-    if (el)
-      el.textContent = r?.active
-        ? "App installed for offline launch on this browser."
-        : "Offline launch becomes available from the production build after its first online load.";
-  });
+  void offlineShellStatus()
+    .catch(() => "Offline readiness could not be verified on this browser.")
+    .then((status) => {
+      const el = document.querySelector("#offline-status");
+      if (el) el.textContent = status;
+    });
   action("#retry-sync", () => cloud?.retry());
   action("#manage-profiles", profileDialog);
   action("#signin", authDialog);
@@ -3820,6 +3819,43 @@ function renderAccount() {
         ? "Persistent storage granted. Keep exporting backups too."
         : "This browser did not grant persistent storage. Keep regular backups.",
     );
+  });
+}
+async function offlineShellStatus() {
+  if (!("serviceWorker" in navigator) || !("caches" in window))
+    return "This browser does not support offline installation.";
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration?.active)
+    return "Offline setup is not complete. Keep GTrack open online for a moment, then check again.";
+  const base = new URL(import.meta.env.BASE_URL, location.href),
+    shellUrls = [
+      new URL("index.html", base).href,
+      document.querySelector<HTMLScriptElement>('script[type="module"]')?.src,
+      ...Array.from(
+        document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+      ).map((link) => link.href),
+    ].filter((url): url is string => Boolean(url)),
+    cached = await Promise.all(shellUrls.map((url) => caches.match(url)));
+  if (!cached.every(Boolean))
+    return "Offline setup is incomplete. Keep GTrack open online for a moment, then reopen this screen.";
+  const status = await serviceWorkerCacheStatus(registration.active);
+  return status?.optionalReady
+    ? "App and exercise pictures ready for offline use."
+    : "Core app ready for offline launch. Exercise pictures continue caching in the background while online.";
+}
+function serviceWorkerCacheStatus(worker: ServiceWorker) {
+  return new Promise<{ optionalReady: boolean } | null>((resolve) => {
+    const channel = new MessageChannel(),
+      timeout = window.setTimeout(() => {
+        channel.port1.close();
+        resolve(null);
+      }, 1500);
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(event.data);
+    };
+    worker.postMessage({ type: "CACHE_STATUS" }, [channel.port2]);
   });
 }
 function authDialog() {
@@ -3909,44 +3945,62 @@ async function boot() {
     }
   });
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
-    startup("service-worker-registering");
-    const hadController = !!navigator.serviceWorker.controller;
-    let controlled = hadController;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (controlled) location.reload();
-      else controlled = true;
-    });
-    const registration = await navigator.serviceWorker.register(
-      `${import.meta.env.BASE_URL}sw.js`,
-      { updateViaCache: "none" },
-    );
-    startup(
-      "service-worker-registered",
-      registration.active?.state || "pending",
-    );
-    const waiting = () => {
-      if (
-        registration.waiting?.state === "installed" &&
-        navigator.serviceWorker.controller
-      ) {
-        deferredUpdate = registration.waiting;
-        changed();
-        if (view !== "builder") render();
-      }
-    };
-    // First-install activation can overlap with controllerchange in WebKit.
-    // Only advertise a worker that was installed to replace an existing one.
-    if (hadController) waiting();
-    const observeInstalling = () => {
-      const installing = registration.installing;
-      const replacesActiveWorker =
-        !!registration.active && registration.active !== installing;
-      if (replacesActiveWorker)
-        installing?.addEventListener("statechange", waiting);
-    };
-    observeInstalling();
-    registration.addEventListener("updatefound", observeInstalling);
-    void registration.update().catch(() => {});
+    try {
+      startup("service-worker-registering");
+      const hadController = !!navigator.serviceWorker.controller;
+      let controlled = hadController;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (controlled) location.reload();
+        else controlled = true;
+      });
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data?.type !== "OFFLINE_CACHE_STATUS") return;
+        const status = document.querySelector("#offline-status");
+        if (status && event.data.optionalReady)
+          status.textContent =
+            "App and exercise pictures ready for offline use.";
+      });
+      const registration = await navigator.serviceWorker.register(
+        `${import.meta.env.BASE_URL}sw.js`,
+        { updateViaCache: "none" },
+      );
+      startup(
+        "service-worker-registered",
+        registration.active?.state || "pending",
+      );
+      const waiting = () => {
+        if (
+          registration.waiting?.state === "installed" &&
+          navigator.serviceWorker.controller
+        ) {
+          deferredUpdate = registration.waiting;
+          changed();
+          if (view !== "builder") render();
+        }
+      };
+      // First-install activation can overlap with controllerchange in WebKit.
+      // Only advertise a worker that was installed to replace an existing one.
+      if (hadController) waiting();
+      const observeInstalling = () => {
+        const installing = registration.installing;
+        const replacesActiveWorker =
+          !!registration.active && registration.active !== installing;
+        if (replacesActiveWorker)
+          installing?.addEventListener("statechange", waiting);
+      };
+      observeInstalling();
+      registration.addEventListener("updatefound", observeInstalling);
+      void registration.update().catch(() => {});
+      if (navigator.onLine)
+        void navigator.serviceWorker.ready.then((ready) =>
+          ready.active?.postMessage({ type: "WARM_CACHE" }),
+        );
+    } catch (error) {
+      startup(
+        "service-worker-error",
+        error instanceof Error ? error.message : String(error),
+      );
+    }
   }
 }
 // One editing tab per origin prevents two tabs from changing the same active session.
