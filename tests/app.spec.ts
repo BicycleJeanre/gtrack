@@ -35,7 +35,11 @@ async function offlinePicturesReady(page: Page) {
       }),
   );
 }
-async function offlineServer(cachePages = false, failExerciseImages = false) {
+async function offlineServer(
+  cachePages = false,
+  failExerciseImages = false,
+  versionedShell = false,
+) {
   const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -46,6 +50,11 @@ async function offlineServer(cachePages = false, failExerciseImages = false) {
     ".webmanifest": "application/manifest+json",
   };
   let revision = 1;
+  const builtIndex = await readFile(resolve("dist", "index.html"), "utf8");
+  const builtScript = builtIndex.match(/src="\.\/(assets\/[^"]+\.js)"/)?.[1];
+  const builtStyle = builtIndex.match(/href="\.\/(assets\/[^"]+\.css)"/)?.[1];
+  if (versionedShell && (!builtScript || !builtStyle))
+    throw new Error("Could not find the built app shell assets");
   const server = createServer(async (req, res) => {
     try {
       const pathname = new URL(req.url!, "http://test").pathname;
@@ -54,9 +63,13 @@ async function offlineServer(cachePages = false, failExerciseImages = false) {
         res.end("exercise image unavailable");
         return;
       }
+      const shellAlias = pathname.match(/^\/assets\/app-r\d+\.(js|css)$/);
+      const requestedPath = shellAlias
+        ? "/" + (shellAlias[1] === "js" ? builtScript : builtStyle)
+        : pathname;
       const file = resolve(
         "dist",
-        "." + (pathname === "/" ? "/index.html" : pathname),
+        "." + (requestedPath === "/" ? "/index.html" : requestedPath),
       );
       if (!file.startsWith(resolve("dist") + "/")) throw Error("Invalid path");
       res.setHeader(
@@ -72,6 +85,24 @@ async function offlineServer(cachePages = false, failExerciseImages = false) {
             .replace("</title>", ` revision ${revision}</title>`),
         );
       }
+      if (versionedShell && (pathname === "/" || pathname === "/index.html"))
+        content = Buffer.from(
+          content
+            .toString()
+            .replace(builtScript!, `assets/app-r${revision}.js`)
+            .replace(builtStyle!, `assets/app-r${revision}.css`),
+        );
+      if (versionedShell && pathname === "/sw.js")
+        content = Buffer.from(
+          content
+            .toString()
+            .replace(
+              /const CACHE="gtrack-[^"]+"/,
+              `const CACHE="gtrack-test-r${revision}"`,
+            )
+            .replaceAll(builtScript!, `assets/app-r${revision}.js`)
+            .replaceAll(builtStyle!, `assets/app-r${revision}.css`),
+        );
       res.end(
         pathname === "/sw.js"
           ? content.toString() + "\n// test revision " + revision
@@ -696,6 +727,67 @@ test("offline shell installs when exercise image caching is interrupted", async 
     await expect(
       page.getByRole("heading", { name: "Your workouts." }),
     ).toBeVisible();
+  } finally {
+    if (!stopped) await server.stop();
+  }
+});
+test("a complete previous app shell survives a partial mobile update", async ({
+  page,
+  context,
+  browserName,
+}) => {
+  const server = await offlineServer(true, false, true);
+  let stopped = false;
+  try {
+    await page.goto(server.url);
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+    await expect
+      .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
+      .toBe(true);
+    await expect(page).toHaveTitle(/revision 1/);
+
+    server.update();
+    await page.evaluate(async () => {
+      const registration = (await navigator.serviceWorker.getRegistration())!;
+      await registration.update();
+      if (!registration.waiting)
+        await new Promise<void>((resolve) => {
+          const installing = registration.installing!;
+          installing.addEventListener("statechange", () => {
+            if (installing.state === "installed") resolve();
+          });
+        });
+      const controllerChanged = new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          () => resolve(),
+          { once: true },
+        ),
+      );
+      registration.waiting!.postMessage({ type: "SKIP_WAITING" });
+      await controllerChanged;
+    });
+    await page.waitForLoadState("domcontentloaded");
+    await expect(page).toHaveTitle(/revision 2/);
+
+    await page.evaluate(async () => {
+      const cache = await caches.open("gtrack-test-r2");
+      await cache.delete(new URL("index.html", location.href).href);
+    });
+    await server.stop();
+    stopped = true;
+    if (browserName === "chromium") await context.setOffline(true);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Workouts" })).toBeVisible();
+    await expect(page).toHaveTitle(/revision 1/);
+
+    await page.close();
+    const relaunched = await context.newPage();
+    await relaunched.goto(server.url);
+    await expect(
+      relaunched.getByRole("button", { name: "Workouts" }),
+    ).toBeVisible();
+    await expect(relaunched).toHaveTitle(/revision 1/);
   } finally {
     if (!stopped) await server.stop();
   }
