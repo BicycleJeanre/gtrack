@@ -13,7 +13,7 @@ A gym training PWA for iPhone: plan workouts, log sets without reception, and re
 - Review completed sessions, correct their logged values and exercise selection, and add or remove logged exercises. Track exercise PRs, estimated one-rep max, recent performance and a 30-day muscle workload heat map.
 - Privately track body weight, body-fat percentage and waist, chest, upper-arm and thigh measurements. Use built-in plate-loading and warm-up calculators.
 - Export/import JSON backups; imports add missing records and preserve existing IDs.
-- Installable PWA with a versioned offline app cache and safe update prompt.
+- Installable PWA with verified offline app-shell generations, a complete previous-version fallback and a safe update prompt.
 - Optional Firebase email/password accounts, multiple private training profiles per account, a shared exercise library, private plans/history, and a durable synchronization queue.
 - Automated Chromium and WebKit browser tests, data-model tests, Firebase Rules tests and an emulator-based multi-account sync test.
 
@@ -111,7 +111,7 @@ npm run test:rules
 npm run test:cloud
 ```
 
-Tests use synthetic fixtures and the `demo-gtrack` emulator project only. No production data is queried. Browser coverage includes exercise contributions and reuse, editing/reordering, durable session logs, offline restart with the actual origin stopped, contextual help, history/progress, export/import and account/tab isolation. Emulator coverage checks library sharing, private editable history, offline sync and a second device.
+Tests use synthetic fixtures and the `demo-gtrack` emulator project only. No production data is queried. Browser coverage includes exercise contributions and reuse, editing/reordering, durable session logs, offline restart with the actual origin stopped, cold mobile relaunch through a partial update, contextual help, history/progress, export/import and account/tab isolation. Emulator coverage checks library sharing, private editable history, offline sync and a second device.
 
 Before relying on it at the gym, validate on a real iPhone: Add to Home Screen, airplane-mode launch, log sets, close/reopen, reconnect and sync, install an update, and restore an exported backup. Desktop WebKit testing does not replace this device check. Real-project authentication and reconnection also need a smoke test after configuration.
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep complete offline app-shell generations so a mobile launch can fall back safely when an update is partial or has not been opened online.
+
 - Add a Programs catalog with three phased programs and eleven sessions.
 - Add enrollment, week/session progression, working-weight preparation, per-exercise rest and effort guidance, and pause/resume.
 - Sync private program enrollments and completed progress; include programs in backups while accepting older backups.
