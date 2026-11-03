@@ -4,7 +4,7 @@ GTrack helps you plan workouts, follow multi-week programs and record each set f
 
 ## Train with more than one person
 
-Use the profile button in the header to rename the current profile, add another person or switch between people such as you and your partner. Each training profile has separate workouts, programs, completed history, body measurements and PRs inside the same account. The exercise library remains shared. Finish or discard an active workout before switching profiles so a session cannot be assigned to the wrong person.
+Use the profile button in the header to rename the current profile, add another person or switch between people such as you and your partner. Each training profile has separate workouts, programs, completed history, body measurements and PRs inside the same account. The exercise library remains shared. Finish or discard an active workout before switching profiles so a session cannot be assigned to the wrong person. To add the third-trimester pelvic-floor pack for someone, switch to their profile first, open **Workouts**, and choose **Add 3 daily routines**.
 
 ## Start and resume a workout
 
@@ -34,7 +34,7 @@ For a movement performed independently on both sides, choose **Log left and righ
 
 ## Find and add exercises
 
-GTrack includes 969 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements and common yoga and mobility poses. Active sessions, saved workouts and programs use the same visual picker. It groups related variants under a main exercise such as **Squat**, **Dumbbell press** or **Atlas stone**. Tap the main exercise row to expand or collapse its equipment, stance and grip variants, then select the exact movement you want. Tap any variant picture to open a larger preview; closing it returns you to the same list without selecting the exercise.
+GTrack includes 972 bundled and curated exercise names that remain available offline, including the beginner prenatal stretching movements, pelvic-floor slow holds, quick squeezes and relaxation breathing, plus common yoga and mobility poses. Active sessions, saved workouts and programs use the same visual picker. It groups related variants under a main exercise such as **Squat**, **Dumbbell press** or **Atlas stone**. Tap the main exercise row to expand or collapse its equipment, stance and grip variants, then select the exact movement you want. Tap any variant picture to open a larger preview; closing it returns you to the same list without selecting the exercise.
 
 Search by name and filter by exercise type, equipment or broad primary muscle group. Choosing a broad group such as **Back**, **Legs** or **Arms** reveals a second filter for detailed muscles. Exercises you already selected remain selected while you refine the filters, and an open picker refreshes if the shared library syncs.
 

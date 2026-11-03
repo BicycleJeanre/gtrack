@@ -53,6 +53,11 @@ const yogaNames = [
   "Legs Up the Wall",
   "Figure Four Stretch",
 ];
+const curatedThumbnailAliases: Record<string, string> = {
+  "pelvic floor slow holds": "diaphragmatic breathing",
+  "pelvic floor quick squeezes": "diaphragmatic breathing",
+  "pelvic floor relaxation breathing": "diaphragmatic breathing",
+};
 const gridThumbnail = (
   names: string[],
   name: string,
@@ -91,7 +96,8 @@ const stretchingAliases: Record<string, string> = {
 };
 
 export function bundledThumbnail(name: string): ExerciseThumbnail | null {
-  const normalizedName = normalize(name),
+  const normalizedName =
+      curatedThumbnailAliases[normalize(name)] || normalize(name),
     curated =
       gridThumbnail(prenatalNames, normalizedName, 3, prenatalMobilityUrl) ||
       gridThumbnail(yogaNames, normalizedName, 5, yogaPosesUrl);

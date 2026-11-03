@@ -191,6 +191,56 @@ export const emptyState = (): State => ({
 export const uid = () => crypto.randomUUID();
 export const normalize = (name: string) =>
   name.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
+
+export function thirdTrimesterPelvicFloorRoutines(
+  profileId: string,
+  library: Exercise[],
+  now = Date.now(),
+): Workout[] {
+  const find = (name: string) => {
+    const exercise = library.find(
+      (candidate) => normalize(candidate.name) === normalize(name),
+    );
+    if (!exercise) throw Error(`Exercise unavailable: ${name}`);
+    return exercise;
+  };
+  const target = (
+    name: string,
+    seconds: number[],
+    setRest: number,
+    exerciseRest: number,
+  ): Target => {
+    const exercise = find(name);
+    return {
+      exerciseId: exercise.id,
+      name: exercise.name,
+      description: exercise.description,
+      sets: seconds.length,
+      reps: 1,
+      weight: 0,
+      tracking: "duration",
+      unit: "sec",
+      setTargets: seconds.map((value) => ({ reps: 1, weight: 0, value })),
+      guided: true,
+      setRest,
+      exerciseRest,
+    };
+  };
+  const exercises = () => [
+    target("Pelvic Floor Slow Holds", Array(10).fill(5), 5, 10),
+    target("Pelvic Floor Quick Squeezes", Array(10).fill(1), 1, 10),
+    target("Pelvic Floor Relaxation Breathing", [60], 0, 0),
+  ];
+  return ["Morning", "Midday", "Evening"].map((time) => ({
+    id: uid(),
+    name: `Pelvic floor · ${time}`,
+    rest: 0,
+    exercises: exercises(),
+    updatedAt: now,
+    archived: false,
+    profileId,
+  }));
+}
 export async function exerciseId(name: string) {
   const hash = await crypto.subtle.digest(
     "SHA-256",

@@ -5,6 +5,7 @@ export type CuratedStretchingExercise = {
   primaryMuscles: string[];
   secondaryMuscles: string[];
   category: "stretching";
+  exerciseType?: "breathing" | "other";
 };
 
 const stretch = (
@@ -49,6 +50,36 @@ export const stretchingExercises = [
     "Sit or stand comfortably with hands around the lower ribs. Inhale slowly through the nose, allowing the ribs to expand, then exhale gently through the mouth.",
     ["abdominals"],
   ),
+  {
+    name: "Pelvic Floor Slow Holds",
+    description:
+      "Sit, stand, side-lie or use hands and knees. Gently squeeze and lift as if stopping wind and urine while continuing to breathe. Hold for up to 8–10 seconds, then fully relax for 5–10 seconds. Build toward 10 good repetitions; stop before the squeeze fades. Do not practise by stopping urine midstream.",
+    equipment: "body only",
+    primaryMuscles: [],
+    secondaryMuscles: [],
+    category: "stretching",
+    exerciseType: "other",
+  },
+  {
+    name: "Pelvic Floor Quick Squeezes",
+    description:
+      "Squeeze and lift the pelvic floor firmly for about 1 second, then release completely for about 1 second. Keep breathing and avoid clenching the buttocks, thighs or abdomen. Build toward 10 good repetitions. Use a gentle pelvic-floor lift just before coughing, sneezing or lifting.",
+    equipment: "body only",
+    primaryMuscles: [],
+    secondaryMuscles: [],
+    category: "stretching",
+    exerciseType: "other",
+  },
+  {
+    name: "Pelvic Floor Relaxation Breathing",
+    description:
+      "Settle into comfortable sitting, side-lying or hands and knees. Inhale slowly into the ribs and abdomen and consciously let the pelvic floor soften; exhale easily without squeezing or pushing down. Continue for about 5 slow breaths. There should be no bearing down.",
+    equipment: "body only",
+    primaryMuscles: [],
+    secondaryMuscles: [],
+    category: "stretching",
+    exerciseType: "breathing",
+  },
   stretch(
     "Cat-Cow Stretch",
     "Begin on hands and knees with wrists under shoulders and knees under hips. Inhale into a gentle arch, then exhale while rounding the spine; continue slowly with the breath.",

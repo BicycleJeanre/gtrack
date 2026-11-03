@@ -46,6 +46,7 @@ import {
   validateRecord,
   validateBackup,
   exerciseTypes,
+  thirdTrimesterPelvicFloorRoutines,
   type Workout,
   type Target,
   type Session,
@@ -1409,8 +1410,18 @@ function renderGuide() {
 }
 
 function renderWorkouts() {
+  const pelvicFloorRoutineNames = [
+      "Pelvic floor · Morning",
+      "Pelvic floor · Midday",
+      "Pelvic floor · Evening",
+    ],
+    savedPelvicFloorRoutines = new Set(
+      workouts()
+        .filter((workout) => pelvicFloorRoutineNames.includes(workout.name))
+        .map((workout) => workout.name),
+    );
   $("#screen").innerHTML =
-    `<div class="feature-help"><p>Build reusable workouts or start with an empty session.</p>${helpButton("exercises", "How the exercise library and search work")}</div><button class="secondary" id="open-guide">Exercise guide · photos & form</button><button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
+    `<div class="feature-help"><p>Build reusable workouts or start with an empty session.</p>${helpButton("exercises", "How the exercise library and search work")}</div><button class="secondary" id="open-guide">Exercise guide · photos & form</button><button class="primary" id="new-workout">＋ Create workout</button><button class="secondary" id="start-empty">＋ Start empty session</button><article class="card pad"><div class="eyebrow">Suggested pregnancy routine · no equipment</div><h2>Third-trimester pelvic floor</h2><p>Add guided morning, midday and evening sessions with slow holds, quick squeezes and relaxation breathing.</p><p class="hint">General guidance for an uncomplicated pregnancy. Follow individual advice from your maternity clinician or pelvic-health physiotherapist; stop and seek advice if the exercises cause pain, pelvic heaviness, bleeding, fluid leakage or contractions.</p><button class="secondary" id="add-pelvic-floor-routines" ${savedPelvicFloorRoutines.size === 3 ? "disabled" : ""}>${savedPelvicFloorRoutines.size === 3 ? "3 daily routines added" : savedPelvicFloorRoutines.size ? `Add ${3 - savedPelvicFloorRoutines.size} missing routine${savedPelvicFloorRoutines.size === 2 ? "" : "s"}` : "Add 3 daily routines"}</button></article><div class="section-title"><h2>My sessions</h2><span>${workouts().length} saved</span></div>${
       workouts()
         .map(
           (w) =>
@@ -1431,6 +1442,17 @@ function renderWorkouts() {
   });
   action("#open-guide", () => navigate("guide"));
   action("#new-workout", () => openBuilder());
+  action("#add-pelvic-floor-routines", async () => {
+    const routines = thirdTrimesterPelvicFloorRoutines(
+      store.state.activeProfileId,
+      exercises(),
+    ).filter((routine) => !savedPelvicFloorRoutines.has(routine.name));
+    for (const routine of routines) await store.put("workouts", routine);
+    await saved();
+    toast(
+      `${routines.length} pelvic-floor routine${routines.length === 1 ? "" : "s"} added for ${activeProfile()?.name || "this profile"}.`,
+    );
+  });
   action("[data-edit]", (e) =>
     openBuilder((e.currentTarget as HTMLElement).dataset.edit),
   );
