@@ -7,6 +7,7 @@ import {
   validateBackup,
   validateRecord,
   seedExercises,
+  thirdTrimesterPelvicFloorRoutines,
 } from "../src/model.ts";
 import { exerciseFamilyName } from "../src/exercise-catalog.ts";
 import { muscleGroupFor } from "../src/exercise-catalog.ts";
@@ -425,10 +426,10 @@ test("bundled exercise catalogue includes equipment and muscle metadata", async 
   );
 });
 
-test("prenatal, common stretching and yoga movements are bundled", async () => {
+test("prenatal, pelvic-floor, common stretching and yoga movements are bundled", async () => {
   const exercises = await seedExercises(),
     byName = new Map(exercises.map((exercise) => [exercise.name, exercise]));
-  assert.equal(stretchingExercises.length, 52);
+  assert.equal(stretchingExercises.length, 55);
   assert.equal(
     new Set(stretchingExercises.map((exercise) => exercise.name)).size,
     stretchingExercises.length,
@@ -438,6 +439,9 @@ test("prenatal, common stretching and yoga movements are bundled", async () => {
     "Shoulder Rolls",
     "Neck Mobility",
     "Diaphragmatic Breathing",
+    "Pelvic Floor Slow Holds",
+    "Pelvic Floor Quick Squeezes",
+    "Pelvic Floor Relaxation Breathing",
     "Cat-Cow Stretch",
     "Wide-Knee Child's Pose",
     "Seated Butterfly Stretch",
@@ -452,6 +456,31 @@ test("prenatal, common stretching and yoga movements are bundled", async () => {
     assert.ok(exercise, `${name} should be available`);
     assert.equal(exercise.category, "stretching");
     assert.equal(validateRecord("exercises", exercise), true);
+  }
+});
+
+test("third-trimester pelvic-floor pack creates three valid guided routines", async () => {
+  const routines = thirdTrimesterPelvicFloorRoutines(
+    "test-profile",
+    await seedExercises(),
+    1_800_000_000_000,
+  );
+  assert.deepEqual(
+    routines.map((routine) => routine.name),
+    [
+      "Pelvic floor · Morning",
+      "Pelvic floor · Midday",
+      "Pelvic floor · Evening",
+    ],
+  );
+  for (const routine of routines) {
+    assert.equal(routine.profileId, "test-profile");
+    assert.equal(validateRecord("workouts", routine), true);
+    assert.deepEqual(
+      routine.exercises.map((exercise) => exercise.sets),
+      [10, 10, 1],
+    );
+    assert.ok(routine.exercises.every((exercise) => exercise.guided));
   }
 });
 

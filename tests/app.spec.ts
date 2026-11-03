@@ -294,6 +294,22 @@ test("mobile visual exercise filters preserve selections and show movement image
   ).toBe(true);
 });
 
+test("pelvic-floor routine pack adds three guided daily sessions", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Add 3 daily routines" }).click();
+  for (const name of [
+    "Pelvic floor · Morning",
+    "Pelvic floor · Midday",
+    "Pelvic floor · Evening",
+  ])
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "3 daily routines added" }),
+  ).toBeDisabled();
+});
+
 test("workout and program builders share the visual family and variant picker", async ({
   page,
 }) => {
